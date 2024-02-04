@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "dendrite-python-sdk"
+version = "0.1.0"
+description = ""
+authors = ["Charles Maddock <charles@dendrite.se>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31.0"
+python-dotenv = "^1.0.1"
+pydantic = "^2.6.0"
+openai = "^1.11.0"
+
+[tool.poetry.group.dev.dependencies]
+autopep8 = "^2.0.4"
+
+[build-system]
+requires = ["poetry-core", "requests", "python-dotenv", "pydantic"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+test = "tests.test_routes:main"
+example_agent = "dendrite_python_sdk.examples.agent:run_agent"
