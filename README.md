@@ -34,8 +34,7 @@ Entire example can be found in /examples.
 
 ```python
 
-...Custom actions...
-
+# ...Custom actions...
 
 messages = [
     {"role": "system", "content": "The assistant is a AI agent [...] "},
