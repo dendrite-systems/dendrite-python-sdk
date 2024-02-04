@@ -14,7 +14,7 @@ You must enter your own OpenAI API key into your Dendrite account's environment 
 
 ## Complete web tasks with Dendrite's agent:
 
-```
+```python
 client = DendriteAPI('your-api-key')
 
 dto = {
@@ -32,7 +32,7 @@ print(res.data) # JSON containing the data from the task if there is any
 
 Entire example can be found in /examples.
 
-```
+```python
 
 ...Custom actions...
 
