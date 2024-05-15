@@ -1,5 +1,7 @@
 # dendrite-python-sdk
 
+This project is in it's infancy and has been built quickly to allow for fast iteration. Contribution from more seasoned open source experts would be much appreciated! 
+
 ## Installation:
 
 ```
