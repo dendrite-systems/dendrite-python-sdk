@@ -6,11 +6,14 @@ authors = ["Charles Maddock <charles@dendrite.se>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 requests = "^2.31.0"
 python-dotenv = "^1.0.1"
 pydantic = "^2.6.0"
 openai = "^1.11.0"
+playwright = "^1.43.0"
+bs4 = "^0.0.2"
+lxml = "^5.2.1"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.4"
