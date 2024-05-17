@@ -1,9 +1,15 @@
+import json
 import httpx
 from dendrite_python_sdk.dto.MakeInteractionDTO import (
     MakeInteractionDTO,
 )
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
+from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
+from dendrite_python_sdk.dto.GoogleSearchDTO import GoogleSearchDTO
+from dendrite_python_sdk.responses.GoogleSearchResponse import GoogleSearchResponse
 from dendrite_python_sdk.responses.InteractionResponse import InteractionResponse
+from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
+from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
 
 
 async def send_request(
@@ -13,7 +19,7 @@ async def send_request(
     headers=None,
     method="GET",
 ):
-    base_url = "http://localhost:8000/api/v1"  # "https://dendrite.se/api/v1"
+    base_url = "https://dendrite-server.azurewebsites.net/api/v1"  # "http://localhost:8000/api/v1"
     url = f"{base_url}/{endpoint}"
     headers = headers or {}
     headers["Content-Type"] = "application/json"
@@ -34,3 +40,17 @@ async def get_interaction(dto: GetInteractionDTO) -> dict:
 async def make_interaction(dto: MakeInteractionDTO) -> InteractionResponse:
     res = await send_request("actions/make-interaction", data=dto.dict(), method="POST")
     return InteractionResponse(status=res["status"], message=res["message"])
+
+
+async def scrape_page(dto: ScrapePageDTO) -> ScrapePageResponse:
+    res = await send_request("actions/scrape-page", data=dto.dict(), method="POST")
+    return ScrapePageResponse(
+        status=res["status"],
+        message=res["message"],
+        json_data=json.loads(res["json_data"]),
+    )
+
+
+async def google_search_request(dto: GoogleSearchDTO) -> GoogleSearchResponse:
+    res = await send_request("actions/google-search", data=dto.dict(), method="POST")
+    return GoogleSearchResponse(results=res["results"])

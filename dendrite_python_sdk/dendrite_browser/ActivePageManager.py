@@ -43,7 +43,6 @@ class ActivePageManager:
         return agent_soup_page
 
     def page_on_navigation_handler(self, frame: Frame):
-        print("new frame!")
         self.active_page = DendritePage(frame.page, self.dendrite_browser)
 
     def page_on_crash_handler(self, page):

@@ -1,9 +1,15 @@
 from __future__ import annotations
+import asyncio
+import time
 
 from playwright.async_api import Page, Locator
 from bs4 import BeautifulSoup
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
+
+from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
+from dendrite_python_sdk.exceptions.DendriteException import DendriteException
+from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
 
 if TYPE_CHECKING:
     from dendrite_python_sdk import DendriteBrowser
@@ -14,8 +20,8 @@ from dendrite_python_sdk.dendrite_browser.utils import (
 )
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
 from dendrite_python_sdk.models.PageInformation import PageInformation
-from dendrite_python_sdk.request_handler import get_interaction
 from dendrite_python_sdk.dendrite_browser.DendriteLocator import DendriteLocator
+from dendrite_python_sdk.request_handler import get_interaction, scrape_page
 
 
 class DendritePage:
@@ -27,6 +33,50 @@ class DendritePage:
     @property
     def url(self):
         return self.page.url
+
+    def get_playwright_page(self) -> Page:
+        return self.page
+
+    async def scrape(
+        self,
+        prompt: str,
+        expected_return_data: Optional[str] = None,
+        return_data_json_schema: Optional[Any] = None,
+    ) -> ScrapePageResponse:
+        page_information = await self.get_page_information()
+        dto = ScrapePageDTO(
+            page_information=page_information,
+            llm_config=self.dendrite_browser.get_llm_config(),
+            prompt=prompt,
+            expected_return_data=expected_return_data,
+            return_data_json_schema=return_data_json_schema,
+        )
+        res = await scrape_page(dto)
+        return res
+
+    async def scroll_to_bottom(self):
+        i = 0
+        last_scroll_position = 0
+        start_time = time.time()
+
+        while True:
+            current_scroll_position = await self.page.evaluate("window.scrollY")
+
+            await self.page.evaluate(f"window.scrollTo(0, {i})")
+            i += 4000
+
+            if (
+                current_scroll_position == last_scroll_position
+                and time.time() - start_time > 2
+            ):
+                break
+
+            if last_scroll_position == current_scroll_position:
+                start_time = time.time()
+
+            last_scroll_position = current_scroll_position
+
+            await asyncio.sleep(0.5)
 
     async def get_element_from_dendrite_id(self, dendrite_id: str) -> Locator:
         try:
@@ -88,6 +138,9 @@ document.querySelectorAll('*').forEach((element, index) => {
 
         await self.page.evaluate(script)
 
+    async def load_entire_page(self) -> None:
+        await self.scroll_to_bottom()
+
     async def get_interactable_element(self, prompt: str) -> DendriteLocator:
         page_information = await self.get_page_information()
 
@@ -96,15 +149,18 @@ document.querySelectorAll('*').forEach((element, index) => {
             page_information=page_information, llm_config=llm_config, prompt=prompt
         )
         res = await get_interaction(dto)
-        print("res: ", res)
-        if res:
+
+        if res and res["dendrite_id"] != "":
             locator = await self.get_element_from_dendrite_id(res["dendrite_id"])
             dendrite_locator = DendriteLocator(
                 res["dendrite_id"], locator, self.dendrite_browser
             )
             return dendrite_locator
 
-        raise Exception("Could not find suitable element on the page.")
+        raise DendriteException(
+            message="Could not find suitable element on the page.",
+            screenshot_base64=page_information.screenshot_base64,
+        )
 
     async def get_soup(self) -> BeautifulSoup:
         await self.generate_dendrite_ids()

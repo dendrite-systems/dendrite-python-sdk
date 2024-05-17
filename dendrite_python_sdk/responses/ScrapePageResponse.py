@@ -1,9 +1,10 @@
-from typing import Literal
+from typing import Any
 from pydantic import BaseModel
 
 from dendrite_python_sdk.dendrite_browser.common.status import Status
 
 
-class InteractionResponse(BaseModel):
+class ScrapePageResponse(BaseModel):
+    json_data: Any
     message: str
     status: Status
