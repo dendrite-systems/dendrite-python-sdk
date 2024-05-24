@@ -19,7 +19,7 @@ async def send_request(
     headers=None,
     method="GET",
 ):
-    base_url = "http://localhost:8000/api/v1"  # "https://dendrite-server.azurewebsites.net/api/v1"  # ""
+    base_url = "https://dendrite-server.azurewebsites.net/api/v1"  # ""  # ""
     url = f"{base_url}/{endpoint}"
     headers = headers or {}
     headers["Content-Type"] = "application/json"
