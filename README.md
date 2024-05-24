@@ -1,63 +1,88 @@
-# dendrite-python-sdk
+# Dendrite
 
-This project is in it's infancy and has been built quickly to allow for fast iteration. Contribution from more seasoned open source pros would be much appreciated! 
+Dendrite is a developer tool that makes it very easy to interact with and scrape websites using AI.
+
+This project is still in it's infancy and is susceptible to many changes the coming months.
+
+If you want to chat with us developers, give feedback and report bugs, our discord is the place to be! [Invite link](https://discord.gg/ETPBdXU3kx)
 
 ## Installation:
 
 ```
-pip install dendrite-python-sdk
+pip install dendrite-python-sdk && playwright install
 ```
 
-## Example:
+## Getting started:
+
+Here is a very simple example of how to use Dendrite. In the example we go to google.com, find the search bar and enter 'hello world' into it.
+
+```python
+from dendrite_python_sdk import DendriteBrowser
+import asyncio
+
+async def main():
+    dendrite_browser = DendriteBrowser(openai_api_key=...)
+    page = await dendrite_browser.goto("https://google.com")
+    search_bar = await page.get_interactable_element("Return the search bar")
+    await search_bar.fill("hello world")
+    dendrite_browser.close()
+
+asyncio.run(main())
+```
+
+More robust documentation is coming soon. For now if you get stuck, don't be shy to join our [discord server](https://discord.gg/ETPBdXU3kx) and ask questions!
+
+## More Advanced Example:
 
 By providing an OpenAI API key you can use `DendriteBrowser` to interact with and extract data from websites with prompts instead of needing to find all the correct selectors.
-
-`DendriteBrowser` uses playwright under the hood to load and interact with websites.
 
 Here's an example (See more examples in `dendrite_python_sdk/examples`):
 
 ```python
-import asyncio
 import os
+import asyncio
+
 from dendrite_python_sdk import DendriteBrowser
 from dotenv import load_dotenv, find_dotenv
-
-from dendrite_python_sdk.models.LLMConfig import LLMConfig
+import pandas as pd
 
 load_dotenv(find_dotenv())
 
-openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 
-llm_config = LLMConfig(openai_api_key=openai_api_key)
-dendrite_browser = DendriteBrowser(
-    llm_config=llm_config, playwright_options={"headless": False}
-)
-
-async def run():
-    await dendrite_browser.launch()
-    # Go to fishards.com
-    page = await dendrite_browser.goto("https://fishards.com")
-
-    # Here we get the desired element by describing it with a prompt on the page we navigated to
-    element = await page.get_interactable_element("Get the try for free button")
-    
-    # By providing the expected_outcome argument, the response payload will contain a status of 'success' or 'failed', along with a message describing what when right or wrong
-    res = await element.click(
-        timeout=1000, expected_outcome="Should redirect to Fishards Steam page"
+async def main():
+    dendrite_browser = DendriteBrowser(
+        openai_api_key=os.environ.get("OPENAI_API_KEY", "")
     )
-    print("res: ", res)
 
-    # Now that we redirected, lets get the active page and search for fishards in the search bar
-    page = await dendrite_browser.get_active_page()
+    page = await dendrite_browser.goto(
+        "https://ycombinator.com/companies", scroll_through_entire_page=False
+    )
+
+    # Get elements with prompts instead of using brittle selectors
     search_bar = await page.get_interactable_element(
-        "The search bar with the placeholder text 'search'"
+        "The search bar used to find startups"
     )
-    fill_res = await search_bar.fill("Fishards")
-    print("fill_res: ", fill_res)
-    await page.page.keyboard.press("Enter")
-    await asyncio.sleep(4)
-    await dendrite_browser.close()
+    await search_bar.fill("AI agent")
+
+    # Scraping data is as easy as writing a good prompt
+    await page.scroll_through_entire_page()
+    startup_urls = await page.scrape(
+        "Extract a list of valid urls for each listed startup's YC page"
+    )
+
+    # Let's go to every AI agent startup's page and fetch information about the founders
+    startup_info = []
+    for url in startup_urls:
+        page = await dendrite_browser.goto(url)
+        startup_details = await page.scrape(
+            "Extract a dict like this: {name: str, slogan: str, founders_social_media_urls: a string where each url is separated by a linebreak}"
+        )
+        print("startup_details: ", startup_details)
+        startup_info.append(startup_details)
+
+    df = pd.DataFrame(startup_info)
+    df.to_excel("ai_agent_founders.xlsx", index=False)
 
 
-asyncio.run(run())
+asyncio.run(main())
 ```
