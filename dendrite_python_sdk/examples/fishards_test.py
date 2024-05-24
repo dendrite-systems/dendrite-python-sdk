@@ -22,11 +22,6 @@ dendrite_browser = DendriteBrowser(
 async def run():
     try:
         await dendrite_browser.launch()
-        # search_results = await dendrite_browser.google_search(
-        #     "Fishards official website", "only the official website"
-        # )
-        # print("search_results: ", search_results)
-        # await asyncio.sleep(4)
 
         page = await dendrite_browser.goto("https://fishards.com")
         element = await page.get_interactable_element("Get the epic lollol button")

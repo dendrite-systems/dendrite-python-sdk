@@ -76,7 +76,7 @@ def get_describing_attrs(bs4: Tag):
     for attr in salient_attributes:
         attribute_value = bs4.get(attr, None)
         if attribute_value:
-            res.append(attribute_value)
+            res.append(f"{attr}: {attribute_value}")
 
     if len(res) == 0:
         res += [

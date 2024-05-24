@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional
+from typing import Any, List, Optional
 from uuid import uuid4
 from urllib.parse import quote
 import os
@@ -10,7 +10,9 @@ from dendrite_python_sdk.dendrite_browser.DendritePage import DendritePage
 from dendrite_python_sdk.dto.GoogleSearchDTO import GoogleSearchDTO
 from dendrite_python_sdk.models.LLMConfig import LLMConfig
 from dendrite_python_sdk.request_handler import google_search_request
-from dendrite_python_sdk.responses.GoogleSearchResponse import GoogleSearchResponse
+from dendrite_python_sdk.responses.GoogleSearchResponse import (
+    SearchResult,
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -19,58 +21,74 @@ logger.setLevel(logging.INFO)
 class DendriteBrowser:
     def __init__(
         self,
-        llm_config: LLMConfig,
+        openai_api_key: str,
         id=None,
-        playwright_options: Any = {"headless": False},
+        playwright_options: Any = {
+            "headless": False,
+        },
     ):
         self.id = uuid4() if id == None else id
         self.playwright_options = playwright_options
         self.playwright: Playwright | None = None
         self.browser_context: BrowserContext | None = None
         self.active_page_manager: ActivePageManager | None = None
+
+        llm_config = LLMConfig(openai_api_key=openai_api_key)
         self.llm_config = llm_config
 
     async def get_active_page(self) -> DendritePage:
-        if self.active_page_manager == None:
-            raise Exception("Browser not launched.")
-
-        return await self.active_page_manager.get_active_page()
+        active_page_manager = await self._get_active_page_manager()
+        return await active_page_manager.get_active_page()
 
     def get_llm_config(self):
         return self.llm_config
 
-    async def goto(self, url: str, load_entire_page=True) -> DendritePage:
-        if self.active_page_manager == None:
-            raise Exception("Browser not launched.")
+    async def goto(
+        self, url: str, scroll_through_entire_page: Optional[bool] = True
+    ) -> DendritePage:
+        active_page_manager = await self._get_active_page_manager()
+        active_page = await active_page_manager.get_active_page()
+        try:
+            await active_page.page.goto(url)
+        except TimeoutError:
+            print("Timeout when loading page but continuing anyways.")
 
-        active_page = await self.active_page_manager.get_active_page()
-        await active_page.page.goto(url)
+        if scroll_through_entire_page:
+            await active_page.scroll_through_entire_page()
 
-        if load_entire_page:
-            await active_page.load_entire_page()
-
-        return await self.active_page_manager.get_active_page()
+        return await active_page_manager.get_active_page()
 
     def _is_launched(self):
         return self.browser_context != None
 
+    async def _get_active_page_manager(self) -> ActivePageManager:
+        if not self.active_page_manager:
+            _, _, active_page_manager = await self.launch()
+            return active_page_manager
+        else:
+            return self.active_page_manager
+
     async def google_search(
-        self, query: str, filter_results_prompt: Optional[str] = None
-    ) -> GoogleSearchResponse:
+        self,
+        query: str,
+        filter_results_prompt: Optional[str] = None,
+        load_all_results: Optional[bool] = True,
+    ) -> List[SearchResult]:
         query = quote(query)
         url = f"https://www.google.com/search?q={query}"
-        page = await self.goto(url)
+        page = await self.goto(url, load_entire_page=False)
         page_information = await page.get_page_information()
 
-        try:
-            reject_all_cookies = await page.get_interactable_element(
-                "The reject all cookies button"
-            )
-            await reject_all_cookies.click()
-        except Exception as e:
-            print("Failed to close reject all button")
+        if load_all_results == True:
+            try:
+                reject_all_cookies = await page.get_interactable_element(
+                    "The reject all cookies button"
+                )
+                await reject_all_cookies.get_playwright_locator().click(timeout=0)
+            except Exception as e:
+                print("Failed to close reject all button")
 
-        await page.scroll_to_bottom()
+            await page.scroll_to_bottom()
 
         dto = GoogleSearchDTO(
             query=query,
@@ -79,7 +97,8 @@ class DendriteBrowser:
             llm_config=self.llm_config,
         )
 
-        return await google_search_request(dto)
+        response = await google_search_request(dto)
+        return response.results
 
     async def launch(self):
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
@@ -87,15 +106,11 @@ class DendriteBrowser:
         browser = await self.playwright.chromium.launch(**self.playwright_options)
         self.browser_context = await browser.new_context()
         self.active_page_manager = ActivePageManager(self, self.browser_context)
+        return browser, self.browser_context, self.active_page_manager
 
     async def new_page(self) -> DendritePage:
-        if self._is_launched() == False:
-            await self.launch()
-
-        if self.active_page_manager:
-            return await self.active_page_manager.open_new_page()
-
-        raise Exception("Failed to open new page.")
+        active_page_manager = await self._get_active_page_manager()
+        return await active_page_manager.open_new_page()
 
     async def close(self):
         if self.browser_context:

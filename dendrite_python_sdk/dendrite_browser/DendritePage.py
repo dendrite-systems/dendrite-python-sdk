@@ -1,11 +1,13 @@
 from __future__ import annotations
 import asyncio
+import json
 import time
 
 from playwright.async_api import Page, Locator
 from bs4 import BeautifulSoup
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Type
+from pydantic import BaseModel
 
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
 from dendrite_python_sdk.exceptions.DendriteException import DendriteException
@@ -42,17 +44,27 @@ class DendritePage:
         prompt: str,
         expected_return_data: Optional[str] = None,
         return_data_json_schema: Optional[Any] = None,
-    ) -> ScrapePageResponse:
+        pydantic_return_model: Optional[Type[BaseModel]] = None,
+    ) -> Any:
+
+        json_schema = return_data_json_schema
+        if pydantic_return_model:
+            json_schema = json.loads(pydantic_return_model.schema_json())
+
         page_information = await self.get_page_information()
         dto = ScrapePageDTO(
             page_information=page_information,
             llm_config=self.dendrite_browser.get_llm_config(),
             prompt=prompt,
             expected_return_data=expected_return_data,
-            return_data_json_schema=return_data_json_schema,
+            return_data_json_schema=json_schema,
         )
         res = await scrape_page(dto)
-        return res
+
+        if pydantic_return_model:
+            return pydantic_return_model.parse_obj(res.json_data)
+
+        return res.json_data
 
     async def scroll_to_bottom(self):
         i = 0
@@ -63,15 +75,12 @@ class DendritePage:
             current_scroll_position = await self.page.evaluate("window.scrollY")
 
             await self.page.evaluate(f"window.scrollTo(0, {i})")
-            i += 4000
+            i += 20000
 
-            if (
-                current_scroll_position == last_scroll_position
-                and time.time() - start_time > 2
-            ):
+            if time.time() - start_time > 2:
                 break
 
-            if last_scroll_position == current_scroll_position:
+            if current_scroll_position - last_scroll_position > 1000:
                 start_time = time.time()
 
             last_scroll_position = current_scroll_position
@@ -138,7 +147,7 @@ document.querySelectorAll('*').forEach((element, index) => {
 
         await self.page.evaluate(script)
 
-    async def load_entire_page(self) -> None:
+    async def scroll_through_entire_page(self) -> None:
         await self.scroll_to_bottom()
 
     async def get_interactable_element(self, prompt: str) -> DendriteLocator:
