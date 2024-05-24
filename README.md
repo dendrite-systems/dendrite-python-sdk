@@ -5,7 +5,7 @@ This project is in it's infancy and has been built quickly to allow for fast ite
 ## Installation:
 
 ```
-pip install dendrite-python-sdk
+pip install dendrite-python-sdk && playwright install
 ```
 
 ## Example:
