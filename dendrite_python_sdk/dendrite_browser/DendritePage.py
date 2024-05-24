@@ -150,21 +150,28 @@ document.querySelectorAll('*').forEach((element, index) => {
     async def scroll_through_entire_page(self) -> None:
         await self.scroll_to_bottom()
 
-    async def get_interactable_element(self, prompt: str) -> DendriteLocator:
-        page_information = await self.get_page_information()
+    async def get_interactable_element(self, prompt: str, wait_for: bool = True) -> DendriteLocator:
+       
 
         llm_config = self.dendrite_browser.get_llm_config()
-        dto = GetInteractionDTO(
-            page_information=page_information, llm_config=llm_config, prompt=prompt
-        )
-        res = await get_interaction(dto)
 
-        if res and res["dendrite_id"] != "":
-            locator = await self.get_element_from_dendrite_id(res["dendrite_id"])
-            dendrite_locator = DendriteLocator(
-                res["dendrite_id"], locator, self.dendrite_browser
+        num_attempts = 0
+        while num_attempts < 3:
+            page_information = await self.get_page_information()
+            
+            dto = GetInteractionDTO(
+                page_information=page_information, llm_config=llm_config, prompt=prompt
             )
-            return dendrite_locator
+
+            res = await get_interaction(dto)
+            print("res: ", res)
+            if res and res["dendrite_id"] != "":
+                locator = await self.get_element_from_dendrite_id(res["dendrite_id"])
+                dendrite_locator = DendriteLocator(
+                    res["dendrite_id"], locator, self.dendrite_browser
+                )
+                return dendrite_locator
+            num_attempts += 1
 
         raise DendriteException(
             message="Could not find suitable element on the page.",

@@ -40,13 +40,10 @@ def extract_info(outerhtml: str) -> Tuple[str, InteractableElementRes] | None:
     bs4_tag = bs4_tag.contents[0]
     if isinstance(bs4_tag, Tag):
         id = bs4_tag.get("d-id", None)
+        desc = get_describing_attrs(bs4_tag)
         if id:
             if bs4_tag.text and bs4_tag.text.strip() != "":
-                extra_attrs = None
-                href = bs4_tag.get("href", None)
-                if href:
-                    extra_attrs = f"HREF: {str(href)}"
-                return (str(id), {"text": bs4_tag.text.strip(), "attrs": extra_attrs})
+                return (str(id), {"text": bs4_tag.text.strip(), "attrs": desc})
             else:
                 desc = get_describing_attrs(bs4_tag)
                 return (str(id), {"attrs": desc, "text": None})
@@ -71,6 +68,7 @@ def get_describing_attrs(bs4: Tag):
         "value",
         "type",
         "href",
+        "role",
     ]
     res = []
     for attr in salient_attributes:
