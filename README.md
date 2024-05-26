@@ -15,7 +15,7 @@ pip install dendrite-python-sdk && playwright install
 
 ## Quick start:
 
-Here is a very simple example of how to use Dendrite. In the example we go to google.com, find the search bar and enter 'hello world' into it.
+Here is a very simple example of how to use Dendrite. In the example we go to google.com, close the cookie popup, find the search bar and enter 'hello world' into it.
 
 To do this we install dendrite and asyncio like so: `pip install asyncio dendrite-python-sdk && playwright install` and we then create a file called `main.py` which we can run with `python main.py` from the terminal.
 
@@ -25,11 +25,14 @@ from dendrite_python_sdk import DendriteBrowser
 import asyncio
 
 async def main():
-    dendrite_browser = DendriteBrowser(openai_api_key=...) # Use your own Open AI API key here
+    dendrite_browser = DendriteBrowser(openai_api_key=...) # Use your own OpenAI API key here
     page = await dendrite_browser.goto("https://google.com")
+    close_cookies = await page.get_interactable_element("reject cookies popup button")
+    await close_cookies.click(expected_outcome="That the cookies popup closed.")
     search_bar = await page.get_interactable_element("Return the search bar")
     await search_bar.fill("hello world")
     await dendrite_browser.close()
+
 
 asyncio.run(main())
 ```

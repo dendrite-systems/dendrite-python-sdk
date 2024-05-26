@@ -150,15 +150,18 @@ document.querySelectorAll('*').forEach((element, index) => {
     async def scroll_through_entire_page(self) -> None:
         await self.scroll_to_bottom()
 
-    async def get_interactable_element(self, prompt: str, wait_for: bool = True) -> DendriteLocator:
-       
-
+    async def get_interactable_element(
+        self,
+        prompt: str,
+        timeout: float = 0.5,
+        max_retries: int = 3,
+    ) -> DendriteLocator:
         llm_config = self.dendrite_browser.get_llm_config()
 
         num_attempts = 0
-        while num_attempts < 3:
+        while num_attempts < max_retries:
             page_information = await self.get_page_information()
-            
+
             dto = GetInteractionDTO(
                 page_information=page_information, llm_config=llm_config, prompt=prompt
             )
@@ -172,7 +175,9 @@ document.querySelectorAll('*').forEach((element, index) => {
                 )
                 return dendrite_locator
             num_attempts += 1
+            await asyncio.sleep(timeout)
 
+        page_information = await self.get_page_information()
         raise DendriteException(
             message="Could not find suitable element on the page.",
             screenshot_base64=page_information.screenshot_base64,
