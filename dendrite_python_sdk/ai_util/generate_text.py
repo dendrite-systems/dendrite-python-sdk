@@ -16,30 +16,29 @@ logger = logging.getLogger(__name__)
 
 
 async def multiple_expensive_smart_slow_generate_text(
-    llm_config_dto: LLMConfig, prompts: List[str], config={}
+    openai_api_key: str, prompts: List[str], config={}
 ) -> List[str]:
-
     tasks = []
     for prompt in prompts:
-        tasks.append(expensive_smart_slow_generate_text(llm_config_dto, prompt, config))
+        tasks.append(expensive_smart_slow_generate_text(openai_api_key, prompt, config))
 
     return await asyncio.gather(*tasks)
 
 
 async def multiple_cheap_fast_dumb_generate_text(
-    llm_config_dto: LLMConfig, prompts: List[str], config={}
+    openai_api_key: str, prompts: List[str], config={}
 ) -> List[str]:
-
     tasks = []
     for prompt in prompts:
-        tasks.append(cheap_fast_dumb_generate_text(llm_config_dto, prompt, config))
+        tasks.append(cheap_fast_dumb_generate_text(openai_api_key, prompt, config))
 
     return await asyncio.gather(*tasks)
 
 
 async def cheap_fast_dumb_generate_text(
-    llm_config_dto: LLMConfig, prompt: str, config={}
+    openai_api_key: str, prompt: str, config={}
 ) -> str:
+    llm_config_dto: LLMConfig = LLMConfig(openai_api_key=openai_api_key)
     default_config = {
         "messages": [{"role": "user", "content": prompt}],
         "model": "gpt-3.5-turbo",
@@ -50,8 +49,9 @@ async def cheap_fast_dumb_generate_text(
 
 
 async def expensive_smart_slow_generate_text(
-    llm_config_dto: LLMConfig, prompt: str, config={}
+    openai_api_key: str, prompt: str, config={}
 ) -> str:
+    llm_config_dto: LLMConfig = LLMConfig(openai_api_key=openai_api_key)
     default_config = {
         "messages": [{"role": "user", "content": prompt}],
         "model": "gpt-4o",

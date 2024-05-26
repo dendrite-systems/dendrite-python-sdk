@@ -13,6 +13,7 @@ from dendrite_python_sdk.request_handler import google_search_request
 from dendrite_python_sdk.responses.GoogleSearchResponse import (
     SearchResult,
 )
+from dendrite_python_sdk.request_handler import config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -23,11 +24,13 @@ class DendriteBrowser:
         self,
         openai_api_key: str,
         id=None,
+        dendrite_api_key: str | None = None,
         playwright_options: Any = {
             "headless": False,
         },
     ):
         self.id = uuid4() if id == None else id
+        self.dendrite_api_key = dendrite_api_key
         self.playwright_options = playwright_options
         self.playwright: Playwright | None = None
         self.browser_context: BrowserContext | None = None
@@ -35,6 +38,9 @@ class DendriteBrowser:
 
         llm_config = LLMConfig(openai_api_key=openai_api_key)
         self.llm_config = llm_config
+
+        if dendrite_api_key:
+            config["dendrite_api_key"] = dendrite_api_key
 
     async def get_active_page(self) -> DendritePage:
         active_page_manager = await self._get_active_page_manager()
@@ -76,7 +82,7 @@ class DendriteBrowser:
     ) -> List[SearchResult]:
         query = quote(query)
         url = f"https://www.google.com/search?q={query}"
-        page = await self.goto(url, load_entire_page=False)
+        page = await self.goto(url, scroll_through_entire_page=False)
         page_information = await page.get_page_information()
 
         if load_all_results == True:

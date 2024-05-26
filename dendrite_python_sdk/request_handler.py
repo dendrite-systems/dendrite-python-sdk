@@ -1,4 +1,5 @@
 import json
+import sys
 import httpx
 from dendrite_python_sdk.dto.MakeInteractionDTO import (
     MakeInteractionDTO,
@@ -11,6 +12,9 @@ from dendrite_python_sdk.responses.InteractionResponse import InteractionRespons
 from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
 from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
 
+config = {"dendrite_api_key": ""}
+dev_mode = True if "--dev" in sys.argv else False
+
 
 async def send_request(
     endpoint,
@@ -19,10 +23,16 @@ async def send_request(
     headers=None,
     method="GET",
 ):
-    base_url = "http://localhost:8000/api/v1"  # "https://dendrite-server.azurewebsites.net/api/v1"  # ""
+    base_url = (
+        "http://localhost:8000/api/v1"
+        if dev_mode
+        else "https://dendrite-server.azurewebsites.net/api/v1"
+    )
     url = f"{base_url}/{endpoint}"
     headers = headers or {}
     headers["Content-Type"] = "application/json"
+    if config["dendrite_api_key"] != "":
+        headers["Authorization"] = f"Bearer {config['dendrite_api_key']}"
 
     async with httpx.AsyncClient(timeout=300) as client:
         response = await client.request(
