@@ -2,9 +2,10 @@
 
 Dendrite is a developer tool that makes it very easy to interact with and scrape websites using AI.
 
-This project is still in it's infancy and is susceptible to many changes the coming months.
+This project is still in it's infancy and is susceptible to many changes in the coming weeks. 
 
 If you want to chat with us developers, give feedback and report bugs, our discord is the place to be! [Invite link](https://discord.gg/ETPBdXU3kx)
+
 
 ## Installation:
 
@@ -12,31 +13,34 @@ If you want to chat with us developers, give feedback and report bugs, our disco
 pip install dendrite-python-sdk && playwright install
 ```
 
-## Getting started:
+## Quick start:
 
 Here is a very simple example of how to use Dendrite. In the example we go to google.com, find the search bar and enter 'hello world' into it.
 
+To do this we install dendrite and asyncio like so: `pip install asyncio dendrite-python-sdk && playwright install` and we then create a file called `main.py` which we can run with `python main.py` from the terminal.
+
+`main.py`
 ```python
 from dendrite_python_sdk import DendriteBrowser
 import asyncio
 
 async def main():
-    dendrite_browser = DendriteBrowser(openai_api_key=...)
+    dendrite_browser = DendriteBrowser(openai_api_key=...) # Use your own Open AI API key here
     page = await dendrite_browser.goto("https://google.com")
     search_bar = await page.get_interactable_element("Return the search bar")
     await search_bar.fill("hello world")
-    dendrite_browser.close()
+    await dendrite_browser.close()
 
 asyncio.run(main())
 ```
 
-More robust documentation is coming soon. For now if you get stuck, don't be shy to join our [discord server](https://discord.gg/ETPBdXU3kx) and ask questions!
-
 ## More Advanced Example:
 
-By providing an OpenAI API key you can use `DendriteBrowser` to interact with and extract data from websites with prompts instead of needing to find all the correct selectors.
+With Dendrite we can do more than just finding and using elements. 
 
-Here's an example (See more examples in `dendrite_python_sdk/examples`):
+We can scrape data from pages and ensure that the returned data followed a certain structure by prompting, using a JSON schema or passing in a pydantic model.
+
+Below is an example of how he can, see more examples in `dendrite_python_sdk/examples`.
 
 ```python
 import os
@@ -51,7 +55,8 @@ load_dotenv(find_dotenv())
 
 async def main():
     dendrite_browser = DendriteBrowser(
-        openai_api_key=os.environ.get("OPENAI_API_KEY", "")
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        dendrite_api_key=os.environ.get("DENDRITE_API_KEY", "") # Generate a dendrite API at https://dendrite.se to get better rate limits and latency.
     )
 
     page = await dendrite_browser.goto(
@@ -86,3 +91,154 @@ async def main():
 
 asyncio.run(main())
 ```
+
+
+## Class Documentation
+
+### DendriteBrowser
+
+DendriteBrowser is an abstraction on top of playwright's browser. You can do everything you would normally do with Playwright but with a few new handy AI functions. Access 
+
+#### Methods
+
+
+
+**`__init__(self, openai_api_key: str, id=None, playwright_options: Any = {"headless": False})`**  
+
+Initializes the DendriteBrowser class.
+
+**Params**:
+- `openai_api_key` (str): Your OpenAI API Key.
+- `id` (Optional): The unique ID for the browser session.
+- `playwright_options` (dict): Options to configure Playwright browser.
+
+
+
+
+**`get_active_page(self) -> DendritePage`**  
+
+Returns the active page.
+
+
+
+
+**`goto(self, url: str, scroll_through_entire_page: Optional[bool] = True) -> DendritePage`**  
+
+Navigates to the specified URL. 
+
+**Params**:
+- `url` (str): URL of the webpage.
+- `scroll_through_entire_page` (Optional[bool]): Whether to scroll through the entire page.
+
+
+
+
+**`google_search(self, query: str, filter_results_prompt: Optional[str] = None, load_all_results: Optional[bool] = True) -> List[SearchResult]`**  
+
+Performs a Google search and returns search results.
+
+**Params**:
+- `query` (str): The search query.
+- `filter_results_prompt` (Optional[str]): Prompt to filter results.
+- `load_all_results` (Optional[bool]): Whether to load all results.
+
+
+
+
+**`new_page(self) -> DendritePage`**  
+
+Opens a new page in the browser.
+
+
+
+
+**`close(self)`**  
+
+Closes the browser context.
+
+
+
+### DendritePage
+
+Abstraction layer on top of Playwright's Page class. Use `get_playwright_locator` to get the playwright page.
+
+#### Methods
+
+
+
+**`get_playwright_page(self) -> Page`**  
+
+Returns the Playwright page instance.
+
+
+
+
+**`scrape(self, prompt: str, expected_return_data: Optional[str] = None, return_data_json_schema: Optional[Any] = None, pydantic_return_model: Optional[Type[BaseModel]] = None) -> Any`**  
+
+Scrapes data from the page based on a prompt.
+
+**Params**:
+- `prompt` (str): The prompt to gather data.
+- `expected_return_data` (Optional[str]): Expected return data.
+- `return_data_json_schema` (Optional[Any]): JSON schema for return data.
+- `pydantic_return_model` (Optional[Type[BaseModel]]): Pydantic model for return data.
+
+
+
+
+**`scroll_through_entire_page(self) -> None`**  
+
+Scrolls through the entire page.
+
+
+
+
+**`get_interactable_element(self, prompt: str) -> DendriteLocator`**  
+
+Returns an interactable element based on a prompt.
+
+
+### DendriteLocator
+
+Abstraction layer on top of Playwright's Locator class. Use `get_playwright_locator` to get the playwright locator.
+
+#### Methods
+
+
+
+**`get_playwright_locator(self) -> Locator`**  
+
+Returns the Playwright locator.
+
+
+
+
+**`wait_for_page_changes(self, old_url: str, timeout: float = 2)`**  
+
+Waits for changes in the page.
+**Params**:
+
+- `old_url` (str): The URL before the interaction.
+- `timeout` (float): The time to wait for changes.
+
+
+
+
+**`click(self, expected_outcome="", *args, **kwargs) -> InteractionResponse`**  
+
+Clicks the element and handles the interaction.
+
+**Params**:
+- `expected_outcome` (str): Expected outcome after clicking.
+
+
+
+
+**`fill(self, value: str, expected_outcome="", *args, **kwargs)`**  
+
+Fills the element with the provided value.
+
+**Params**:
+- `value` (str): The value to fill.
+- `expected_outcome` (str): Expected outcome after filling.
+

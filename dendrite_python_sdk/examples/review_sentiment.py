@@ -16,7 +16,10 @@ load_dotenv(find_dotenv())
 
 async def main():
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-    dendrite_browser = DendriteBrowser(openai_api_key=openai_api_key)
+    dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
+    dendrite_browser = DendriteBrowser(
+        openai_api_key=openai_api_key, dendrite_api_key=dendrite_api_key
+    )
 
     # Let's specify some pydantic models for the structure of the reviews
     class Review(BaseModel):
