@@ -12,8 +12,18 @@ Join our discord to give feedback and report bugs! [Invite link](https://discord
 
 ## Installation:
 
+You'll need `dendrite-python-sdk`, `asyncio` and `playwright`. You'll also need to install the browser drivers with `playwright install`.
+
+pip:
 ```
-pip install dendrite-python-sdk && playwright install
+pip install asyncio playwright dendrite-python-sdk
+playwright install
+```
+
+poetry:
+```
+poetry add asyncio playwright dendrite-python-sdk
+poetry run playwright install
 ```
 
 ## Quick start:
