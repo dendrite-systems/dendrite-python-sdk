@@ -1,4 +1,5 @@
-from typing import Dict, Optional, Tuple, TypedDict
+from typing import Dict, Optional, Tuple, Union
+from typing_extensions import TypedDict
 from playwright.async_api import Page
 from bs4 import BeautifulSoup, Tag
 
@@ -35,7 +36,7 @@ async def get_interactive_elements_with_playwright(
     return res
 
 
-def extract_info(outerhtml: str) -> Tuple[str, InteractableElementRes] | None:
+def extract_info(outerhtml: str) -> Union[Tuple[str, InteractableElementRes], None]:
     bs4_tag = BeautifulSoup(outerhtml, "html.parser")
     bs4_tag = bs4_tag.contents[0]
     if isinstance(bs4_tag, Tag):

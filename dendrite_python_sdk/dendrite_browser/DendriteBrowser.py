@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from uuid import uuid4
 from urllib.parse import quote
 import os
@@ -24,7 +24,7 @@ class DendriteBrowser:
         self,
         openai_api_key: str,
         id=None,
-        dendrite_api_key: str | None = None,
+        dendrite_api_key: Optional[str] = None,
         playwright_options: Any = {
             "headless": False,
         },
@@ -32,9 +32,9 @@ class DendriteBrowser:
         self.id = uuid4() if id == None else id
         self.dendrite_api_key = dendrite_api_key
         self.playwright_options = playwright_options
-        self.playwright: Playwright | None = None
-        self.browser_context: BrowserContext | None = None
-        self.active_page_manager: ActivePageManager | None = None
+        self.playwright: Optional[Playwright] = None
+        self.browser_context: Optional[BrowserContext] = None
+        self.active_page_manager: Optional[ActivePageManager] = None
 
         llm_config = LLMConfig(openai_api_key=openai_api_key)
         self.llm_config = llm_config

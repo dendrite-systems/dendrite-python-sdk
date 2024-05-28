@@ -1,5 +1,6 @@
 import json
 import sys
+from typing import Optional
 import httpx
 from dendrite_python_sdk.dto.MakeInteractionDTO import MakeInteractionDTO
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
@@ -14,7 +15,7 @@ dev_mode = True if "--dev" in sys.argv else False
 
 
 async def send_request(
-    endpoint, params=None, data: dict | None = None, headers=None, method="GET"
+    endpoint, params=None, data: Optional[dict] = None, headers=None, method="GET"
 ):
     base_url = (
         "http://localhost:8000/api/v1"

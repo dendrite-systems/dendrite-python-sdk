@@ -10,7 +10,7 @@ load_dotenv(find_dotenv())
 
 async def main():
     dendrite_browser = DendriteBrowser(
-        openai_api_key=os.environ.get("OPENAI_API_KEY", "")
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""), playwright_options={}
     )
 
     page = await dendrite_browser.goto(
