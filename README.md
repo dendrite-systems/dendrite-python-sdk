@@ -74,7 +74,7 @@ With Dendrite we can do more than just finding and using elements.
 
 We can scrape data from pages and ensure that the returned data followed a certain structure by prompting, using a JSON schema or passing in a pydantic model.
 
-Below is an example of how he can, see more examples in `dendrite_python_sdk/examples`.
+Below is an example of how he can, see more examples in `dendrite_python_sdk/examples` or [on our website](https://dendrite.se/#example-code).
 
 ```python
 import os
