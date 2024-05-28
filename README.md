@@ -1,10 +1,13 @@
 # Dendrite
 
-Dendrite is a developer tool that makes it very easy to interact with and scrape websites using AI.
+Dendrite is an SDK that makes it easy to interact with and scrape websites using prompts.
 
-This project is still in it's infancy and is susceptible to many changes in the coming weeks. 
+```python
+# Extracting data from a page is as simple as doing page.scrape(prompt)
+startup_urls = await page.scrape("Extract a list of valid urls for each listed startup's YC page")
+```
 
-If you want to chat with us developers, give feedback and report bugs, our discord is the place to be! [Invite link](https://discord.gg/ETPBdXU3kx)
+Join our discord to give feedback and report bugs! [Invite link](https://discord.gg/ETPBdXU3kx)
 
 
 ## Installation:
@@ -15,9 +18,9 @@ pip install dendrite-python-sdk && playwright install
 
 ## Quick start:
 
-Here is a very simple example of how to use Dendrite. In the example we go to google.com, close the cookie popup, find the search bar and enter 'hello world' into it.
+Here is a very simple example of how to use Dendrite.
 
-To do this we install dendrite and asyncio like so: `pip install asyncio dendrite-python-sdk && playwright install` and we then create a file called `main.py` which we can run with `python main.py` from the terminal.
+Install dendrite and asyncio like so: `pip install asyncio dendrite-python-sdk && playwright install` and create a file called `main.py`. Use the code below and run it with `python main.py` from the terminal.
 
 `main.py`
 ```python
@@ -25,12 +28,30 @@ from dendrite_python_sdk import DendriteBrowser
 import asyncio
 
 async def main():
-    dendrite_browser = DendriteBrowser(openai_api_key=...) # Use your own OpenAI API key here
+    # Launch browser locally
+    dendrite_browser = DendriteBrowser(openai_api_key=...) # Use your OpenAI key here
+
+    # Go to google.com
     page = await dendrite_browser.goto("https://google.com")
+
+    # Get the reject cookies button
     close_cookies = await page.get_interactable_element("reject cookies popup button")
+
+    # Click the button, returns IncorrectOutcomeException if the popup wasn't closed
     await close_cookies.click(expected_outcome="That the cookies popup closed.")
+
+    # Get the search bar
     search_bar = await page.get_interactable_element("Return the search bar")
-    await search_bar.fill("hello world")
+
+    # Enter "hello world" into it.
+    await search_bar.fill(
+        "hello world", expected_outcome="The words 'hello world' to have been entered"
+    )
+
+    # Use the Playwright page to press enter.
+    await page.get_playwright_page().keyboard.press("Enter")
+
+    await asyncio.sleep(2)
     await dendrite_browser.close()
 
 
