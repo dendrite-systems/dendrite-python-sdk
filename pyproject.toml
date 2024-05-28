@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dendrite-python-sdk"
-version = "0.1.0"
+version = "1.0.1"
 description = ""
 authors = ["Charles Maddock <charles@dendrite.se>"]
 readme = "README.md"

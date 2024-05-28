@@ -82,8 +82,6 @@ class DendriteLocator:
             page_before=page_before_info, page_after=page_after_info
         )
 
-        print("page_after_info: ", page_after_info.url)
-
         dto = MakeInteractionDTO(
             url=page_before.url,
             dendrite_id=self.dendrite_id,

@@ -1,15 +1,12 @@
 import json
 import sys
 import httpx
-from dendrite_python_sdk.dto.MakeInteractionDTO import (
-    MakeInteractionDTO,
-)
+from dendrite_python_sdk.dto.MakeInteractionDTO import MakeInteractionDTO
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
 from dendrite_python_sdk.dto.GoogleSearchDTO import GoogleSearchDTO
 from dendrite_python_sdk.responses.GoogleSearchResponse import GoogleSearchResponse
 from dendrite_python_sdk.responses.InteractionResponse import InteractionResponse
-from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
 from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
 
 config = {"dendrite_api_key": ""}
@@ -17,11 +14,7 @@ dev_mode = True if "--dev" in sys.argv else False
 
 
 async def send_request(
-    endpoint,
-    params=None,
-    data: dict | None = None,
-    headers=None,
-    method="GET",
+    endpoint, params=None, data: dict | None = None, headers=None, method="GET"
 ):
     base_url = (
         "http://localhost:8000/api/v1"
@@ -35,11 +28,24 @@ async def send_request(
         headers["Authorization"] = f"Bearer {config['dendrite_api_key']}"
 
     async with httpx.AsyncClient(timeout=300) as client:
-        response = await client.request(
-            method, url, params=params, json=data, headers=headers
-        )
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = await client.request(
+                method, url, params=params, json=data, headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as http_err:
+            detail = http_err.response.json()
+            print(
+                f"HTTP error occurred: {http_err.response.status_code}: {detail['detail']}"
+            )
+            raise http_err
+        except httpx.RequestError as req_err:
+            print(f"Request error occurred: {req_err}")
+            raise req_err
+        except Exception as err:
+            print(f"An error occurred: {err}")
+            raise err
 
 
 async def get_interaction(dto: GetInteractionDTO) -> dict:

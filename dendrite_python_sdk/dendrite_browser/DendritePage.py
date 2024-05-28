@@ -67,6 +67,7 @@ class DendritePage:
         return res.json_data
 
     async def scroll_to_bottom(self):
+        # TODO: add timeout
         i = 0
         last_scroll_position = 0
         start_time = time.time()
@@ -167,7 +168,6 @@ document.querySelectorAll('*').forEach((element, index) => {
             )
 
             res = await get_interaction(dto)
-            print("res: ", res)
             if res and res["dendrite_id"] != "":
                 locator = await self.get_element_from_dendrite_id(res["dendrite_id"])
                 dendrite_locator = DendriteLocator(
