@@ -1,9 +1,8 @@
 # Dendrite
 
-Dendrite is an SDK that makes it easy to interact with and scrape websites using prompts.
+With Dendrite you can interact with and scrape websites using prompts instead of selectors:
 
 ```python
-# Extracting data from a page is as simple as doing page.scrape(prompt)
 startup_urls = await page.scrape("Extract a list of valid urls for each listed startup's YC page")
 ```
 
