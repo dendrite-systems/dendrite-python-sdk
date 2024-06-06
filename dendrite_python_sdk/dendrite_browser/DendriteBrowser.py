@@ -111,6 +111,7 @@ class DendriteBrowser:
         self.playwright = await async_playwright().start()
         browser = await self.playwright.chromium.launch(**self.playwright_options)
         self.browser_context = await browser.new_context()
+        await self.browser_context.add_init_script(path="dendrite_python_sdk/dendrite_browser/scripts/eventListenerPatch.js")
         self.active_page_manager = ActivePageManager(self, self.browser_context)
         return browser, self.browser_context, self.active_page_manager
 

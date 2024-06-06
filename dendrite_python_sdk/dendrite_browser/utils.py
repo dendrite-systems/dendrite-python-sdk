@@ -12,21 +12,51 @@ class InteractableElementRes(TypedDict):
 async def get_interactive_elements_with_playwright(
     page: Page,
 ) -> Dict[str, InteractableElementRes]:
-    result_outerhtml = await page.evaluate(
-        """() => {
-        const selectors = [
-            'a', 'button', 'input', 'select', 'textarea', 'adc-tab', '[role="button"]',
-            '[role="radio"]', '[role="option"]', '[role="combobox"]', '[role="textbox"]',
-            '[role="listbox"]', '[role="menu"]', '[type="button"]', '[type="radio"]',
-            '[type="combobox"]', '[type="textbox"]', '[type="listbox"]', '[type="menu"]',
-            '[tabindex]:not([tabindex="-1"])', '[contenteditable]:not([contenteditable="false"])',
-            '[onclick]', '[onfocus]', '[onkeydown]', '[onkeypress]', '[onkeyup]', "[checkbox]",
-            '[aria-disabled="false"],[data-link]', '[href]'
-        ];
-        let elements = document.querySelectorAll(selectors.join(','));
-        return Array.from(elements).map(el => el.outerHTML);
-    }"""
-    )
+    # result_outerhtml = await page.evaluate(
+    #     """() => {
+    #     const selectors = [
+    #         'a', 'button', 'input', 'select', 'textarea', 'adc-tab', '[role="button"]',
+    #         '[role="radio"]', '[role="option"]', '[role="combobox"]', '[role="textbox"]',
+    #         '[role="listbox"]', '[role="menu"]', '[type="button"]', '[type="radio"]',
+    #         '[type="combobox"]', '[type="textbox"]', '[type="listbox"]', '[type="menu"]',
+    #         '[tabindex]:not([tabindex="-1"])', '[contenteditable]:not([contenteditable="false"])',
+    #         '[onclick]', '[onfocus]', '[onkeydown]', '[onkeypress]', '[onkeyup]', "[checkbox]",
+    #         '[aria-disabled="false"],[data-link]', '[href]'
+    #     ];
+    #     let elements = document.querySelectorAll(selectors.join(','));
+    #     return Array.from(elements).map(el => el.outerHTML);
+    # }"""
+    # )
+
+    result_outerhtml = await page.evaluate('''() => {
+       const elements = document.querySelectorAll('body *');
+    const clickableElements = [];
+    const selectors = [
+        'a', 'button', 'input', 'select', 'textarea', 'adc-tab', '[role="button"]',
+        '[role="radio"]', '[role="option"]', '[role="combobox"]', '[role="textbox"]',
+        '[role="listbox"]', '[role="menu"]', '[type="button"]', '[type="radio"]',
+        '[type="combobox"]', '[type="textbox"]', '[type="listbox"]', '[type="menu"]',
+        '[tabindex]:not([tabindex="-1"])', '[contenteditable]:not([contenteditable="false"])',
+        '[onclick]', '[onfocus]', '[onkeydown]', '[onkeypress]', '[onkeyup]', '[checkbox]',
+        '[aria-disabled="false"]', '[data-link]', '[href]'
+    ];
+
+    elements.forEach(el => {
+        const hasClickEvent = el._getEventListeners && el._getEventListeners('click') && el._getEventListeners('click').length > 0;
+        if (hasClickEvent) {
+            el.style.outline = "2px solid red";
+            clickableElements.push(el.outerHTML);
+        } else {
+            const isClickable = selectors.some(selector => el.matches(selector));
+            if (isClickable) {
+                el.style.outline = "2px solid red";
+                clickableElements.push(el.outerHTML);
+            }
+        }
+    });
+
+    return clickableElements;
+                }''')
 
     res: Dict[str, InteractableElementRes] = {}
     for outerhtml in result_outerhtml:
