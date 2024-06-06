@@ -118,6 +118,12 @@ class DendriteBrowser:
     async def new_page(self) -> DendritePage:
         active_page_manager = await self._get_active_page_manager()
         return await active_page_manager.open_new_page()
+    
+    async def add_cookies(self, cookies):
+        if not self.browser_context:
+            raise Exception("Browser context not initialized")
+        
+        await self.browser_context.add_cookies(cookies)
 
     async def close(self):
         if self.browser_context:
