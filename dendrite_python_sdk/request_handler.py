@@ -77,14 +77,31 @@ async def google_search_request(dto: GoogleSearchDTO) -> GoogleSearchResponse:
     return GoogleSearchResponse(results=res["results"])
 
 async def create_session() -> str:
+    """
+    Creates a new browser session.
+
+    Returns:
+        str: The ID of the created session.
+    """
     res = await send_request("browser/sessions", method="POST")
     return res["id"]
 
-async def browser_ws_uri(session_id: str | None) -> str:
-    base_url = resolve_base_url()
 
-    url = f"{base_url}/{"browser/ws"}"
+async def browser_ws_uri(session_id: str | None) -> str:
+    """
+    Generates the WebSocket URI for the browser session.
+
+    Args:
+        session_id (str | None): The ID of the browser session.
+
+    Returns:
+        str: The WebSocket URI.
+    """
+    base_url = resolve_base_url()
+    url = base_url.split("://", maxsplit=1)[1]
+    url = f"ws://{url}/browser/ws"
+    
     if session_id:
         url += f"?session_id={session_id}"
-   
+
     return url
