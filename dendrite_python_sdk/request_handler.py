@@ -17,11 +17,7 @@ dev_mode = True if "--dev" in sys.argv else False
 async def send_request(
     endpoint, params=None, data: Optional[dict] = None, headers=None, method="GET"
 ):
-    base_url = (
-        "http://localhost:8000/api/v1"
-        if dev_mode
-        else "https://dendrite-server.azurewebsites.net/api/v1"
-    )
+    base_url = resolve_base_url()
     url = f"{base_url}/{endpoint}"
     headers = headers or {}
     headers["Content-Type"] = "application/json"
@@ -48,6 +44,15 @@ async def send_request(
             print(f"An error occurred: {err}")
             raise err
 
+def resolve_base_url():
+    base_url = (
+        "http://localhost:8000/api/v1"
+        if dev_mode
+        else "https://dendrite-server.azurewebsites.net/api/v1"
+    )
+    
+    return base_url
+
 
 async def get_interaction(dto: GetInteractionDTO) -> dict:
     res = await send_request("actions/get-interaction", data=dto.dict(), method="POST")
@@ -67,7 +72,19 @@ async def scrape_page(dto: ScrapePageDTO) -> ScrapePageResponse:
         json_data=json.loads(res["json_data"]),
     )
 
-
 async def google_search_request(dto: GoogleSearchDTO) -> GoogleSearchResponse:
     res = await send_request("actions/google-search", data=dto.dict(), method="POST")
     return GoogleSearchResponse(results=res["results"])
+
+async def create_session() -> str:
+    res = await send_request("browser/sessions", method="POST")
+    return res["id"]
+
+async def browser_ws_uri(session_id: str | None) -> str:
+    base_url = resolve_base_url()
+
+    url = f"{base_url}/{"browser/ws"}"
+    if session_id:
+        url += f"?session_id={session_id}"
+   
+    return url

@@ -92,7 +92,7 @@ class DendritePage:
         try:
             await self.generate_dendrite_ids()
             el = self.page.locator(f"xpath=//*[@d-id='{dendrite_id}']")
-            await el.wait_for(timeout=500)
+            await el.wait_for(timeout=3000)
             return el.first
         except Exception as e:
             raise Exception(

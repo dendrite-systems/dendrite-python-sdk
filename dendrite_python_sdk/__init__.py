@@ -1,1 +1,2 @@
 from .dendrite_browser.DendriteBrowser import DendriteBrowser
+from .dendrite_browser.DendriteRemoteBrowser import DendriteRemoteBrowser
