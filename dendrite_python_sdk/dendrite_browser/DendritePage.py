@@ -169,7 +169,10 @@ document.querySelectorAll('*').forEach((element, index) => {
 
             res = await get_interaction(dto)
             if res and res["dendrite_id"] != "":
-                locator = await self.get_element_from_dendrite_id(res["dendrite_id"])
+                try:
+                    locator = await self.get_element_from_dendrite_id(res["dendrite_id"])
+                except:
+                    continue
                 dendrite_locator = DendriteLocator(
                     res["dendrite_id"], locator, self.dendrite_browser
                 )
@@ -188,3 +191,7 @@ document.querySelectorAll('*').forEach((element, index) => {
         page_source = await self.page.content()
         soup = BeautifulSoup(page_source, "lxml")
         return soup
+
+    async def _dump_html(self, path: str) -> None:
+        with open(path, "w") as f:
+            f.write(await self.page.content())
