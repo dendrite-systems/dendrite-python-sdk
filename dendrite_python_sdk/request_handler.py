@@ -84,7 +84,7 @@ async def create_session() -> str:
         str: The ID of the created session.
     """
     res = await send_request("browser/sessions", method="POST")
-    return res["id"]
+    return res
 
 
 async def browser_ws_uri(session_id: str | None) -> str:
@@ -105,3 +105,7 @@ async def browser_ws_uri(session_id: str | None) -> str:
         url += f"?session_id={session_id}"
 
     return url
+
+async def get_download(session_id:str):
+    res = await send_request(f"browser/sessions/{session_id}/download", method="GET")
+    return res

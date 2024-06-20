@@ -131,3 +131,6 @@ class DendriteBrowser:
 
         if self.playwright:
             await self.playwright.stop()
+
+    async def get_download(self):
+        pass

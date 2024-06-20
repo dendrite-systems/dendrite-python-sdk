@@ -21,7 +21,7 @@ async def main(username: str):
     # Get elements with prompts instead of using brittle selectors
     download = await page.get_interactable_element("The link for downloading the file.")
     
-    client = await page.dendrite_browser.browser_context.new_cdp_session(page.get_playwright_page())
+    client = await page.dendrite_browser.browser_context.new_cdp_session(page.get_playwright_page()) # type: ignore
 
 
     await client.send("Browser.setDownloadBehavior",{
@@ -32,14 +32,24 @@ async def main(username: str):
 
     async with page.get_playwright_page().expect_download() as download_info:
         await download.click()
+    # await page.dendrite_browser.get_download()
     download = await download_info.value
+    failed = await download.failure()
+
+    if failed:
+        print("Download failed")
+        raise Exception("Download failed")
+    
+    print(f"Suggested file name: {download.suggested_filename}")
+    # print(f"Download path: {await download.path()}")
+    # await download.save_as("downloads/" + download.suggested_filename)
 
 # Wait for the download process to complete and save the downloaded file somewhere
     # await download.save_as("testing/" + download.suggested_filename)
 
 
     # HACK: Enough time to solve recaptcha
-    await asyncio.sleep(20)
+    await asyncio.sleep(30)
 
 
 asyncio.run(main("coffecup25"))

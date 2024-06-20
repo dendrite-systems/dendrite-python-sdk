@@ -42,5 +42,10 @@ class DendriteRemoteBrowser(DendriteBrowser):
             session_id = await create_session()
         self.session_id = session_id
         uri = await browser_ws_uri(session_id)
-
+        print(f"Connecting to remote browser session at {uri}")
         return uri
+    
+    async def get_download(self):
+       if self.session_id is None:
+           raise Exception("Session ID is not set. To download a session has to be started")
+       await session.get_download(self.session_id)

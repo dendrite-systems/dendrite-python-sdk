@@ -1,4 +1,4 @@
-from dendrite_python_sdk.request_handler import create_session, browser_ws_uri
+from dendrite_python_sdk.request_handler import create_session, browser_ws_uri, send_request
 
 
 async def remote_connect_uri(generate_session: bool = False) -> str:
@@ -17,3 +17,8 @@ async def remote_connect_uri(generate_session: bool = False) -> str:
         session_id = await create_session()
     
     return await browser_ws_uri(session_id)
+
+async def get_download(session_id:str):
+    res = await send_request(f"browser/sessions/{session_id}/download", method="GET")
+    return res  
+
