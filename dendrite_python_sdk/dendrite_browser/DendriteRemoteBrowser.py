@@ -1,5 +1,3 @@
-
-
 import os
 from typing import Any, Optional
 from dendrite_python_sdk.dendrite_browser.ActivePageManager import ActivePageManager
@@ -30,12 +28,16 @@ class DendriteRemoteBrowser(DendriteBrowser):
     async def launch(self):
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self.playwright = await async_playwright().start()
-        browser = await self.playwright.chromium.connect_over_cdp(await self.start_remote_session(generate_session=True))
+        browser = await self.playwright.chromium.connect_over_cdp(
+            await self.start_remote_session(generate_session=True)
+        )
         self.browser_context = await browser.new_context()
-        await self.browser_context.add_init_script(path="dendrite_python_sdk/dendrite_browser/scripts/eventListenerPatch.js")
+        await self.browser_context.add_init_script(
+            path="dendrite_python_sdk/dendrite_browser/scripts/eventListenerPatch.js"
+        )
         self.active_page_manager = ActivePageManager(self, self.browser_context)
-        return browser, self.browser_context, self.active_page_manager 
-    
+        return browser, self.browser_context, self.active_page_manager
+
     async def start_remote_session(self, generate_session: bool = False) -> str:
         session_id = None
         if generate_session:
@@ -44,8 +46,10 @@ class DendriteRemoteBrowser(DendriteBrowser):
         uri = await browser_ws_uri(session_id)
         print(f"Connecting to remote browser session at {uri}")
         return uri
-    
+
     async def get_download(self):
-       if self.session_id is None:
-           raise Exception("Session ID is not set. To download a session has to be started")
-       await session.get_download(self.session_id)
+        if self.session_id is None:
+            raise Exception(
+                "Session ID is not set. To download a session has to be started"
+            )
+        await session.get_download(self.session_id)

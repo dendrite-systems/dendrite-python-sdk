@@ -6,7 +6,7 @@ import time
 from playwright.async_api import Page, Locator
 from bs4 import BeautifulSoup
 
-from typing import TYPE_CHECKING, Any, Optional, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 from pydantic import BaseModel
 
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
@@ -23,7 +23,11 @@ from dendrite_python_sdk.dendrite_browser.utils import (
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
 from dendrite_python_sdk.models.PageInformation import PageInformation
 from dendrite_python_sdk.dendrite_browser.DendriteLocator import DendriteLocator
-from dendrite_python_sdk.request_handler import get_interaction, scrape_page
+from dendrite_python_sdk.request_handler import (
+    get_interaction,
+    get_interactions,
+    scrape_page,
+)
 
 
 class DendritePage:
@@ -99,12 +103,38 @@ class DendritePage:
                 f"Could not find element with the dendrite id {dendrite_id}"
             )
 
+    async def get_elements_from_dendrite_ids(
+        self, dendrite_ids: List[str]
+    ) -> List[Locator]:
+        try:
+            await self.generate_dendrite_ids()
+            ids_string = " or ".join([f"@d-id='{id}'" for id in dendrite_ids])
+            combined_xpath = f"//*[@d-id={ids_string}]"
+
+            elements = self.page.locator(combined_xpath)
+            await elements.wait_for(timeout=3000)
+
+            # Collect all elements that matched
+            element_list = []
+            count = await elements.count()
+            for i in range(count):
+                element_list.append(elements.nth(i))
+
+            return element_list
+        except Exception as e:
+            raise Exception(
+                f"Could not find elements with the dendrite ids {dendrite_ids}"
+            )
+
     async def get_page_information(self) -> PageInformation:
         soup = await self.get_soup()
+        print("soup: ", soup)
         interactable_elements = await get_interactive_elements_with_playwright(
             self.page
         )
+        print("interactable_elements: ", interactable_elements)
         base64 = await self.screenshot_manager.take_viewport_screenshot(self.page)
+        print("base64: ", base64)
 
         return PageInformation(
             url=self.page.url,
@@ -150,6 +180,41 @@ document.querySelectorAll('*').forEach((element, index) => {
 
     async def scroll_through_entire_page(self) -> None:
         await self.scroll_to_bottom()
+
+    async def get_interactable_elements(
+        self,
+        prompt: str,
+        timeout: float = 0.5,
+        max_retries: int = 3,
+    ) -> List[DendriteLocator]:
+        llm_config = self.dendrite_browser.get_llm_config()
+
+        num_attempts = 0
+        while num_attempts < max_retries:
+            page_information = await self.get_page_information()
+
+            dto = GetInteractionDTO(
+                page_information=page_information, llm_config=llm_config, prompt=prompt
+            )
+
+            res = await get_interactions(dto)
+            if res:
+                locators = await self.get_elements_from_dendrite_ids(
+                    res["dendrite_ids"]
+                )
+                dendrite_locators = [
+                    DendriteLocator(res["dendrite_id"], locator, self.dendrite_browser)
+                    for locator in locators
+                ]
+                return dendrite_locators
+            num_attempts += 1
+            await asyncio.sleep(timeout)
+
+        page_information = await self.get_page_information()
+        raise DendriteException(
+            message="Could not find suitable element on the page.",
+            screenshot_base64=page_information.screenshot_base64,
+        )
 
     async def get_interactable_element(
         self,

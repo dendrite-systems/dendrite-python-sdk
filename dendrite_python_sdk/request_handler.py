@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Optional
+from typing import Optional, Union
 import httpx
 from dendrite_python_sdk.dto.MakeInteractionDTO import MakeInteractionDTO
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
@@ -44,18 +44,24 @@ async def send_request(
             print(f"An error occurred: {err}")
             raise err
 
+
 def resolve_base_url():
     base_url = (
         "http://localhost:8000/api/v1"
         if dev_mode
         else "https://dendrite-server.azurewebsites.net/api/v1"
     )
-    
+
     return base_url
 
 
 async def get_interaction(dto: GetInteractionDTO) -> dict:
     res = await send_request("actions/get-interaction", data=dto.dict(), method="POST")
+    return res
+
+
+async def get_interactions(dto: GetInteractionDTO) -> dict:
+    res = await send_request("actions/get-interactions", data=dto.dict(), method="POST")
     return res
 
 
@@ -72,9 +78,11 @@ async def scrape_page(dto: ScrapePageDTO) -> ScrapePageResponse:
         json_data=json.loads(res["json_data"]),
     )
 
+
 async def google_search_request(dto: GoogleSearchDTO) -> GoogleSearchResponse:
     res = await send_request("actions/google-search", data=dto.dict(), method="POST")
     return GoogleSearchResponse(results=res["results"])
+
 
 async def create_session() -> str:
     """
@@ -87,7 +95,7 @@ async def create_session() -> str:
     return res
 
 
-async def browser_ws_uri(session_id: str | None) -> str:
+async def browser_ws_uri(session_id: Union[str, None]) -> str:
     """
     Generates the WebSocket URI for the browser session.
 
@@ -100,12 +108,13 @@ async def browser_ws_uri(session_id: str | None) -> str:
     base_url = resolve_base_url()
     url = base_url.split("://", maxsplit=1)[1]
     url = f"ws://{url}/browser/ws"
-    
+
     if session_id:
         url += f"?session_id={session_id}"
 
     return url
 
-async def get_download(session_id:str):
+
+async def get_download(session_id: str):
     res = await send_request(f"browser/sessions/{session_id}/download", method="GET")
     return res
