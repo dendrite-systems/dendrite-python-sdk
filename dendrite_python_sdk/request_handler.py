@@ -65,6 +65,13 @@ async def get_interactions(dto: GetInteractionDTO) -> dict:
     return res
 
 
+async def get_interactions_selector(dto: ScrapePageDTO) -> dict:
+    res = await send_request(
+        "actions/get-interaction-selector", data=dto.dict(), method="POST"
+    )
+    return res
+
+
 async def make_interaction(dto: MakeInteractionDTO) -> InteractionResponse:
     res = await send_request("actions/make-interaction", data=dto.dict(), method="POST")
     return InteractionResponse(status=res["status"], message=res["message"])

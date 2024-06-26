@@ -4,9 +4,9 @@ import json
 import time
 
 from playwright.async_api import Page, Locator
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Type
 from pydantic import BaseModel
 
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
@@ -26,6 +26,7 @@ from dendrite_python_sdk.dendrite_browser.DendriteLocator import DendriteLocator
 from dendrite_python_sdk.request_handler import (
     get_interaction,
     get_interactions,
+    get_interactions_selector,
     scrape_page,
 )
 
@@ -108,33 +109,29 @@ class DendritePage:
     ) -> List[Locator]:
         try:
             await self.generate_dendrite_ids()
-            ids_string = " or ".join([f"@d-id='{id}'" for id in dendrite_ids])
-            combined_xpath = f"//*[@d-id={ids_string}]"
 
-            elements = self.page.locator(combined_xpath)
-            await elements.wait_for(timeout=3000)
-
-            # Collect all elements that matched
             element_list = []
-            count = await elements.count()
-            for i in range(count):
-                element_list.append(elements.nth(i))
+            for id in dendrite_ids:
+                el = await self.get_element_from_dendrite_id(id)
+                element_list.append(el)
 
             return element_list
         except Exception as e:
             raise Exception(
-                f"Could not find elements with the dendrite ids {dendrite_ids}"
+                f"Could not find elements with the dendrite ids {dendrite_ids}, exception: {e}"
             )
 
-    async def get_page_information(self) -> PageInformation:
-        soup = await self.get_soup()
-        print("soup: ", soup)
+    async def get_page_information(
+        self, only_visible_elements_in_html: bool = False
+    ) -> PageInformation:
+        soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
+        # print("soup: ", soup)
         interactable_elements = await get_interactive_elements_with_playwright(
             self.page
         )
-        print("interactable_elements: ", interactable_elements)
-        base64 = await self.screenshot_manager.take_viewport_screenshot(self.page)
-        print("base64: ", base64)
+        # print("interactable_elements: ", interactable_elements)
+        base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
+        # print("base64: ", base64)
 
         return PageInformation(
             url=self.page.url,
@@ -144,7 +141,9 @@ class DendritePage:
         )
 
     async def generate_dendrite_ids(self):
-        script = """
+        tries = 0
+        while tries < 3:
+            script = """
 var hashCode = (string) => {
     var hash = 0, i, chr;
     if (string.length === 0) return hash;
@@ -175,11 +174,49 @@ document.querySelectorAll('*').forEach((element, index) => {
 });
 
 """
-
-        await self.page.evaluate(script)
+            try:
+                await self.page.wait_for_load_state(state="load", timeout=3000)
+                await self.page.evaluate(script)
+                break
+            except Exception as e:
+                print(f"Failed to generate dendrite IDs: {e}, retrying")
+                tries += 1
 
     async def scroll_through_entire_page(self) -> None:
         await self.scroll_to_bottom()
+
+    async def get_interactions_selector(
+        self, prompt: str, timeout: float = 0.5, max_retries: int = 3
+    ):
+        llm_config = self.dendrite_browser.get_llm_config()
+
+        num_attempts = 0
+        while num_attempts < max_retries:
+            page_information = await self.get_page_information(
+                only_visible_elements_in_html=True
+            )
+
+            dto = ScrapePageDTO(
+                page_information=page_information,
+                llm_config=llm_config,
+                prompt=prompt,
+                return_data_json_schema=None,
+                expected_return_data=None,
+            )
+
+            res = await get_interactions_selector(dto)
+            if res:
+                print("selector: ", res["selector"])
+                locator = self.page.locator(res["selector"])
+                return locator
+            num_attempts += 1
+            await asyncio.sleep(timeout)
+
+        page_information = await self.get_page_information()
+        raise DendriteException(
+            message="Could not find suitable element on the page.",
+            screenshot_base64=page_information.screenshot_base64,
+        )
 
     async def get_interactable_elements(
         self,
@@ -191,7 +228,9 @@ document.querySelectorAll('*').forEach((element, index) => {
 
         num_attempts = 0
         while num_attempts < max_retries:
-            page_information = await self.get_page_information()
+            page_information = await self.get_page_information(
+                only_visible_elements_in_html=True
+            )
 
             dto = GetInteractionDTO(
                 page_information=page_information, llm_config=llm_config, prompt=prompt
@@ -203,8 +242,8 @@ document.querySelectorAll('*').forEach((element, index) => {
                     res["dendrite_ids"]
                 )
                 dendrite_locators = [
-                    DendriteLocator(res["dendrite_id"], locator, self.dendrite_browser)
-                    for locator in locators
+                    DendriteLocator(id, locator, self.dendrite_browser)
+                    for id, locator in zip(res["dendrite_ids"], locators)
                 ]
                 return dendrite_locators
             num_attempts += 1
@@ -226,7 +265,9 @@ document.querySelectorAll('*').forEach((element, index) => {
 
         num_attempts = 0
         while num_attempts < max_retries:
-            page_information = await self.get_page_information()
+            page_information = await self.get_page_information(
+                only_visible_elements_in_html=True
+            )
 
             dto = GetInteractionDTO(
                 page_information=page_information, llm_config=llm_config, prompt=prompt
@@ -235,7 +276,9 @@ document.querySelectorAll('*').forEach((element, index) => {
             res = await get_interaction(dto)
             if res and res["dendrite_id"] != "":
                 try:
-                    locator = await self.get_element_from_dendrite_id(res["dendrite_id"])
+                    locator = await self.get_element_from_dendrite_id(
+                        res["dendrite_id"]
+                    )
                 except:
                     continue
                 dendrite_locator = DendriteLocator(
@@ -251,11 +294,41 @@ document.querySelectorAll('*').forEach((element, index) => {
             screenshot_base64=page_information.screenshot_base64,
         )
 
-    async def get_soup(self) -> BeautifulSoup:
+    async def get_soup(self, only_visible_elements: bool = False) -> BeautifulSoup:
         await self.generate_dendrite_ids()
+
         page_source = await self.page.content()
         soup = BeautifulSoup(page_source, "lxml")
+        if only_visible_elements:
+            invisible_d_ids = await self.get_invisible_d_ids()
+            elems = soup.find_all(attrs={"d-id": True})
+
+            for elem in elems:
+                if elem.attrs["d-id"] in invisible_d_ids:
+                    elem.extract()
+
         return soup
+
+    async def get_invisible_d_ids(self) -> set[str]:
+        script = """() => {
+            var elements = document.querySelectorAll('[d-id]');
+            var invisibleDendriteIds = [];
+            for (var i = 0; i < elements.length; i++) {
+                const element = elements[i]
+                const style = window.getComputedStyle(element);
+                const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+                const tagName = element.tagName.toLowerCase();
+                if (tagName != 'html' && tagName != 'body') {
+                    if(!isVisible){
+                        invisibleDendriteIds.push(element.getAttribute('d-id'));
+                    }
+                }
+            }
+            return invisibleDendriteIds;
+        }
+        """
+        res = await self.get_playwright_page().evaluate(script)
+        return set(res)
 
     async def _dump_html(self, path: str) -> None:
         with open(path, "w") as f:

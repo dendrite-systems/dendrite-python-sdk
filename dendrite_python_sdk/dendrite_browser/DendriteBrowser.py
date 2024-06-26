@@ -55,9 +55,11 @@ class DendriteBrowser:
         active_page_manager = await self._get_active_page_manager()
         active_page = await active_page_manager.get_active_page()
         try:
-            await active_page.page.goto(url)
+            await active_page.page.goto(url, timeout=10000)
         except TimeoutError:
             print("Timeout when loading page but continuing anyways.")
+        except Exception as e:
+            print(f"Timeout when loading page but continuing anyways. {e}")
 
         if scroll_through_entire_page:
             await active_page.scroll_through_entire_page()
@@ -111,18 +113,20 @@ class DendriteBrowser:
         self.playwright = await async_playwright().start()
         browser = await self.playwright.chromium.launch(**self.playwright_options)
         self.browser_context = await browser.new_context()
-        await self.browser_context.add_init_script(path="dendrite_python_sdk/dendrite_browser/scripts/eventListenerPatch.js")
+        await self.browser_context.add_init_script(
+            path="dendrite_python_sdk/dendrite_browser/scripts/eventListenerPatch.js"
+        )
         self.active_page_manager = ActivePageManager(self, self.browser_context)
         return browser, self.browser_context, self.active_page_manager
 
     async def new_page(self) -> DendritePage:
         active_page_manager = await self._get_active_page_manager()
         return await active_page_manager.open_new_page()
-    
+
     async def add_cookies(self, cookies):
         if not self.browser_context:
             raise Exception("Browser context not initialized")
-        
+
         await self.browser_context.add_cookies(cookies)
 
     async def close(self):

@@ -12,7 +12,7 @@ class ScreenshotManager:
     async def take_full_page_screenshot(self, page: Page) -> str:
         # await page.screenshot(path="screenshot.png", full_page=True)
         image_data = await page.screenshot(type="jpeg", full_page=True, timeout=20000)
-        print("image_data: ", image_data)
+        # print("image_data: ", image_data)
 
         if image_data == None:
             return ""
