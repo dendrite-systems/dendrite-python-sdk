@@ -1,7 +1,7 @@
 import os
 import asyncio
 import time
-from typing import Any, List
+from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 
 from dendrite_python_sdk import DendriteRemoteBrowser
@@ -13,7 +13,7 @@ from dendrite_python_sdk.ai_util.generate_text import async_openai_request
 from dendrite_python_sdk.ai_util.response_extract import extract_json
 from dendrite_python_sdk.dendrite_browser.DendritePage import DendritePage
 from dendrite_python_sdk.models.LLMConfig import LLMConfig
-from dendrite_python_sdk.request_handler import get_interactions_selector, scrape_page
+from dendrite_python_sdk.request_handler import scrape_page
 
 load_dotenv(find_dotenv())
 
@@ -27,28 +27,31 @@ class EcommerceRequest(BaseModel):
 
 class ProductData(BaseModel):
     product_name: str
-    product_description: str = Field(
-        ...,
-        description="Get any text that describes the product. Often time this is under 'about product' or similar. Normally at least a paragraph long.",
-    )
+    # product_description: str = Field(
+    #     ...,
+    #     description="Get any text that describes the product. Often time this is under 'about product' or similar. Normally at least a paragraph long.",
+    # )
     product_image_urls: list[str] = Field(
         ...,
-        description="Make sure you get the images you get the large display images and not any smaller ones.",
+        description="Make sure you get the images you get the large display images and not any smaller ones. They are usually front and center next to the title.",
     )
-    # shipping_details: str = Field(
-    #     ...,
-    #     description="Please list all information regarding shipping cost, shipping options (e.g. Amazon prime, 3day shipping) if available on the page.",
-    # )
+    shipping_details: str = Field(
+        ...,
+        description="Please list all information regarding shipping cost, shipping options (e.g. Amazon prime, 3day shipping) if available on the page.",
+    )
 
     # original_price: str = Field(
     #     ..., description="Include the currency inside the response."
     # )
     price: str = Field(..., description="Include the currency inside the response.")
+    currency: str = Field(..., description="e.g USD")
+    currencyRaw: str = Field(..., description="e.g $")
+    availability: bool = Field(..., description="Is the item in stock or not")
     # available_colors: list[str] = Field(
     #     ...,
     #     description="Please list the colors that are available for this product if applicable.",
     # )
-    available_sizes: list[str] = Field(
+    available_sizes: Optional[list[str]] = Field(
         [],
         description="Get all the available sizes that are selectable on the product page as a list of strings. This value is usually only relevant for clothing items. I only want the sizes that are currently available, often times unavailable sizes are greyed out or similar. It's important that you only get the currently available sizes that aren't hidden.",
     )
@@ -63,23 +66,49 @@ class EcommerceResponse(BaseModel):
 
 
 async def extract_data(
-    url: str,
-    page_html: str,
-    screenshot: str,
+    page: DendritePage,
     propery_name: str,
     propery_schema: Any,
 ):
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
     llm_config = LLMConfig(openai_api_key=openai_api_key)
 
+    print(f"Getting from active_page: {page} name: {propery_name}")
+
     db_prompt = f"Please extract the data with the following json schema: {propery_schema}. Create a script should return a value that matches the json schemas `type`."
+    raw_html = await page.get_content()
     page_info = PageInformation(
-        url=url,
-        raw_html=page_html,
+        url=page.url,
+        raw_html=raw_html,
         interactable_element_info={},
-        screenshot_base64=screenshot,
+        screenshot_base64="screenshot",
     )
 
+    async def create_script(prompt: str, force_use_cache: bool = False):
+        scrape_dto = ScrapePageDTO(
+            page_information=page_info,
+            llm_config=llm_config,
+            prompt=prompt,
+            db_prompt=db_prompt,
+            expected_return_data=None,
+            return_data_json_schema=propery_schema,
+            force_use_cache=force_use_cache,
+        )
+
+        res = await scrape_page(scrape_dto)
+        print("create_script res: ", res)
+        return res
+
+    try:
+        res = await create_script(db_prompt, force_use_cache=True)
+        print("res: ", res)
+        if res.status != "failed":
+            print(f"\n\nUsed cached script! for '{db_prompt}', res: {res}")
+            return res
+    except Exception as e:
+        print("failed to find cached script: ", e)
+
+    page_info = await page.get_page_information()
     messages = [
         {
             "role": "user",
@@ -104,13 +133,17 @@ Output the json with tripple backticks like in this example:
 {{"reasoning": "By looking at the page I can see that the price is clearly visible on the page and equals '100 USD'. It can be found right under the title of the product 'Epic Shoe 10'.", "type": "DATA_AVAILABLE", "expected_value": 100}}
 ```
 
-If the value is very long you can truncate it. 
+`expected_value` should be a real value on the page. If the value is very long (e.g a long body of text) you may output a truncated version.
+
+In `reasoning`, output neighboring text to narrow down the search.
 
 Output the json, starting with `reasoning`, and nothing else. Here is a screenshot of the website:""",
                 },
                 {
                     "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{screenshot}"},
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{page_info.screenshot_base64}"
+                    },
                 },
             ],
         },
@@ -124,18 +157,6 @@ Output the json, starting with `reasoning`, and nothing else. Here is a screensh
     }
     res = await async_openai_request(config, llm_config)
 
-    async def create_script(prompt: str):
-        scrape_dto = ScrapePageDTO(
-            page_information=page_info,
-            llm_config=llm_config,
-            prompt=prompt,
-            db_prompt=db_prompt,
-            expected_return_data=None,
-            return_data_json_schema=propery_schema,
-        )
-        res = await scrape_page(scrape_dto)
-        return res
-
     response_message = res.choices[0].message.content
     if response_message:
         try:
@@ -148,14 +169,16 @@ Output the json, starting with `reasoning`, and nothing else. Here is a screensh
 
         if json_res["type"] == "DATA_VISIBLE":
             prompt = f"Please extract the data from with this json schema: {propery_schema}. {json_res['reasoning']} So, the expected output from extraction script should be: \n\n{json_res['expected_value']}\n\nCreate a script that can get this value. Don't hardcode the expected outcome into the script, just make sure that the outcome matches it. (Doesn't need to be exactly the same, but similar.)"
-            print("prompt: ", prompt)
             res = await create_script(prompt)
+            print(f"Need to create script... '{db_prompt}', res {res}")
             return propery_name, res.json_data
         elif json_res["type"] == "SCRAPING_REQUIRED":
             res = await create_script(db_prompt)
+            print(f"Need to create script... '{db_prompt}', res {res}")
             return propery_name, res.json_data
         elif json_res["type"] == "NOT_AVAILABLE":
             prompt = f"We are trying to extract the data that follows this JSON schema: {propery_schema}. This data doesn't seem to be available on the page however, so please code a short script that returns a value that matches the schema but returns a value like -1 or 'Not available'."
+            print(f"Need to create script... '{db_prompt}', res {res}")
             res = await create_script(prompt)
             return propery_name, res.json_data
         else:
@@ -172,7 +195,7 @@ Output the json, starting with `reasoning`, and nothing else. Here is a screensh
 
 async def get_all_product_variants(
     page: DendritePage, browser: DendriteRemoteBrowser, use_cache: bool = True
-) -> List[PageInformation]:
+) -> List[Any]:
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
     llm_config = LLMConfig(openai_api_key=openai_api_key)
     db_prompt = f"Get the product variants from the page."
@@ -186,22 +209,27 @@ async def get_all_product_variants(
             )
             print("get cache time: ", time.time() - start_time)
             if len(variant_buttons) > 0:
-                print("found cached!!! ", variant_buttons)
+                print("found cached selector!!! ", variant_buttons)
 
-                page_infos = []
+                product_variant_data = []
                 for el in variant_buttons:
                     try:
                         await el.get_playwright_locator().click(timeout=0)
-                        await asyncio.sleep(0.2)
+
                         active_page = await browser.get_active_page()
-                        page_info = await active_page.get_page_information()
-                        page_infos.append(page_info)
+                        res = await extract_all(
+                            active_page,
+                            json_schema=ProductData.model_json_schema(),
+                        )
+                        print(f"Clicked and got res: {res}.")
+                        product_variant_data.append(res)
                     except Exception as e:
                         pass
-                return page_infos
+                return product_variant_data
         except:
             pass
 
+    print("Could not find cached variants selector, going to find them.")
     start_time = time.time()
     page_info = await page.get_page_information()
     print("get page info: ", time.time() - start_time)
@@ -219,7 +247,7 @@ Output the json with tripple backticks like in this example:
 {{"reasoning": "Underneath the price three product color variants are visible. They are buttons in a row with small product previews. The current color is 'snow white', the two other colors are 'fire red', 'ocean blue'.", "type": "VARIANTS_AVAILABLE", "interaction_prompt": "Please find the buttons responsible for selecting the different product variants. They are buttons in a row with small product preview images with the colors 'snow white', 'fire red', 'ocean blue'. They are underneath the text 'mega pc gamer 100€' and above the 'chose size' text."}}
 ```
 
-Output the json, starting with reasoning, and nothing else. Make sure you use a lot of texts from the website to anchor the position of the relevant element. Here is a screenshot of the website:"""
+Output the json, starting with reasoning, and nothing else. Make sure you use texts from the website to anchor the position of the relevant element. Write 200-500 chars per parameter. Here is a screenshot of the website:"""
 
     messages = [
         {
@@ -261,29 +289,54 @@ Output the json, starting with reasoning, and nothing else. Make sure you use a 
                 json_res["interaction_prompt"], db_prompt=db_prompt
             )
 
-            page_infos = []
+            results = []
             for el in variant_buttons:
                 try:
                     await el.get_playwright_locator().click(timeout=0)
-                    await asyncio.sleep(0.2)
                     active_page = await browser.get_active_page()
-                    page_info = await active_page.get_page_information()
-                    page_infos.append(page_info)
+                    res = await extract_all(
+                        active_page,
+                        json_schema=ProductData.model_json_schema(),
+                    )
+                    results.append(res)
                 except Exception as e:
                     pass
-            return page_infos
+            return results
         elif json_res["type"] == "NOT_AVAILABLE":
-            page_info = await page.get_page_information()
-            return [page_info]
+            active_page = await browser.get_active_page()
+            res = await extract_all(
+                active_page,
+                json_schema=ProductData.model_json_schema(),
+            )
+            return [res]
 
     raise Exception("Failed to parse OpenAI message.")
 
 
-async def extract_product_data(url: str) -> EcommerceResponse:
-    json_schema = ProductData.model_json_schema()
-    openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-    print("json_schema: ", json_schema)
+async def extract_all(page: DendritePage, json_schema: Any):
+    tasks = []
+    for propery_name, propery_schema in json_schema["properties"].items():
+        tasks.append(
+            extract_data(
+                page,
+                propery_name,
+                propery_schema,
+            )
+        )
 
+    results = await asyncio.gather(*tasks)
+    response_data = {}
+    for res in results:
+        response_data[res[0]] = res[1]
+
+    print("response_data: ", response_data)
+    return response_data
+
+
+async def extract_product_data(url: str) -> EcommerceResponse:
+
+    print(ProductData.model_json_schema())
+    return EcommerceResponse(variants=[])
     dendrite_browser = DendriteRemoteBrowser(
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
         dendrite_api_key=os.environ.get("DENDRITE_API_KEY", ""),
@@ -293,36 +346,12 @@ async def extract_product_data(url: str) -> EcommerceResponse:
     await dendrite_browser.launch()
     page = await dendrite_browser.goto(url, scroll_through_entire_page=False)
 
-    variant_pages = await get_all_product_variants(page, dendrite_browser)
-    print("Found this many variants: ", len(variant_pages))
-    # info = await page.get_page_information()
-    # variant_pages = [info]
+    product_variant_data = await get_all_product_variants(page, dendrite_browser)
+    print("Found this many variants: ", len(product_variant_data))
 
-    page_data_results = []
-    for page_info in variant_pages:
-        tasks = []
-        for propery_name, propery_schema in json_schema["properties"].items():
-            tasks.append(
-                extract_data(
-                    page_info.url,
-                    page_info.raw_html,
-                    page_info.screenshot_base64,
-                    propery_name,
-                    propery_schema,
-                )
-            )
+    print("page_data_results: ", product_variant_data)
 
-        results = await asyncio.gather(*tasks)
-        response_data = {}
-        for res in results:
-            response_data[res[0]] = res[1]
-
-        print("response_data: ", response_data)
-        page_data_results.append(response_data)
-
-    print("page_data_results: ", page_data_results)
-
-    return EcommerceResponse(variants=page_data_results)
+    return EcommerceResponse(variants=product_variant_data)
 
 
 async def test(url: str):
@@ -338,8 +367,9 @@ async def test(url: str):
 
 
 asyncio.run(
-    test(
-        "https://www.amazon.com/Portable-Mechanical-Keyboard-MageGee-Backlit/dp/B098LG3N6R/ref=sr_1_2?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20JZ85TVB8YZ7cwvsm0LDrBK1PUvuJ-xGXkNcVHVIhrQc9kBmR5169dJ6bjz3i9LTKih1i1gw9zMA5shlsZn0KaVLU1EJAlCk2vS5bmQ5Idk0jdUQzbe1NHHkPD6bd_mIL2J7EUeyr51zzG5sIHNZF8s.0rZvfrTY0gQfCCR3e3ZG37IngUeL9TvLAKFP0uxXQm8&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=a3b11a83-7bdf-42ad-8ccc-850a2a9be0ae&pd_rd_w=thyAn&pd_rd_wg=QuR3V&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=EGJ9WE3PH43XY2VRNXYS&qid=1719385097&sr=8-2&th=1"
+    extract_product_data(
+        "https://www.amazon.com/Redragon-S101-Keyboard-Ergonomic-Programmable/dp/B00NLZUM36/ref=sr_1_3?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20BOqIUbVycKgrgWhsv3MCsvpEd57g5uZRNzYwHS9Aw2obI3MPmxewiD3kqCeZDfRh69TGNH_g8luFs-XZxYXIBD2JVQ9pYTQA6VM4k06p7kUjdUQzbe1NHHkPD6bd_mILwz7PFE_rYcpXnDqkLtMtSY.LORYuOmHcSqhnVbbYz8QsC5kxdeESOXcjd_PCPjpzMs&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=64dc3a90-64a6-40b9-b7a1-2d68d3ecc3b4&pd_rd_w=x25KJ&pd_rd_wg=OZzqF&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=HP8K759Y8NJCW8Z9C275&qid=1719487385&sr=8-3&th=1"
+        # "https://www.amazon.com/Portable-Mechanical-Keyboard-MageGee-Backlit/dp/B098LG3N6R/ref=sr_1_2?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20JZ85TVB8YZ7cwvsm0LDrBK1PUvuJ-xGXkNcVHVIhrQc9kBmR5169dJ6bjz3i9LTKih1i1gw9zMA5shlsZn0KaVLU1EJAlCk2vS5bmQ5Idk0jdUQzbe1NHHkPD6bd_mIL2J7EUeyr51zzG5sIHNZF8s.0rZvfrTY0gQfCCR3e3ZG37IngUeL9TvLAKFP0uxXQm8&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=a3b11a83-7bdf-42ad-8ccc-850a2a9be0ae&pd_rd_w=thyAn&pd_rd_wg=QuR3V&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=EGJ9WE3PH43XY2VRNXYS&qid=1719385097&sr=8-2&th=1"
     )
 )
 

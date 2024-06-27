@@ -83,7 +83,7 @@ class DendritePage:
             await self.page.evaluate(f"window.scrollTo(0, {i})")
             i += 20000
 
-            if time.time() - start_time > 2:
+            if time.time() - start_time > 2.0:
                 break
 
             if current_scroll_position - last_scroll_position > 1000:
@@ -125,19 +125,15 @@ class DendritePage:
         self, only_visible_elements_in_html: bool = False
     ) -> PageInformation:
         start_time = time.time()
-        soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
-        print("time to get soup: ", time.time() - start_time)
+        soup_task = self.get_soup(only_visible_elements=only_visible_elements_in_html)
         # print("soup: ", soup)
-        start_time = time.time()
-        interactable_elements = await get_interactive_elements_with_playwright(
-            self.page
-        )
-        print("time to get interactable elements: ", time.time() - start_time)
+        interactable_elements_task = get_interactive_elements_with_playwright(self.page)
         # print("interactable_elements: ", interactable_elements)
-        start_time = time.time()
-        base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
-        print("time to get full page screenshot: ", time.time() - start_time)
-        # print("base64: ", base64)
+        base64_task = self.screenshot_manager.take_full_page_screenshot(self.page)
+        soup, interactable_elements, base64 = await asyncio.gather(
+            soup_task, interactable_elements_task, base64_task
+        )
+        print("time to get all: ", time.time() - start_time)
 
         return PageInformation(
             url=self.page.url,
@@ -182,10 +178,10 @@ document.querySelectorAll('*').forEach((element, index) => {
 
 """
             try:
-                await self.page.wait_for_load_state(state="load", timeout=3000)
                 await self.page.evaluate(script)
                 return
             except Exception as e:
+                await self.page.wait_for_load_state(state="load", timeout=3000)
                 print(f"Failed to generate dendrite IDs: {e}, retrying")
                 tries += 1
 
@@ -218,13 +214,16 @@ document.querySelectorAll('*').forEach((element, index) => {
 
         res = await get_interactions_selector(dto)
         if res:
-            print("selectors: ", res["selectors"])
+            # print("selectors: ", res["selectors"])
             selectors = res["selectors"]
             for selector in selectors:
                 try:
                     locators = []
                     locator = self.page.locator(selector)
+                    # print("locator: ", locator)
                     count = await locator.count()
+                    # print("count: ", count)
+
                     for index in range(count):
                         try:
                             nth_locator = locator.nth(index)
@@ -330,13 +329,20 @@ document.querySelectorAll('*').forEach((element, index) => {
             screenshot_base64=page_information.screenshot_base64,
         )
 
+    async def get_content(self):
+        return await self.page.content()
+
     async def get_soup(self, only_visible_elements: bool = False) -> BeautifulSoup:
+        start_time = time.time()
         await self.generate_dendrite_ids()
+        print("time to generate Ids: ", time.time() - start_time)
 
         page_source = await self.page.content()
         soup = BeautifulSoup(page_source, "lxml")
         if only_visible_elements:
+            start_time = time.time()
             invisible_d_ids = await self.get_invisible_d_ids()
+            print("time to get invis ids: ", time.time() - start_time)
             elems = soup.find_all(attrs={"d-id": True})
 
             for elem in elems:
