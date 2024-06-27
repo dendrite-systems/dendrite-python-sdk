@@ -6,6 +6,7 @@ from dendrite_python_sdk.dto.MakeInteractionDTO import MakeInteractionDTO
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
 from dendrite_python_sdk.dto.GoogleSearchDTO import GoogleSearchDTO
+from dendrite_python_sdk.dto.TryRunScriptDTO import TryRunScriptDTO
 from dendrite_python_sdk.responses.GoogleSearchResponse import GoogleSearchResponse
 from dendrite_python_sdk.responses.InteractionResponse import InteractionResponse
 from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
@@ -79,6 +80,14 @@ async def make_interaction(dto: MakeInteractionDTO) -> InteractionResponse:
 
 async def scrape_page(dto: ScrapePageDTO) -> ScrapePageResponse:
     res = await send_request("actions/scrape-page", data=dto.dict(), method="POST")
+    return ScrapePageResponse(
+        status=res["status"],
+        message=res["message"],
+        json_data=json.loads(res["json_data"]),
+    )
+
+async def try_run_cached(dto: TryRunScriptDTO) -> Optional[ScrapePageResponse]:
+    res = await send_request("actions/try-run-cached", data=dto.dict(), method="POST")
     return ScrapePageResponse(
         status=res["status"],
         message=res["message"],
