@@ -124,13 +124,19 @@ class DendritePage:
     async def get_page_information(
         self, only_visible_elements_in_html: bool = False
     ) -> PageInformation:
+        start_time = time.time()
         soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
+        print("time to get soup: ", time.time() - start_time)
         # print("soup: ", soup)
+        start_time = time.time()
         interactable_elements = await get_interactive_elements_with_playwright(
             self.page
         )
+        print("time to get interactable elements: ", time.time() - start_time)
         # print("interactable_elements: ", interactable_elements)
+        start_time = time.time()
         base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
+        print("time to get full page screenshot: ", time.time() - start_time)
         # print("base64: ", base64)
 
         return PageInformation(
@@ -143,6 +149,7 @@ class DendritePage:
     async def generate_dendrite_ids(self):
         tries = 0
         while tries < 3:
+            # print("tries: ", tries)
             script = """
 var hashCode = (string) => {
     var hash = 0, i, chr;
@@ -177,46 +184,75 @@ document.querySelectorAll('*').forEach((element, index) => {
             try:
                 await self.page.wait_for_load_state(state="load", timeout=3000)
                 await self.page.evaluate(script)
-                break
+                return
             except Exception as e:
                 print(f"Failed to generate dendrite IDs: {e}, retrying")
                 tries += 1
+
+        raise Exception("Failed to add d-ids to DOM.")
 
     async def scroll_through_entire_page(self) -> None:
         await self.scroll_to_bottom()
 
     async def get_interactions_selector(
-        self, prompt: str, timeout: float = 0.5, max_retries: int = 3
-    ):
+        self,
+        prompt: str,
+        db_prompt: Optional[str] = None,
+        force_use_cache: bool = False,
+    ) -> List[DendriteLocator]:
         llm_config = self.dendrite_browser.get_llm_config()
 
-        num_attempts = 0
-        while num_attempts < max_retries:
-            page_information = await self.get_page_information(
-                only_visible_elements_in_html=True
-            )
-
-            dto = ScrapePageDTO(
-                page_information=page_information,
-                llm_config=llm_config,
-                prompt=prompt,
-                return_data_json_schema=None,
-                expected_return_data=None,
-            )
-
-            res = await get_interactions_selector(dto)
-            if res:
-                print("selector: ", res["selector"])
-                locator = self.page.locator(res["selector"])
-                return locator
-            num_attempts += 1
-            await asyncio.sleep(timeout)
-
-        page_information = await self.get_page_information()
-        raise DendriteException(
-            message="Could not find suitable element on the page.",
-            screenshot_base64=page_information.screenshot_base64,
+        page_information = await self.get_page_information(
+            only_visible_elements_in_html=True
         )
+
+        dto = ScrapePageDTO(
+            page_information=page_information,
+            llm_config=llm_config,
+            prompt=prompt,
+            db_prompt=db_prompt,
+            return_data_json_schema=None,
+            expected_return_data=None,
+            force_use_cache=force_use_cache,
+        )
+
+        res = await get_interactions_selector(dto)
+        if res:
+            print("selectors: ", res["selectors"])
+            selectors = res["selectors"]
+            for selector in selectors:
+                try:
+                    locators = []
+                    locator = self.page.locator(selector)
+                    count = await locator.count()
+                    for index in range(count):
+                        try:
+                            nth_locator = locator.nth(index)
+                            d_id = await nth_locator.get_attribute("d-id", timeout=0)
+                            if d_id:
+                                dendrite_locater = DendriteLocator(
+                                    locator=nth_locator,
+                                    dendrite_id=d_id,
+                                    dendrite_browser=self.dendrite_browser,
+                                )
+                                locators.append(dendrite_locater)
+                        except Exception as e:
+                            print("Error getting this selector: ", e)
+
+                    print("selector locators: ", locators)
+                    if len(locators) == 0:
+                        continue
+
+                    return locators
+                except Exception as e:
+                    print("Error getting all selectors: ", e)
+
+        return []
+        # page_information = await self.get_page_information()
+        # raise DendriteException(
+        #     message="Could not find suitable element on the page.",
+        #     screenshot_base64=page_information.screenshot_base64,
+        # )
 
     async def get_interactable_elements(
         self,

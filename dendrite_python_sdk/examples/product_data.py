@@ -1,5 +1,6 @@
 import os
 import asyncio
+import time
 from typing import Any, List
 from pydantic import BaseModel, Field
 
@@ -49,7 +50,7 @@ class ProductData(BaseModel):
     # )
     available_sizes: list[str] = Field(
         [],
-        description="Get all the available sizes as a list of strings. I only want the sizes that are currently available, often times unavailable sizes are greyed out or similar. It's important that you only get the currently available sizes that aren't hidden.",
+        description="Get all the available sizes that are selectable on the product page as a list of strings. This value is usually only relevant for clothing items. I only want the sizes that are currently available, often times unavailable sizes are greyed out or similar. It's important that you only get the currently available sizes that aren't hidden.",
     )
     # unavailable_sizes: list[str] = Field(
     #     [],
@@ -71,7 +72,7 @@ async def extract_data(
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
     llm_config = LLMConfig(openai_api_key=openai_api_key)
 
-    db_prompt = f"Please extract the data with the following json schema: {propery_schema}. Create a script that can get this value."
+    db_prompt = f"Please extract the data with the following json schema: {propery_schema}. Create a script should return a value that matches the json schemas `type`."
     page_info = PageInformation(
         url=url,
         raw_html=page_html,
@@ -170,17 +171,41 @@ Output the json, starting with `reasoning`, and nothing else. Here is a screensh
 
 
 async def get_all_product_variants(
-    page: DendritePage, browser: DendriteRemoteBrowser, use_cache: bool = False
+    page: DendritePage, browser: DendriteRemoteBrowser, use_cache: bool = True
 ) -> List[PageInformation]:
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
     llm_config = LLMConfig(openai_api_key=openai_api_key)
+    db_prompt = f"Get the product variants from the page."
 
     if use_cache:
-        variant_buttons = await page.get_interactions_selector(
-            json_res["interaction_prompt"]
-        )
+        # Check if variants cached
+        try:
+            start_time = time.time()
+            variant_buttons = await page.get_interactions_selector(
+                prompt=db_prompt, db_prompt=db_prompt, force_use_cache=True
+            )
+            print("get cache time: ", time.time() - start_time)
+            if len(variant_buttons) > 0:
+                print("found cached!!! ", variant_buttons)
 
+                page_infos = []
+                for el in variant_buttons:
+                    try:
+                        await el.get_playwright_locator().click(timeout=0)
+                        await asyncio.sleep(0.2)
+                        active_page = await browser.get_active_page()
+                        page_info = await active_page.get_page_information()
+                        page_infos.append(page_info)
+                    except Exception as e:
+                        pass
+                return page_infos
+        except:
+            pass
+
+    start_time = time.time()
     page_info = await page.get_page_information()
+    print("get page info: ", time.time() - start_time)
+
     entire_prompt = f"""Hi, we are trying to extract product data from a webpage. Can you help me see if there are any variant of this product displayed on the page? Often times these are color variants, but it could be theme too or something else.
 
 Please look at the page and output one of the following:
@@ -233,17 +258,15 @@ Output the json, starting with reasoning, and nothing else. Make sure you use a 
 
         if json_res["type"] == "VARIANTS_AVAILABLE":
             variant_buttons = await page.get_interactions_selector(
-                json_res["interaction_prompt"]
+                json_res["interaction_prompt"], db_prompt=db_prompt
             )
-            print("variant_buttons: ", variant_buttons)
 
             page_infos = []
-            count = await variant_buttons.count()
-            for index in range(count):
+            for el in variant_buttons:
                 try:
-                    res = await variant_buttons.nth(index).click(timeout=0)
-                    active_page = await browser.get_active_page()
+                    await el.get_playwright_locator().click(timeout=0)
                     await asyncio.sleep(0.2)
+                    active_page = await browser.get_active_page()
                     page_info = await active_page.get_page_information()
                     page_infos.append(page_info)
                 except Exception as e:
@@ -302,8 +325,20 @@ async def extract_product_data(url: str) -> EcommerceResponse:
     return EcommerceResponse(variants=page_data_results)
 
 
+async def test(url: str):
+    browser = DendriteRemoteBrowser(
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        dendrite_api_key=os.environ.get("DENDRITE_API_KEY", ""),
+    )
+    page = await browser.goto(url, scroll_through_entire_page=False)
+    res = await page.scrape(
+        "Extract the product description from this page as a string value."
+    )
+    print("res: ", res)
+
+
 asyncio.run(
-    extract_product_data(
+    test(
         "https://www.amazon.com/Portable-Mechanical-Keyboard-MageGee-Backlit/dp/B098LG3N6R/ref=sr_1_2?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20JZ85TVB8YZ7cwvsm0LDrBK1PUvuJ-xGXkNcVHVIhrQc9kBmR5169dJ6bjz3i9LTKih1i1gw9zMA5shlsZn0KaVLU1EJAlCk2vS5bmQ5Idk0jdUQzbe1NHHkPD6bd_mIL2J7EUeyr51zzG5sIHNZF8s.0rZvfrTY0gQfCCR3e3ZG37IngUeL9TvLAKFP0uxXQm8&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=a3b11a83-7bdf-42ad-8ccc-850a2a9be0ae&pd_rd_w=thyAn&pd_rd_wg=QuR3V&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=EGJ9WE3PH43XY2VRNXYS&qid=1719385097&sr=8-2&th=1"
     )
 )

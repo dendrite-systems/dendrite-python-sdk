@@ -15,3 +15,5 @@ class ScrapePageDTO(BaseModel):
     expected_return_data: Optional[str]
     return_data_json_schema: Any
     use_screenshot: bool = False
+    use_cache: bool = True
+    force_use_cache: bool = False
