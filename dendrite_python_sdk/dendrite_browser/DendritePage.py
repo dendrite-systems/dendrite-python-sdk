@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Type
 from pydantic import BaseModel
 
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
+from dendrite_python_sdk.dto.TryRunScriptDTO import TryRunScriptDTO
 from dendrite_python_sdk.exceptions.DendriteException import DendriteException
 from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
 
@@ -28,6 +29,7 @@ from dendrite_python_sdk.request_handler import (
     get_interactions,
     get_interactions_selector,
     scrape_page,
+    try_run_cached,
 )
 
 
@@ -56,6 +58,23 @@ class DendritePage:
         if pydantic_return_model:
             json_schema = json.loads(pydantic_return_model.schema_json())
 
+        cache_dto = TryRunScriptDTO(
+            url=self.page.url,
+            raw_html= str(await self.get_soup(only_visible_elements=False)),
+            llm_config=self.dendrite_browser.get_llm_config(),
+            prompt=prompt,
+            expected_return_data=expected_return_data,
+            return_data_json_schema=json_schema,
+        )
+
+        res  = await try_run_cached(cache_dto)
+        if res:
+            print("Used cacehd response.")
+            if pydantic_return_model:
+                return pydantic_return_model.parse_obj(res.json_data)
+
+            return res.json_data
+        
         page_information = await self.get_page_information()
         dto = ScrapePageDTO(
             page_information=page_information,
