@@ -88,6 +88,9 @@ async def scrape_page(dto: ScrapePageDTO) -> ScrapePageResponse:
 
 async def try_run_cached(dto: TryRunScriptDTO) -> Optional[ScrapePageResponse]:
     res = await send_request("actions/try-run-cached", data=dto.dict(), method="POST")
+    if res is None:
+        return None
+    
     return ScrapePageResponse(
         status=res["status"],
         message=res["message"],

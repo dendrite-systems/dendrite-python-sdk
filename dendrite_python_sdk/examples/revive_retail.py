@@ -35,7 +35,7 @@ async def scrape_price(product_url: str) -> Optional[str]:
     # await page.scroll_through_entire_page()
     price = await page.scrape(
         """Extract the price of the main product on the page, make sure that the extracted value is plain text. Extract the title.
-            include the the urls to the product images. There ara often two versions of the images, be sure to select the ones that are of the highest quality.""",
+            include the the urls to the product images. There are often two versions of the images, be sure to select the ones that are of the highest quality.""",
         pydantic_return_model=PriceModel
     )
     return price
@@ -106,7 +106,7 @@ async def scrape_one_browser(browser: DendriteBrowser, product_url: str):
     return price
 
 
-asyncio.run(main("https://www.bauhaus.se/hacksax-einhell-ge-ch-36-65-72cm-18v-utan-batteri"))
+asyncio.run(main("https://www.bauhaus.se/vedklyv-scheppach-hl760ls-7t-2200w"))
 #https://www.nike.com/se/en/t/academy-dri-fit-football-pants-x1t8FS/DV9736-010
 #"https://www.nike.com/se/en/t/sportswear-club-t-shirt-VmJw4S"
 # https://www.nike.com/se/en/t/pegasus-41-blueprint-older-road-running-shoes-pz105x/FN5041-103
