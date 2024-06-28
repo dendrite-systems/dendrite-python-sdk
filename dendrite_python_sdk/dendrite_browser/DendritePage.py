@@ -52,29 +52,31 @@ class DendritePage:
         expected_return_data: Optional[str] = None,
         return_data_json_schema: Optional[Any] = None,
         pydantic_return_model: Optional[Type[BaseModel]] = None,
+        use_cache=True,
     ) -> Any:
 
         json_schema = return_data_json_schema
         if pydantic_return_model:
             json_schema = json.loads(pydantic_return_model.schema_json())
 
-        cache_dto = TryRunScriptDTO(
-            url=self.page.url,
-            raw_html= str(await self.get_soup(only_visible_elements=False)),
-            llm_config=self.dendrite_browser.get_llm_config(),
-            prompt=prompt,
-            expected_return_data=expected_return_data,
-            return_data_json_schema=json_schema,
-        )
+        if use_cache == True:
+            cache_dto = TryRunScriptDTO(
+                url=self.page.url,
+                raw_html=str(await self.get_soup(only_visible_elements=False)),
+                llm_config=self.dendrite_browser.get_llm_config(),
+                prompt=prompt,
+                expected_return_data=expected_return_data,
+                return_data_json_schema=json_schema,
+            )
 
-        res  = await try_run_cached(cache_dto)
-        if res:
-            print("Used cacehd response.")
-            if pydantic_return_model:
-                return pydantic_return_model.parse_obj(res.json_data)
+            res = await try_run_cached(cache_dto)
+            if res:
+                print("Used cached response.")
+                if pydantic_return_model:
+                    return pydantic_return_model.parse_obj(res.json_data)
 
-            return res.json_data
-        
+                return res.json_data
+
         page_information = await self.get_page_information()
         dto = ScrapePageDTO(
             page_information=page_information,
@@ -82,6 +84,8 @@ class DendritePage:
             prompt=prompt,
             expected_return_data=expected_return_data,
             return_data_json_schema=json_schema,
+            use_screenshot=True,
+            use_cache=use_cache,
         )
         res = await scrape_page(dto)
 
@@ -148,10 +152,11 @@ class DendritePage:
         # print("soup: ", soup)
         interactable_elements_task = get_interactive_elements_with_playwright(self.page)
         # print("interactable_elements: ", interactable_elements)
-        base64_task = self.screenshot_manager.take_full_page_screenshot(self.page)
-        soup, interactable_elements, base64 = await asyncio.gather(
-            soup_task, interactable_elements_task, base64_task
+
+        soup, interactable_elements = await asyncio.gather(
+            soup_task, interactable_elements_task
         )
+        base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
         print("time to get all: ", time.time() - start_time)
 
         return PageInformation(

@@ -14,6 +14,7 @@ class DendriteRemoteBrowser(DendriteBrowser):
         self,
         openai_api_key: str,
         id=None,
+        anthropic_api_key: Optional[str] = None,
         dendrite_api_key: Optional[str] = None,
         playwright_options: Any = {
             "headless": False,
@@ -22,6 +23,7 @@ class DendriteRemoteBrowser(DendriteBrowser):
         super().__init__(
             openai_api_key=openai_api_key,
             dendrite_api_key=dendrite_api_key,
+            anthropic_api_key=anthropic_api_key,
             playwright_options=playwright_options,
         )
 

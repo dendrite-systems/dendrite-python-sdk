@@ -25,6 +25,12 @@ class EcommerceRequest(BaseModel):
 # This may include things like price, tax, shipping cost, shipping options (e.g. Amazon prime, 3day shipping), product variants (size with options S, M, L or color with options blue, red, white), etc.
 
 
+class PriceData(BaseModel):
+    price: str = Field(..., description="Include the currency inside the response.")
+    currency: str = Field(..., description="e.g USD")
+    currencyRaw: str = Field(..., description="e.g $")
+
+
 class ProductData(BaseModel):
     product_name: str
     # product_description: str = Field(
@@ -35,7 +41,7 @@ class ProductData(BaseModel):
         ...,
         description="Make sure you get the images you get the large display images and not any smaller ones. They are usually front and center next to the title.",
     )
-    shipping_details: str = Field(
+    shipping_details: Optional[str] = Field(
         ...,
         description="Please list all information regarding shipping cost, shipping options (e.g. Amazon prime, 3day shipping) if available on the page.",
     )
@@ -43,17 +49,15 @@ class ProductData(BaseModel):
     # original_price: str = Field(
     #     ..., description="Include the currency inside the response."
     # )
-    price: str = Field(..., description="Include the currency inside the response.")
-    currency: str = Field(..., description="e.g USD")
-    currencyRaw: str = Field(..., description="e.g $")
-    availability: bool = Field(..., description="Is the item in stock or not")
+    priceData: PriceData
+    availability: Optional[bool] = Field(..., description="Is the item in stock or not")
     # available_colors: list[str] = Field(
     #     ...,
     #     description="Please list the colors that are available for this product if applicable.",
     # )
     available_sizes: Optional[list[str]] = Field(
         [],
-        description="Get all the available sizes that are selectable on the product page as a list of strings. This value is usually only relevant for clothing items. I only want the sizes that are currently available, often times unavailable sizes are greyed out or similar. It's important that you only get the currently available sizes that aren't hidden.",
+        description="Get all the available sizes that are selectable on the product page as a list of strings. This value is usually only relevant for clothing items. Sometimes these are found inside size dropdowns. I only want the sizes that are currently available, often times unavailable sizes are greyed out or similar. It's important that you only get the currently available sizes that aren't hidden.",
     )
     # unavailable_sizes: list[str] = Field(
     #     [],
@@ -70,8 +74,10 @@ async def extract_data(
     propery_name: str,
     propery_schema: Any,
 ):
-    openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-    llm_config = LLMConfig(openai_api_key=openai_api_key)
+    llm_config = LLMConfig(
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+    )
 
     print(f"Getting from active_page: {page} name: {propery_name}")
 
@@ -96,17 +102,19 @@ async def extract_data(
         )
 
         res = await scrape_page(scrape_dto)
-        print("create_script res: ", res)
+        # print("create_script res: ", res)
         return res
 
     try:
         res = await create_script(db_prompt, force_use_cache=True)
         print("res: ", res)
         if res.status != "failed":
-            print(f"\n\nUsed cached script! for '{db_prompt}', res: {res}")
+            print(f" ✅ Used cached script! {res}")
             return res
+        else:
+            print(" ❌ Need to create a new script.")
     except Exception as e:
-        print("failed to find cached script: ", e)
+        pass
 
     page_info = await page.get_page_information()
     messages = [
@@ -165,8 +173,6 @@ Output the json, starting with `reasoning`, and nothing else. Here is a screensh
             print("Error parsing: ", response_message)
             return propery_name, response_message
 
-        print("json_res: ", json_res)
-
         if json_res["type"] == "DATA_VISIBLE":
             prompt = f"Please extract the data from with this json schema: {propery_schema}. {json_res['reasoning']} So, the expected output from extraction script should be: \n\n{json_res['expected_value']}\n\nCreate a script that can get this value. Don't hardcode the expected outcome into the script, just make sure that the outcome matches it. (Doesn't need to be exactly the same, but similar.)"
             res = await create_script(prompt)
@@ -177,6 +183,8 @@ Output the json, starting with `reasoning`, and nothing else. Here is a screensh
             print(f"Need to create script... '{db_prompt}', res {res}")
             return propery_name, res.json_data
         elif json_res["type"] == "NOT_AVAILABLE":
+            if "null" in propery_schema["type"]:
+                return propery_name, None
             prompt = f"We are trying to extract the data that follows this JSON schema: {propery_schema}. This data doesn't seem to be available on the page however, so please code a short script that returns a value that matches the schema but returns a value like -1 or 'Not available'."
             print(f"Need to create script... '{db_prompt}', res {res}")
             res = await create_script(prompt)
@@ -212,7 +220,7 @@ async def get_all_product_variants(
                 print("found cached selector!!! ", variant_buttons)
 
                 product_variant_data = []
-                for el in variant_buttons:
+                for el in variant_buttons[:1]:
                     try:
                         await el.get_playwright_locator().click(timeout=0)
 
@@ -334,9 +342,6 @@ async def extract_all(page: DendritePage, json_schema: Any):
 
 
 async def extract_product_data(url: str) -> EcommerceResponse:
-
-    print(ProductData.model_json_schema())
-    return EcommerceResponse(variants=[])
     dendrite_browser = DendriteRemoteBrowser(
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
         dendrite_api_key=os.environ.get("DENDRITE_API_KEY", ""),
@@ -357,18 +362,21 @@ async def extract_product_data(url: str) -> EcommerceResponse:
 async def test(url: str):
     browser = DendriteRemoteBrowser(
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
         dendrite_api_key=os.environ.get("DENDRITE_API_KEY", ""),
     )
     page = await browser.goto(url, scroll_through_entire_page=False)
     res = await page.scrape(
-        "Extract the product description from this page as a string value."
+        "Get the price of the product please",
+        use_cache=False,
     )
     print("res: ", res)
 
 
 asyncio.run(
     extract_product_data(
-        "https://www.amazon.com/Redragon-S101-Keyboard-Ergonomic-Programmable/dp/B00NLZUM36/ref=sr_1_3?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20BOqIUbVycKgrgWhsv3MCsvpEd57g5uZRNzYwHS9Aw2obI3MPmxewiD3kqCeZDfRh69TGNH_g8luFs-XZxYXIBD2JVQ9pYTQA6VM4k06p7kUjdUQzbe1NHHkPD6bd_mILwz7PFE_rYcpXnDqkLtMtSY.LORYuOmHcSqhnVbbYz8QsC5kxdeESOXcjd_PCPjpzMs&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=64dc3a90-64a6-40b9-b7a1-2d68d3ecc3b4&pd_rd_w=x25KJ&pd_rd_wg=OZzqF&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=HP8K759Y8NJCW8Z9C275&qid=1719487385&sr=8-3&th=1"
+        "https://www.amazon.com/Lee-Womens-Legendary-Flare-Elevated/dp/B0C5ND84XC/ref=sr_1_16?crid=1IHX3N9NJ72X4&dib=eyJ2IjoiMSJ9.avM_Q9qy2Wbfhz4g7QXlARtkJ-FKfioLrvdK0DKWbqQmVhUPdkDVBEWczNtc9KWpzzzXwckXNkJtm3Xx_NjD2Uu-0obpGkn3o2IIE_fYdc8nDbBv76GyuZHwRt_l6YmZ-3DLCCqvIAno7xa4SOpTL5ApLyrycKygMzS2HZDiKNJbkFJI7gn1VwcK_w-B6roC-PigJpWN0l9ydAvjv3xI4tvFDsQ4mPrFjDUy_7spzBGsTI4YoiBK7xALV4NvXmtMQJzW9NeA95blDRA4tc0E0SmyOp5Ve2OTXCTzNTo_yYQ.-Nmd_HDhA95UDzaYOYZ50GfNgxJUayKfCQRUORtgG3s&dib_tag=se&keywords=jeans+for+women&qid=1719500499&sprefix=jeans%2Caps%2C245&sr=8-16"
+        # "https://www.amazon.com/Redragon-S101-Keyboard-Ergonomic-Programmable/dp/B00NLZUM36/ref=sr_1_3?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20BOqIUbVycKgrgWhsv3MCsvpEd57g5uZRNzYwHS9Aw2obI3MPmxewiD3kqCeZDfRh69TGNH_g8luFs-XZxYXIBD2JVQ9pYTQA6VM4k06p7kUjdUQzbe1NHHkPD6bd_mILwz7PFE_rYcpXnDqkLtMtSY.LORYuOmHcSqhnVbbYz8QsC5kxdeESOXcjd_PCPjpzMs&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=64dc3a90-64a6-40b9-b7a1-2d68d3ecc3b4&pd_rd_w=x25KJ&pd_rd_wg=OZzqF&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=HP8K759Y8NJCW8Z9C275&qid=1719487385&sr=8-3&th=1"
         # "https://www.amazon.com/Portable-Mechanical-Keyboard-MageGee-Backlit/dp/B098LG3N6R/ref=sr_1_2?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20JZ85TVB8YZ7cwvsm0LDrBK1PUvuJ-xGXkNcVHVIhrQc9kBmR5169dJ6bjz3i9LTKih1i1gw9zMA5shlsZn0KaVLU1EJAlCk2vS5bmQ5Idk0jdUQzbe1NHHkPD6bd_mIL2J7EUeyr51zzG5sIHNZF8s.0rZvfrTY0gQfCCR3e3ZG37IngUeL9TvLAKFP0uxXQm8&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=a3b11a83-7bdf-42ad-8ccc-850a2a9be0ae&pd_rd_w=thyAn&pd_rd_wg=QuR3V&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=EGJ9WE3PH43XY2VRNXYS&qid=1719385097&sr=8-2&th=1"
     )
 )

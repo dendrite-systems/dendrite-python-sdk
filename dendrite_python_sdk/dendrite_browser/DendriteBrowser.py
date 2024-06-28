@@ -25,6 +25,7 @@ class DendriteBrowser:
         openai_api_key: str,
         id=None,
         dendrite_api_key: Optional[str] = None,
+        anthropic_api_key: Optional[str] = None,
         playwright_options: Any = {
             "headless": False,
         },
@@ -36,7 +37,9 @@ class DendriteBrowser:
         self.browser_context: Optional[BrowserContext] = None
         self.active_page_manager: Optional[ActivePageManager] = None
 
-        llm_config = LLMConfig(openai_api_key=openai_api_key)
+        llm_config = LLMConfig(
+            openai_api_key=openai_api_key, anthropic_api_key=anthropic_api_key
+        )
         self.llm_config = llm_config
 
         if dendrite_api_key:
