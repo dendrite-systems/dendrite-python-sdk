@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, TypedDict, Union
 from uuid import uuid4
 from urllib.parse import quote
 import os
@@ -7,6 +7,7 @@ import os
 from playwright.async_api import async_playwright, Playwright, BrowserContext
 from dendrite_python_sdk.dendrite_browser.ActivePageManager import ActivePageManager
 from dendrite_python_sdk.dendrite_browser.DendritePage import DendritePage
+from dendrite_python_sdk.dendrite_browser.authentication.authenticate import get_auth_session
 from dendrite_python_sdk.dto.GoogleSearchDTO import GoogleSearchDTO
 from dendrite_python_sdk.models.LLMConfig import LLMConfig
 from dendrite_python_sdk.request_handler import google_search_request
@@ -106,12 +107,17 @@ class DendriteBrowser:
         response = await google_search_request(dto)
         return response.results
 
-    async def launch(self):
+    async def launch(self, user_id: Optional[str] = None, domain: Optional[str] = None):
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self.playwright = await async_playwright().start()
         browser = await self.playwright.chromium.launch(**self.playwright_options)
         self.browser_context = await browser.new_context()
         await self.browser_context.add_init_script(path="dendrite_python_sdk/dendrite_browser/scripts/eventListenerPatch.js")
+
+        if user_id and domain:
+            session_data = await get_auth_session(user_id, domain)
+            await self.browser_context.add_cookies(dict_to_list_of_dicts(session_data))
+        
         self.active_page_manager = ActivePageManager(self, self.browser_context)
         return browser, self.browser_context, self.active_page_manager
 
@@ -131,3 +137,33 @@ class DendriteBrowser:
 
         if self.playwright:
             await self.playwright.stop()
+
+
+
+class SetCookieParam(TypedDict, total=False):
+    name: str
+    value: str
+    url: str
+    domain: Optional[str]
+    path: Optional[str]
+    expires: Optional[float]
+    httpOnly: Optional[bool]
+    secure: Optional[bool]
+    sameSite: Optional[Literal["Lax", "None", "Strict"]]
+
+def dict_to_list_of_dicts(d: List[Dict[str, str]]) -> List[SetCookieParam]:
+    return [convert_dict_to_setcookieparam(row) for row in d]
+
+def convert_dict_to_setcookieparam(input_dict: Dict[str, Any]) -> SetCookieParam:
+    print(input_dict)
+    return SetCookieParam(
+        name=input_dict.get("name", ""),
+        value=input_dict.get("value", ""),
+        url=input_dict.get("url",""),
+        domain=input_dict.get("domain"),
+        path=input_dict.get("path"),
+        expires=input_dict.get("expires"),
+        httpOnly=input_dict.get("httpOnly"),
+        secure=input_dict.get("secure"),
+        sameSite=input_dict.get("sameSite"),
+    )
