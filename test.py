@@ -1,16 +1,16 @@
-# import json
-# from time import sleep
-# from playwright.sync_api import sync_playwright
+import json
+from time import sleep
+from playwright.sync_api import sync_playwright
 
 
-# browser = sync_playwright().start().chromium.launch(headless=False)
+browser = sync_playwright().start().chromium.launch(headless=False)
 
-# browser.new_page().goto("https://mail.google.com/mail/u/1/#inbox")
+browser.new_page().goto("https://mail.google.com/mail/u/1/#inbox")
 
-# input()
+input()
 
-# with open("cookies.json", "w") as f:
-#     f.write(json.dumps(browser.contexts[0].cookies()))
+with open("cookies.json", "w") as f:
+    f.write(json.dumps(browser.contexts[0].cookies()))
 
 
 
