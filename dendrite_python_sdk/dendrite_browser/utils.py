@@ -49,12 +49,12 @@ async def get_interactive_elements_with_playwright(
         elements.forEach(el => {
             const hasClickEvent = el._getEventListeners && el._getEventListeners('click') && el._getEventListeners('click').length > 0;
             if (hasClickEvent) {
-                el.style.outline = "2px solid red";
+                //el.style.outline = "2px solid red";
                 clickableElements.push(el.outerHTML);
             } else {
                 const isClickable = selectors.some(selector => el.matches(selector));
                 if (isClickable) {
-                    el.style.outline = "2px solid red";
+                    //el.style.outline = "2px solid red";
                     clickableElements.push(el.outerHTML);
                 }
             }

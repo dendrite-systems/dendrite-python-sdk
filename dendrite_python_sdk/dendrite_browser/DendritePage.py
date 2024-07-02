@@ -53,7 +53,7 @@ class DendritePage:
         return_data_json_schema: Optional[Any] = None,
         pydantic_return_model: Optional[Type[BaseModel]] = None,
         use_cache=True,
-    ) -> Any:
+    ) -> ScrapePageResponse:
 
         json_schema = return_data_json_schema
         if pydantic_return_model:
@@ -71,11 +71,13 @@ class DendritePage:
 
             res = await try_run_cached(cache_dto)
             if res:
-                print("Used cached response.")
                 if pydantic_return_model:
-                    return pydantic_return_model.parse_obj(res.json_data)
+                    print("res: ", res.json_data)
+                    print("pydantic_return_model: ", pydantic_return_model)
+                    print("type: ", type(res.json_data))
+                    res.json_data = pydantic_return_model.parse_obj(res.json_data)
 
-                return res.json_data
+                return res
 
         page_information = await self.get_page_information()
         dto = ScrapePageDTO(
@@ -90,9 +92,9 @@ class DendritePage:
         res = await scrape_page(dto)
 
         if pydantic_return_model:
-            return pydantic_return_model.parse_obj(res.json_data)
+            res.json_data = pydantic_return_model.parse_obj(res.json_data)
 
-        return res.json_data
+        return res
 
     async def scroll_to_bottom(self):
         # TODO: add timeout
@@ -148,14 +150,13 @@ class DendritePage:
         self, only_visible_elements_in_html: bool = False
     ) -> PageInformation:
         start_time = time.time()
-        soup_task = self.get_soup(only_visible_elements=only_visible_elements_in_html)
+        soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
         # print("soup: ", soup)
-        interactable_elements_task = get_interactive_elements_with_playwright(self.page)
+        interactable_elements = await get_interactive_elements_with_playwright(
+            self.page
+        )
         # print("interactable_elements: ", interactable_elements)
 
-        soup, interactable_elements = await asyncio.gather(
-            soup_task, interactable_elements_task
-        )
         base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
         print("time to get all: ", time.time() - start_time)
 
@@ -215,10 +216,7 @@ document.querySelectorAll('*').forEach((element, index) => {
         await self.scroll_to_bottom()
 
     async def get_interactions_selector(
-        self,
-        prompt: str,
-        db_prompt: Optional[str] = None,
-        force_use_cache: bool = False,
+        self, prompt: str, db_prompt: Optional[str] = None, use_cache=True
     ) -> List[DendriteLocator]:
         llm_config = self.dendrite_browser.get_llm_config()
 
@@ -233,36 +231,47 @@ document.querySelectorAll('*').forEach((element, index) => {
             db_prompt=db_prompt,
             return_data_json_schema=None,
             expected_return_data=None,
-            force_use_cache=force_use_cache,
+            use_cache=use_cache,
         )
+
+        # HACK
+        await self.get_page_information()
 
         res = await get_interactions_selector(dto)
         if res:
-            # print("selectors: ", res["selectors"])
+
             selectors = res["selectors"]
+            print("selectors: ", res["selectors"])
             for selector in selectors:
                 try:
                     locators = []
+                    print(f"waiting for {selector}")
+                    await self.page.wait_for_selector(selector)
                     locator = self.page.locator(selector)
-                    # print("locator: ", locator)
+                    print("locator: ", locator)
                     count = await locator.count()
-                    # print("count: ", count)
+                    print("count: ", count)
 
                     for index in range(count):
                         try:
                             nth_locator = locator.nth(index)
+                            print("nth_locator: ", nth_locator)
                             d_id = await nth_locator.get_attribute("d-id", timeout=0)
-                            if d_id:
-                                dendrite_locater = DendriteLocator(
-                                    locator=nth_locator,
-                                    dendrite_id=d_id,
-                                    dendrite_browser=self.dendrite_browser,
-                                )
-                                locators.append(dendrite_locater)
+                            print("d_id: ", d_id)
+
+                            if d_id == None:
+                                d_id = ""
+
+                            dendrite_locater = DendriteLocator(
+                                locator=nth_locator,
+                                dendrite_id=d_id,
+                                dendrite_browser=self.dendrite_browser,
+                            )
+                            print("dendrite_locater: ", dendrite_locater)
+                            locators.append(dendrite_locater)
                         except Exception as e:
                             print("Error getting this selector: ", e)
 
-                    print("selector locators: ", locators)
                     if len(locators) == 0:
                         continue
 

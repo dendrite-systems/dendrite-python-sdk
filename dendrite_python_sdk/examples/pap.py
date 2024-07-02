@@ -8,7 +8,9 @@ from pydantic import BaseModel
 from dendrite_python_sdk import DendriteBrowser
 from dotenv import load_dotenv, find_dotenv
 
-from dendrite_python_sdk.dendrite_browser.DendriteRemoteBrowser import DendriteRemoteBrowser
+from dendrite_python_sdk.dendrite_browser.DendriteRemoteBrowser import (
+    DendriteRemoteBrowser,
+)
 
 load_dotenv(find_dotenv())
 
@@ -16,33 +18,32 @@ load_dotenv(find_dotenv())
 class PriceModel(BaseModel):
     price: str
 
+
 async def scrape_price(product_url: str) -> Optional[str]:
     dendrite_browser = DendriteRemoteBrowser(
         dendrite_api_key=os.environ.get("DENDRITE_API_KEY", ""),
-        openai_api_key=os.environ.get("OPENAI_API_KEY", "")
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
     )
-    
-    time_before = time.time()
-    page = await dendrite_browser.goto(
-        product_url, scroll_through_entire_page=False
-    )
-    print("Time to load page: ", time.time() - time_before)
 
+    time_before = time.time()
+    page = await dendrite_browser.goto(product_url, scroll_through_entire_page=False)
+    print("Time to load page: ", time.time() - time_before)
 
     # Scraping data is as easy as writing a good prompt
     # await page.scroll_through_entire_page()
     price = await page.scrape(
         "Exstract the price of the main product on the page, make sure that the extracted value is plain text",
-        pydantic_return_model=PriceModel
+        pydantic_return_model=PriceModel,
     )
     return price
+
 
 async def successful_scrape(product_url):
     price = await scrape_price(product_url)
     if price:
-        return {'success': True, 'price': price}
+        return {"success": True, "price": price}
     else:
-        return {'success': False, 'price': None}
+        return {"success": False, "price": None}
 
 
 async def main(product_url: str):
@@ -50,26 +51,23 @@ async def main(product_url: str):
     # price = await scrape_price(product_url)
     # print(price)
 
-
     df = pd.read_csv("products.csv")
     start = time.time()
     dendrite_browser = DendriteRemoteBrowser(
         dendrite_api_key=os.environ.get("DENDRITE_API_KEY", ""),
-        openai_api_key=os.environ.get("OPENAI_API_KEY", "")
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
     )
 
     for url in df["Url"]:
         page_start = time.time()
-        page = await dendrite_browser.goto(
-            url, scroll_through_entire_page=False
-        )
+        page = await dendrite_browser.goto(url, scroll_through_entire_page=False)
         price = await page.scrape(
             "Exstract the price of the main product on the page, make sure that the extracted value is plain text",
-            pydantic_return_model=PriceModel
+            pydantic_return_model=PriceModel,
         )
         print("Time to load page: ", time.time() - page_start)
-        print(price)
-    
+        print(price.json_data)
+
     print("Time to load all pages: ", time.time() - start)
 
     return
@@ -80,8 +78,8 @@ async def main(product_url: str):
     results = await asyncio.gather(*tasks)
 
     # Extract success and price values from results
-    success_results = [result['success'] for result in results]
-    prices = [result['price'] for result in results]
+    success_results = [result["success"] for result in results]
+    prices = [result["price"] for result in results]
 
     # Update the DataFrame
     df["success"] = success_results
@@ -89,21 +87,23 @@ async def main(product_url: str):
 
     # Save the updated DataFrame to a new CSV file
     df.to_csv("products_processed.csv", index=False)
-        
-        
+
+
 async def scrape_one_browser(browser: DendriteBrowser, product_url: str):
-    page = await browser.goto(
-        product_url, scroll_through_entire_page=False
-    )
+    page = await browser.goto(product_url, scroll_through_entire_page=False)
     price = await page.scrape(
         "Exstract the price of the main product on the page, make sure that the extracted value is plain text",
-        pydantic_return_model=PriceModel
+        pydantic_return_model=PriceModel,
     )
     return price
 
 
-asyncio.run(main("https://www.nike.com/se/en/t/air-jordan-1-low-quai-54-shoes-TFZk3J/HQ0764-001"))
-#https://www.nike.com/se/en/t/academy-dri-fit-football-pants-x1t8FS/DV9736-010
-#"https://www.nike.com/se/en/t/sportswear-club-t-shirt-VmJw4S"
+asyncio.run(
+    main(
+        "https://www.nike.com/se/en/t/air-jordan-1-low-quai-54-shoes-TFZk3J/HQ0764-001"
+    )
+)
+# https://www.nike.com/se/en/t/academy-dri-fit-football-pants-x1t8FS/DV9736-010
+# "https://www.nike.com/se/en/t/sportswear-club-t-shirt-VmJw4S"
 # https://www.nike.com/se/en/t/pegasus-41-blueprint-older-road-running-shoes-pz105x/FN5041-103
 # https://www.nike.com/se/en/t/pegasus-41-blueprint-older-road-running-shoes-pz105x/FN5041-100

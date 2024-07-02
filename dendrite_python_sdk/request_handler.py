@@ -84,6 +84,8 @@ async def scrape_page(dto: ScrapePageDTO) -> ScrapePageResponse:
         status=res["status"],
         message=res["message"],
         json_data=json.loads(res["json_data"]),
+        created_script=res.get("created_script", None),
+        used_cache=res.get("used_cache", False),
     )
 
 
@@ -92,10 +94,13 @@ async def try_run_cached(dto: TryRunScriptDTO) -> Optional[ScrapePageResponse]:
     if res is None:
         return None
 
+    loaded_value = json.loads(res["json_data"])
     return ScrapePageResponse(
         status=res["status"],
         message=res["message"],
-        json_data=json.loads(res["json_data"]),
+        json_data=loaded_value,
+        created_script=res.get("created_script", None),
+        used_cache=res.get("used_cache", False),
     )
 
 
