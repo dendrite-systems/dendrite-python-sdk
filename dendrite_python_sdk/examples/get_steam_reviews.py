@@ -11,6 +11,7 @@ async def main(game_to_extract: str):
     dendrite_browser = DendriteBrowser(
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
         dendrite_api_key=os.environ.get("DENDRITE_API_KEY", ""),
+        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
     )
 
     page = await dendrite_browser.goto(
@@ -18,12 +19,11 @@ async def main(game_to_extract: str):
         scroll_through_entire_page=False,
     )
 
-    for i in range(10):
-        url = await page.scrape(
-            "Get the URL of first listed search result and return it like this: {url: str}"
-        )
+    url = await page.scrape(
+        "Get the URL of first listed search result and return it like this: {url: str}"
+    )
 
-        print("url: ", url["url"])
+    print(url.json_data["url"])
 
 
 asyncio.run(main("fishards"))

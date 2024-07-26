@@ -66,10 +66,6 @@ class ProductData(BaseModel):
         [],
         description="Get all the available sizes that are selectable on the product page as a list of strings. This value is optional and usually only relevant for clothing items. Sometimes these are found inside size dropdowns. I only want the sizes that are currently available, often times unavailable sizes are greyed out, marked as out of stock or similar. It's important that you only get the currently available sizes that aren't hidden.",
     )
-    available_sizes: Optional[list[str]] = Field(
-        [],
-        description="",
-    )
     # unavailable_sizes: list[str] = Field(
     #     [],
     #     description="Get all the unavailable sizes as a list of strings. I only want the sizes that are currently unavailable, often times unavailable sizes are greyed out or similar.",
@@ -131,7 +127,9 @@ async def get_all_product_variants(
 ) -> List[Any]:
     prompt = f"Hi, can you help me extract the element for selecting different product variants? These elements are often times small boxes with different colors or small previews of each product variant. Often times product variants are different colors for clothes, but it could be theme too or something else too. Don't extract the element for different size variants, only color or theme."
 
-    variant_buttons = await page.get_interactions_selector(prompt=prompt)
+    variant_buttons = await page.get_interactions_selector(
+        prompt=prompt, use_cache=False
+    )
     print("variant_buttons: ", variant_buttons)
 
     results = []
@@ -284,7 +282,7 @@ urls_to_test = [
 
 asyncio.run(
     extract_product_data(
-        urls_to_test[0]
+        urls_to_test[10]
         # "https://www.amazon.com/Redragon-S101-Keyboard-Ergonomic-Programmable/dp/B00NLZUM36/ref=sr_1_3?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20BOqIUbVycKgrgWhsv3MCsvpEd57g5uZRNzYwHS9Aw2obI3MPmxewiD3kqCeZDfRh69TGNH_g8luFs-XZxYXIBD2JVQ9pYTQA6VM4k06p7kUjdUQzbe1NHHkPD6bd_mILwz7PFE_rYcpXnDqkLtMtSY.LORYuOmHcSqhnVbbYz8QsC5kxdeESOXcjd_PCPjpzMs&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=64dc3a90-64a6-40b9-b7a1-2d68d3ecc3b4&pd_rd_w=x25KJ&pd_rd_wg=OZzqF&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=HP8K759Y8NJCW8Z9C275&qid=1719487385&sr=8-3&th=1"
         # "https://www.amazon.com/Portable-Mechanical-Keyboard-MageGee-Backlit/dp/B098LG3N6R/ref=sr_1_2?_encoding=UTF8&content-id=amzn1.sym.12129333-2117-4490-9c17-6d31baf0582a&dib=eyJ2IjoiMSJ9.xPISJOYMxoc_9dHbx858fxwpXnhNZrtv8JW5ZP3BaCjqaHIK38QAFzAsY9vAczkOx_jT47M5saeEynDwm1y20JZ85TVB8YZ7cwvsm0LDrBK1PUvuJ-xGXkNcVHVIhrQc9kBmR5169dJ6bjz3i9LTKih1i1gw9zMA5shlsZn0KaVLU1EJAlCk2vS5bmQ5Idk0jdUQzbe1NHHkPD6bd_mIL2J7EUeyr51zzG5sIHNZF8s.0rZvfrTY0gQfCCR3e3ZG37IngUeL9TvLAKFP0uxXQm8&dib_tag=se&keywords=gaming%2Bkeyboard&pd_rd_r=a3b11a83-7bdf-42ad-8ccc-850a2a9be0ae&pd_rd_w=thyAn&pd_rd_wg=QuR3V&pf_rd_p=12129333-2117-4490-9c17-6d31baf0582a&pf_rd_r=EGJ9WE3PH43XY2VRNXYS&qid=1719385097&sr=8-2&th=1"
     )

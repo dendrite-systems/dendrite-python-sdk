@@ -150,14 +150,14 @@ class DendritePage:
         self, only_visible_elements_in_html: bool = False
     ) -> PageInformation:
         start_time = time.time()
-        soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
+
         # print("soup: ", soup)
+        # print("interactable_elements: ", interactable_elements)
+        base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
+        soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
         interactable_elements = await get_interactive_elements_with_playwright(
             self.page
         )
-        # print("interactable_elements: ", interactable_elements)
-
-        base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
         print("time to get all: ", time.time() - start_time)
 
         return PageInformation(

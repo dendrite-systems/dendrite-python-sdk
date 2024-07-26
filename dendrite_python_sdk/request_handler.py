@@ -1,12 +1,15 @@
 import json
 import sys
-from typing import Optional, Union
+from typing import Optional, Type, Union
 import httpx
+from dendrite_python_sdk.dto.GetSessionDTO import GetSessionDTO
 from dendrite_python_sdk.dto.MakeInteractionDTO import MakeInteractionDTO
 from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
 from dendrite_python_sdk.dto.GoogleSearchDTO import GoogleSearchDTO
 from dendrite_python_sdk.dto.TryRunScriptDTO import TryRunScriptDTO
+from dendrite_python_sdk.dto.UploadSessionDTO import UploadSessionDTO
+from dendrite_python_sdk.responses.SessionResponse import SessionResponse
 from dendrite_python_sdk.responses.GoogleSearchResponse import GoogleSearchResponse
 from dendrite_python_sdk.responses.InteractionResponse import InteractionResponse
 from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
@@ -102,6 +105,17 @@ async def try_run_cached(dto: TryRunScriptDTO) -> Optional[ScrapePageResponse]:
         created_script=res.get("created_script", None),
         used_cache=res.get("used_cache", False),
     )
+
+
+async def get_session_data(dto: GetSessionDTO) -> SessionResponse:
+    res = await send_request("user/session", data=dto.model_dump(), method="GET")
+    return SessionResponse(
+        session_data=res,
+    )
+
+
+async def upload_session_data(dto: UploadSessionDTO) -> None:
+    res = await send_request("user/session", data=dto.model_dump(), method="POST")
 
 
 async def google_search_request(dto: GoogleSearchDTO) -> GoogleSearchResponse:
