@@ -3,5 +3,5 @@ from pydantic import BaseModel
 
 
 class SessionResponse(BaseModel):
-    session_data: List[dict]
-    
+    cookies: List[dict]
+    origins_storage: List[dict]

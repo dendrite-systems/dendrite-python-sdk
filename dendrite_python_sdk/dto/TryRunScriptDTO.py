@@ -13,19 +13,4 @@ class TryRunScriptDTO(BaseModel):
     db_prompt: Optional[str] = (
         None  # If you wish to cache a script based of a fixed prompt use this value
     )
-    expected_return_data: Optional[str]
     return_data_json_schema: Any
-
-    @property
-    def combined_prompt(self) -> str:
-        expected_return_data_prompt = (
-            ""
-            if self.expected_return_data == None
-            else f"\nExpected return data: {self.expected_return_data}"
-        )
-        json_schema_prompt = (
-            ""
-            if self.return_data_json_schema == None
-            else f"\nJson schema: {json.dumps(self.return_data_json_schema)}"
-        )
-        return f"Task: {self.prompt}{expected_return_data_prompt}{json_schema_prompt}"

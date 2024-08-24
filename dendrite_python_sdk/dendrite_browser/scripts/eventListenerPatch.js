@@ -1,9 +1,46 @@
+// Save the original methods before redefining them
+EventTarget.prototype._originalAddEventListener = EventTarget.prototype.addEventListener;
+EventTarget.prototype._originalRemoveEventListener = EventTarget.prototype.removeEventListener;
+
+// Redefine the addEventListener method
+EventTarget.prototype.addEventListener = function(event, listener, options = false) {
+    // Initialize the eventListenerList if it doesn't exist
+    if (!this.eventListenerList) {
+        this.eventListenerList = {};
+    }
+    // Initialize the event list for the specific event if it doesn't exist
+    if (!this.eventListenerList[event]) {
+        this.eventListenerList[event] = [];
+    }
+    // Add the event listener details to the event list
+    this.eventListenerList[event].push({ listener, options, outerHTML: this.outerHTML });
+
+    // Call the original addEventListener method
+    this._originalAddEventListener(event, listener, options);
+};
+
+// Redefine the removeEventListener method
+EventTarget.prototype.removeEventListener = function(event, listener, options = false) {
+    // Remove the event listener details from the event list
+    if (this.eventListenerList && this.eventListenerList[event]) {
+        this.eventListenerList[event] = this.eventListenerList[event].filter(
+            item => item.listener !== listener
+        );
+    }
+
+    // Call the original removeEventListener method
+    this._originalRemoveEventListener( event, listener, options);
+};
+
+// Get event listeners for a specific event type or all events if not specified
 EventTarget.prototype._getEventListeners = function(eventType) {
     if (!this.eventListenerList) {
         this.eventListenerList = {};
     }
 
-    ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'keydown', 'keyup', 'keypress'].forEach(type => {
+    const eventsToCheck = ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'keydown', 'keyup', 'keypress'];
+
+    eventsToCheck.forEach(type => {
         if (!eventType || eventType === type) {
             if (this[`on${type}`]) {
                 if (!this.eventListenerList[type]) {
@@ -14,12 +51,10 @@ EventTarget.prototype._getEventListeners = function(eventType) {
         }
     });
 
-    if (eventType === undefined) {
-        return this.eventListenerList;
-    }
-    return this.eventListenerList[eventType];
+    return eventType === undefined ? this.eventListenerList : this.eventListenerList[eventType];
 };
 
+// Utility to show events
 function _showEvents(events) {
     let result = '';
     for (let event in events) {
@@ -31,40 +66,7 @@ function _showEvents(events) {
     return result;
 }
 
-EventTarget.prototype._removeEventListener = EventTarget.prototype.removeEventListener;
-EventTarget.prototype._addEventListener = EventTarget.prototype.addEventListener;
-
-EventTarget.prototype.addEventListener = function(event, listener, options = false) {
-    this._addEventListener(event, listener, options);
-    
-
-    if (!this.eventListenerList) {
-        this.eventListenerList = {};
-    }
-    if (!this.eventListenerList[event]) {
-        this.eventListenerList[event] = [];
-    }
-    this.eventListenerList[event].push({ listener, options, outerHTML: this.outerHTML });
-};
-
-EventTarget.prototype.removeEventListener = function(event, listener, options = false, suppress = false) {
-    if (!suppress) {
-        this._removeEventListener(event, listener, options);
-    }
-
-    if (this.eventListenerList && this.eventListenerList[event]) {
-        for (let i = 0; i < this.eventListenerList[event].length; ++i) {
-            if (this.eventListenerList[event][i].listener === listener && this.eventListenerList[event][i].options === options) {
-                this.eventListenerList[event].splice(i, 1);
-                break;
-            }
-        }
-        if (this.eventListenerList[event].length === 0) {
-            delete this.eventListenerList[event];
-        }
-    }
-};
-
+// Extend EventTarget prototype with utility methods
 EventTarget.prototype.on = function(event, callback, options) {
     this.addEventListener(event, callback, options);
     return this;
@@ -80,6 +82,7 @@ EventTarget.prototype.emit = function(event, args = null) {
     return this;
 };
 
+// Make these methods non-enumerable
 Object.defineProperties(EventTarget.prototype, {
     on: { enumerable: false },
     off: { enumerable: false },

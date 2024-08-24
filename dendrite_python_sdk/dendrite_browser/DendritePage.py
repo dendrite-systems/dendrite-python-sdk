@@ -1,13 +1,14 @@
 from __future__ import annotations
 import asyncio
-import json
 import time
-
 from playwright.async_api import Page, Locator
 from bs4 import BeautifulSoup, Tag
+import pathlib
+import time
 
 from typing import TYPE_CHECKING, Any, List, Optional, Type
-from pydantic import BaseModel
+from dendrite_python_sdk.dendrite_browser.SelectorManager import SelectorManager
+from dendrite_python_sdk.dto.GetElementsDTO import GetElementsDTO
 
 from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
 from dendrite_python_sdk.dto.TryRunScriptDTO import TryRunScriptDTO
@@ -18,81 +19,266 @@ if TYPE_CHECKING:
     from dendrite_python_sdk import DendriteBrowser
 
 from dendrite_python_sdk.dendrite_browser.ScreenshotManager import ScreenshotManager
-from dendrite_python_sdk.dendrite_browser.utils import (
-    get_interactive_elements_with_playwright,
-)
-from dendrite_python_sdk.dto.GetInteractionDTO import GetInteractionDTO
 from dendrite_python_sdk.models.PageInformation import PageInformation
-from dendrite_python_sdk.dendrite_browser.DendriteLocator import DendriteLocator
-from dendrite_python_sdk.request_handler import (
-    get_interaction,
-    get_interactions,
-    get_interactions_selector,
-    scrape_page,
-    try_run_cached,
+
+
+from playwright.async_api import (
+    Page,
+    Locator,
+    FrameLocator,
+    Keyboard,
+    FileChooser,
+    Download,
+    FilePayload,
 )
+from bs4 import BeautifulSoup, Tag
+from loguru import logger
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    overload,
+)
+
+
+from dendrite_python_sdk.dendrite_browser.scripts import GENERATE_DENDRITE_IDS_SCRIPT
+from dendrite_python_sdk.dendrite_browser.type_spec import (
+    JsonSchema,
+    PydanticModel,
+    convert_to_type_spec,
+    to_json_schema,
+    TypeSpec,
+)
+
+
+from dendrite_python_sdk.dto.AskPageDTO import AskPageDTO
+from dendrite_python_sdk.dto.ScrapePageDTO import ScrapePageDTO
+from dendrite_python_sdk.dto.TryRunScriptDTO import TryRunScriptDTO
+from dendrite_python_sdk.exceptions.DendriteException import DendriteException
+from dendrite_python_sdk.responses.AskPageResponse import AskPageResponse
+from dendrite_python_sdk.responses.ScrapePageResponse import ScrapePageResponse
+
+if TYPE_CHECKING:
+    from dendrite_python_sdk.dendrite_browser.DendriteBrowser import DendriteBrowser
+
+from dendrite_python_sdk.dendrite_browser.ScreenshotManager import ScreenshotManager
+from dendrite_python_sdk.dendrite_browser.utils import (
+    expand_iframes,
+)
+from dendrite_python_sdk.models.PageInformation import PageInformation
+from dendrite_python_sdk.dendrite_browser.DendriteElement import DendriteElement
+
+
+class DendriteElementsResponse:
+    _data: Dict[str, DendriteElement]
+
+    def __init__(self, data: Dict[str, DendriteElement]):
+        self._data = data
+
+    def __getattr__(self, name: str) -> DendriteElement:
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
+
+    def __getitem__(self, key: str) -> DendriteElement:
+        return self._data[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._data)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._data})"
 
 
 class DendritePage:
+    _file_chooser: Optional[FileChooser]
+    _download: Optional[Download]
+
     def __init__(self, page: Page, dendrite_browser: DendriteBrowser):
         self.page = page
         self.screenshot_manager = ScreenshotManager()
         self.dendrite_browser = dendrite_browser
+        self._file_chooser_set_event = asyncio.Event()
+        self._download_set_event = asyncio.Event()
+        self.selector_manager = SelectorManager(self, dendrite_browser)
+        self.browser_api_client = dendrite_browser.browser_api_client
 
     @property
     def url(self):
         return self.page.url
 
+    @property
+    def keyboard(self) -> Keyboard:
+        return self.page.keyboard
+
     def get_playwright_page(self) -> Page:
         return self.page
 
-    async def scrape(
+    async def goto(
         self,
-        prompt: str,
-        expected_return_data: Optional[str] = None,
-        return_data_json_schema: Optional[Any] = None,
-        pydantic_return_model: Optional[Type[BaseModel]] = None,
-        use_cache=True,
-    ) -> ScrapePageResponse:
+        url: str,
+        timeout: Optional[float] = 30000,
+        wait_until: Optional[
+            Literal["commit", "domcontentloaded", "load", "networkidle"]
+        ] = "load",
+    ) -> None:
+        await self.page.goto(url, timeout=timeout, wait_until=wait_until)
 
-        json_schema = return_data_json_schema
-        if pydantic_return_model:
-            json_schema = json.loads(pydantic_return_model.schema_json())
+    async def upload_files(
+        self,
+        files: Union[
+            str,
+            pathlib.Path,
+            FilePayload,
+            Sequence[Union[str, pathlib.Path]],
+            Sequence[FilePayload],
+        ],
+        timeout: float = 30,
+    ) -> None:
+        file_chooser = await self._get_file_chooser(timeout)
+        await file_chooser.set_files(files)
 
-        if use_cache == True:
-            cache_dto = TryRunScriptDTO(
-                url=self.page.url,
-                raw_html=str(await self.get_soup(only_visible_elements=False)),
-                llm_config=self.dendrite_browser.get_llm_config(),
-                prompt=prompt,
-                expected_return_data=expected_return_data,
-                return_data_json_schema=json_schema,
+    async def _get_file_chooser(self, timeout: float = 30) -> FileChooser:
+        try:
+            await asyncio.wait_for(self._file_chooser_set_event.wait(), timeout)
+            if not self._file_chooser:
+                raise Exception("The file chooser was not set.")
+            fc = self._file_chooser
+
+            self._file_chooser = None
+            self._file_chooser_set_event.clear()
+            return fc
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                "The File Chooser was not set within the specified timeout."
             )
 
-            res = await try_run_cached(cache_dto)
-            if res:
-                if pydantic_return_model:
-                    print("res: ", res.json_data)
-                    print("pydantic_return_model: ", pydantic_return_model)
-                    print("type: ", type(res.json_data))
-                    res.json_data = pydantic_return_model.parse_obj(res.json_data)
+    def _set_file_chooser(self, file_chooser: FileChooser):
+        self._file_chooser = file_chooser
+        self._file_chooser_set_event.set()
 
-                return res
+    async def get_download(self, timeout: float = 30):
+        try:
+            await asyncio.wait_for(self._download_set_event.wait(), timeout)
+            if not self._download:
+                raise Exception("No download was not found.")
+            download = self._download
 
-        page_information = await self.get_page_information()
-        dto = ScrapePageDTO(
-            page_information=page_information,
+            self._download = None
+            self._download_set_event.clear()
+            return download
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                "There was no download event set within the specified timeout."
+            )
+
+    def _set_download(self, download: Download):
+        self._download = download
+        self._download_set_event.set()
+
+    @overload
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: Type[str],
+        use_cache: bool = True,
+    ) -> ScrapePageResponse[str]: ...
+
+    @overload
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: Type[bool],
+        use_cache: bool = True,
+    ) -> ScrapePageResponse[bool]: ...
+
+    @overload
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: Type[int],
+        use_cache: bool = True,
+    ) -> ScrapePageResponse[int]: ...
+
+    @overload
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: Type[float],
+        use_cache: bool = True,
+    ) -> ScrapePageResponse[float]: ...
+
+    @overload
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: Type[PydanticModel],
+        use_cache: bool = True,
+    ) -> ScrapePageResponse[PydanticModel]: ...
+
+    @overload
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: JsonSchema,
+        use_cache: bool = True,
+    ) -> ScrapePageResponse[JsonSchema]: ...
+
+    @overload
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: None = None,
+        use_cache: bool = True,
+    ) -> ScrapePageResponse[Any]: ...
+
+    async def extract(
+        self,
+        prompt: str,
+        type_spec: Optional[TypeSpec] = None,
+        use_cache: bool = True,
+    ) -> ScrapePageResponse:
+        json_schema = None
+        if type_spec:
+            json_schema = to_json_schema(type_spec)
+
+        try_run_dto = TryRunScriptDTO(
+            url=self.page.url,
+            raw_html=str(await self.get_soup(only_visible_elements=False)),
             llm_config=self.dendrite_browser.get_llm_config(),
             prompt=prompt,
-            expected_return_data=expected_return_data,
             return_data_json_schema=json_schema,
-            use_screenshot=True,
-            use_cache=use_cache,
         )
-        res = await scrape_page(dto)
 
-        if pydantic_return_model:
-            res.json_data = pydantic_return_model.parse_obj(res.json_data)
+        res = await self.browser_api_client.try_run_cached(try_run_dto)
+        if res == None:
+            page_information = await self.get_page_information()
+            scrape_dto = ScrapePageDTO(
+                page_information=page_information,
+                llm_config=self.dendrite_browser.get_llm_config(),
+                prompt=prompt,
+                return_data_json_schema=json_schema,
+                use_screenshot=True,
+                use_cache=use_cache,
+            )
+            res = await self.browser_api_client.scrape_page(scrape_dto)
+
+        converted_res = res
+        if type_spec:
+            converted_res = convert_to_type_spec(type_spec, res.return_data)
+
+        res.return_data = converted_res
 
         return res
 
@@ -106,7 +292,7 @@ class DendritePage:
             current_scroll_position = await self.page.evaluate("window.scrollY")
 
             await self.page.evaluate(f"window.scrollTo(0, {i})")
-            i += 20000
+            i += 1000
 
             if time.time() - start_time > 2.0:
                 break
@@ -116,94 +302,57 @@ class DendritePage:
 
             last_scroll_position = current_scroll_position
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
 
-    async def get_element_from_dendrite_id(self, dendrite_id: str) -> Locator:
+    async def get_element_from_dendrite_id(
+        self, soup: BeautifulSoup, dendrite_id: str
+    ) -> Locator:
         try:
-            await self.generate_dendrite_ids()
-            el = self.page.locator(f"xpath=//*[@d-id='{dendrite_id}']")
+            element = soup.find(attrs={"d-id": dendrite_id})
+            frame = self._get_context(element)
+
+            el = frame.locator(f"xpath=//*[@d-id='{dendrite_id}']")
             await el.wait_for(timeout=3000)
             return el.first
         except Exception as e:
+            logger.debug(
+                f"Could not find element with the dendrite id {dendrite_id}: {e}"
+            )
             raise Exception(
                 f"Could not find element with the dendrite id {dendrite_id}"
             )
 
-    async def get_elements_from_dendrite_ids(
-        self, dendrite_ids: List[str]
-    ) -> List[Locator]:
-        try:
-            await self.generate_dendrite_ids()
+    def _get_context(self, element: Any) -> Union[Page, FrameLocator]:
+        context = self.page
 
-            element_list = []
-            for id in dendrite_ids:
-                el = await self.get_element_from_dendrite_id(id)
-                element_list.append(el)
+        if isinstance(element, Tag):
+            full_path = element.get("iframe-path")
+            if full_path:
+                for path in full_path.split("|"):  # type: ignore
+                    context = context.frame_locator(f"xpath=//iframe[@d-id='{path}']")
 
-            return element_list
-        except Exception as e:
-            raise Exception(
-                f"Could not find elements with the dendrite ids {dendrite_ids}, exception: {e}"
-            )
+        return context
 
     async def get_page_information(
         self, only_visible_elements_in_html: bool = False
     ) -> PageInformation:
         start_time = time.time()
-
-        # print("soup: ", soup)
-        # print("interactable_elements: ", interactable_elements)
-        base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
         soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
-        interactable_elements = await get_interactive_elements_with_playwright(
-            self.page
-        )
+
+        base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
         print("time to get all: ", time.time() - start_time)
 
         return PageInformation(
             url=self.page.url,
             raw_html=str(soup),
-            interactable_element_info=interactable_elements,
             screenshot_base64=base64,
         )
 
     async def generate_dendrite_ids(self):
         tries = 0
         while tries < 3:
-            # print("tries: ", tries)
-            script = """
-var hashCode = (string) => {
-    var hash = 0, i, chr;
-    if (string.length === 0) return hash;
-    for (i = 0; i < string.length; i++) {
-        chr = string.charCodeAt(i);
-        hash = ((hash << 5) - hash) + chr;
-        hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-}
-
-var getXPathForElement = (element) => {
-    const idx = (sib, name) => sib
-        ? idx(sib.previousElementSibling, name||sib.localName) + (sib.localName == name)
-        : 1;
-    const segs = elm => !elm || elm.nodeType !== 1
-        ? ['']
-        : elm.id && document.getElementById(elm.id) === elm
-            ? [`id("${elm.id}")`]
-            : [...segs(elm.parentNode), `${elm.localName.toLowerCase()}[${idx(elm)}]`];
-    return segs(element).join('/');
-}
-
-document.querySelectorAll('*').forEach((element, index) => {
-    const xpath = getXPathForElement(element)
-    const uniqueId = hashCode(xpath).toString(36);
-    element.setAttribute('d-id', uniqueId);
-});
-
-"""
             try:
-                await self.page.evaluate(script)
+                await self.page.evaluate(GENERATE_DENDRITE_IDS_SCRIPT)
                 return
             except Exception as e:
                 await self.page.wait_for_load_state(state="load", timeout=3000)
@@ -215,145 +364,235 @@ document.querySelectorAll('*').forEach((element, index) => {
     async def scroll_through_entire_page(self) -> None:
         await self.scroll_to_bottom()
 
-    async def get_interactions_selector(
-        self, prompt: str, db_prompt: Optional[str] = None, use_cache=True
-    ) -> List[DendriteLocator]:
-        llm_config = self.dendrite_browser.get_llm_config()
-
-        page_information = await self.get_page_information(
-            only_visible_elements_in_html=True
-        )
-
-        dto = ScrapePageDTO(
-            page_information=page_information,
-            llm_config=llm_config,
-            prompt=prompt,
-            db_prompt=db_prompt,
-            return_data_json_schema=None,
-            expected_return_data=None,
-            use_cache=use_cache,
-        )
-
-        # HACK
-        await self.get_page_information()
-
-        res = await get_interactions_selector(dto)
-        if res:
-
-            selectors = res["selectors"]
-            print("selectors: ", res["selectors"])
-            for selector in selectors:
-                try:
-                    locators = []
-                    print(f"waiting for {selector}")
-                    await self.page.wait_for_selector(selector)
-                    locator = self.page.locator(selector)
-                    print("locator: ", locator)
-                    count = await locator.count()
-                    print("count: ", count)
-
-                    for index in range(count):
-                        try:
-                            nth_locator = locator.nth(index)
-                            print("nth_locator: ", nth_locator)
-                            d_id = await nth_locator.get_attribute("d-id", timeout=0)
-                            print("d_id: ", d_id)
-
-                            if d_id == None:
-                                d_id = ""
-
-                            dendrite_locater = DendriteLocator(
-                                locator=nth_locator,
-                                dendrite_id=d_id,
-                                dendrite_browser=self.dendrite_browser,
-                            )
-                            print("dendrite_locater: ", dendrite_locater)
-                            locators.append(dendrite_locater)
-                        except Exception as e:
-                            print("Error getting this selector: ", e)
-
-                    if len(locators) == 0:
-                        continue
-
-                    return locators
-                except Exception as e:
-                    print("Error getting all selectors: ", e)
-
-        return []
-        # page_information = await self.get_page_information()
-        # raise DendriteException(
-        #     message="Could not find suitable element on the page.",
-        #     screenshot_base64=page_information.screenshot_base64,
-        # )
-
-    async def get_interactable_elements(
+    async def wait_for(
         self,
         prompt: str,
-        timeout: float = 0.5,
-        max_retries: int = 3,
-    ) -> List[DendriteLocator]:
+        timeout: float = 2,
+        max_retries: int = 5,
+    ):
         llm_config = self.dendrite_browser.get_llm_config()
 
         num_attempts = 0
         while num_attempts < max_retries:
-            page_information = await self.get_page_information(
-                only_visible_elements_in_html=True
-            )
-
-            dto = GetInteractionDTO(
-                page_information=page_information, llm_config=llm_config, prompt=prompt
-            )
-
-            res = await get_interactions(dto)
-            if res:
-                locators = await self.get_elements_from_dendrite_ids(
-                    res["dendrite_ids"]
-                )
-                dendrite_locators = [
-                    DendriteLocator(id, locator, self.dendrite_browser)
-                    for id, locator in zip(res["dendrite_ids"], locators)
-                ]
-                return dendrite_locators
             num_attempts += 1
             await asyncio.sleep(timeout)
+            try:
+
+                page_information = await self.get_page_information()
+                prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
+                res = await self.ask(prompt, bool)
+                if res.return_data:
+                    return res
+            except Exception as e:
+                logger.debug(f"Waited for page, but got this exception: {e}")
+                continue
 
         page_information = await self.get_page_information()
         raise DendriteException(
-            message="Could not find suitable element on the page.",
+            message=f"Retried {max_retries} times but failed to wait for the requested condition.",
             screenshot_base64=page_information.screenshot_base64,
         )
 
-    async def get_interactable_element(
+    @overload
+    async def ask(self, prompt: str, type_spec: Type[str]) -> AskPageResponse[str]: ...
+
+    @overload
+    async def ask(
+        self, prompt: str, type_spec: Type[bool]
+    ) -> AskPageResponse[bool]: ...
+
+    @overload
+    async def ask(self, prompt: str, type_spec: Type[int]) -> AskPageResponse[int]: ...
+
+    @overload
+    async def ask(
+        self, prompt: str, type_spec: Type[float]
+    ) -> AskPageResponse[float]: ...
+
+    @overload
+    async def ask(
+        self, prompt: str, type_spec: Type[PydanticModel]
+    ) -> AskPageResponse[PydanticModel]: ...
+
+    @overload
+    async def ask(
+        self, prompt: str, type_spec: JsonSchema
+    ) -> AskPageResponse[JsonSchema]: ...
+
+    @overload
+    async def ask(
+        self, prompt: str, type_spec: None = None
+    ) -> AskPageResponse[JsonSchema]: ...
+
+    async def ask(
         self,
         prompt: str,
-        timeout: float = 0.5,
+        type_spec: Optional[TypeSpec] = None,
+    ) -> AskPageResponse[Any]:
+        llm_config = self.dendrite_browser.get_llm_config()
+        page_information = await self.get_page_information()
+
+        try:
+            schema = None
+            if type_spec:
+                schema = to_json_schema(type_spec)
+
+            dto = AskPageDTO(
+                page_information=page_information,
+                llm_config=llm_config,
+                prompt=prompt,
+                return_schema=schema,
+            )
+            res = await self.browser_api_client.ask_page(dto)
+            converted_res = res
+            if type_spec:
+                converted_res = convert_to_type_spec(type_spec, res.return_data)
+
+            return AskPageResponse(
+                return_data=converted_res, description=res.description
+            )
+        except Exception as e:
+            raise DendriteException(
+                message=f"Failed to ask page: {e}",
+                screenshot_base64=page_information.screenshot_base64,
+            )
+
+    @overload
+    async def get_elements(
+        self,
+        prompt_or_elements: str,
+        use_cache: bool = True,
         max_retries: int = 3,
-    ) -> DendriteLocator:
+        timeout: int = 3,
+        context: str = "",
+    ) -> List[DendriteElement]: ...
+
+    @overload
+    async def get_elements(
+        self,
+        prompt_or_elements: Dict[str, str],
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 3,
+        context: str = "",
+    ) -> DendriteElementsResponse: ...
+
+    async def get_elements(
+        self,
+        prompt_or_elements: Union[str, Dict[str, str]],
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 3,
+        context: str = "",
+    ) -> Union[List[DendriteElement], DendriteElementsResponse]:
+        llm_config = self.dendrite_browser.get_llm_config()
+
+        if isinstance(prompt_or_elements, str):
+            num_attempts = 0
+            while num_attempts < max_retries:
+                num_attempts += 1
+                page_information = await self.get_page_information()
+                dto = GetElementsDTO(
+                    page_information=page_information,
+                    llm_config=llm_config,
+                    prompt=prompt_or_elements,
+                    use_cache=use_cache,
+                    only_one=False,
+                )
+                selectors = await self.browser_api_client.get_interactions_selector(dto)
+                if not selectors:
+                    raise DendriteException(
+                        message="Could not find suitable elements on the page.",
+                        screenshot_base64=page_information.screenshot_base64,
+                    )
+
+                for selector in selectors:
+                    try:
+                        dendrite_elements = (
+                            await self.selector_manager.get_all_elements_from_selector(
+                                selector
+                            )
+                        )
+                        return dendrite_elements
+                    except Exception as e:
+                        print("Error getting all selectors: ", e)
+
+                await asyncio.sleep(timeout)
+
+            page_information = await self.get_page_information()
+            raise DendriteException(
+                message="Could not find suitable elements on the page.",
+                screenshot_base64=page_information.screenshot_base64,
+            )
+
+        elif isinstance(prompt_or_elements, dict):
+
+            tasks = []
+            for field_name, prompt in prompt_or_elements.items():
+                full_prompt = f"{prompt}\n\nHere is some extra context: {context}"
+                task = self.get_element(
+                    full_prompt,
+                    use_cache=use_cache,
+                    max_retries=max_retries,
+                    timeout=timeout,
+                )
+                tasks.append(task)
+
+            results = await asyncio.gather(*tasks)
+            elements_dict: Dict[str, DendriteElement] = {}
+            for element, field_name in zip(results, prompt_or_elements.keys()):
+                elements_dict[field_name] = element
+
+            return DendriteElementsResponse(elements_dict)
+
+        else:
+            raise ValueError("Input must be either a string prompt or a dictionary")
+
+    async def get_element(
+        self,
+        prompt: str,
+        use_cache=True,
+        max_retries=3,
+        timeout=3,
+    ) -> DendriteElement:
         llm_config = self.dendrite_browser.get_llm_config()
 
         num_attempts = 0
         while num_attempts < max_retries:
-            page_information = await self.get_page_information(
-                only_visible_elements_in_html=True
-            )
-
-            dto = GetInteractionDTO(
-                page_information=page_information, llm_config=llm_config, prompt=prompt
-            )
-
-            res = await get_interaction(dto)
-            if res and res["dendrite_id"] != "":
-                try:
-                    locator = await self.get_element_from_dendrite_id(
-                        res["dendrite_id"]
-                    )
-                except:
-                    continue
-                dendrite_locator = DendriteLocator(
-                    res["dendrite_id"], locator, self.dendrite_browser
-                )
-                return dendrite_locator
             num_attempts += 1
+
+            page_information = await self.get_page_information()
+            dto = GetElementsDTO(
+                page_information=page_information,
+                llm_config=llm_config,
+                prompt=prompt,
+                only_one=True,
+                use_cache=use_cache,
+            )
+
+            suitable_selectors = (
+                await self.browser_api_client.get_interactions_selector(dto)
+            )
+            print("suitable_selectors: ", suitable_selectors)
+
+            if not suitable_selectors:
+                raise DendriteException(
+                    message="Could not find suitable element on the page.",
+                    screenshot_base64=page_information.screenshot_base64,
+                )
+
+            for selector in suitable_selectors["selectors"]:
+                try:
+                    print("selector: ", selector)
+                    dendrite_elements = (
+                        await self.selector_manager.get_all_elements_from_selector(
+                            selector
+                        )
+                    )
+                    return dendrite_elements[0]
+                except Exception as e:
+                    print("Error getting all selectors: ", e)
+
             await asyncio.sleep(timeout)
 
         page_information = await self.get_page_information()
@@ -366,23 +605,20 @@ document.querySelectorAll('*').forEach((element, index) => {
         return await self.page.content()
 
     async def get_soup(self, only_visible_elements: bool = False) -> BeautifulSoup:
-        start_time = time.time()
         await self.generate_dendrite_ids()
-        print("time to generate Ids: ", time.time() - start_time)
 
         page_source = await self.page.content()
         soup = BeautifulSoup(page_source, "lxml")
+        await self._expand_iframes(soup)
+
         if only_visible_elements:
-            start_time = time.time()
-            invisible_d_ids = await self.get_invisible_d_ids()
-            print("time to get invis ids: ", time.time() - start_time)
-            elems = soup.find_all(attrs={"d-id": True})
-
+            elems = soup.find_all(attrs={"data-hidden": True})
             for elem in elems:
-                if elem.attrs["d-id"] in invisible_d_ids:
-                    elem.extract()
-
+                elem.extract()
         return soup
+
+    async def _expand_iframes(self, page_source: BeautifulSoup):
+        await expand_iframes(self.page, page_source)
 
     async def get_invisible_d_ids(self) -> set[str]:
         script = """() => {
@@ -408,3 +644,6 @@ document.querySelectorAll('*').forEach((element, index) => {
     async def _dump_html(self, path: str) -> None:
         with open(path, "w") as f:
             f.write(await self.page.content())
+
+    async def upload_file(self):
+        self.page.expect_file_chooser()

@@ -1,22 +1,22 @@
 import logging
-from typing import Any, Dict, List, Literal, Optional, Sequence, TypedDict, Union
+from typing import Any, Optional, Union
 from uuid import uuid4
-from urllib.parse import quote
 import os
-
 from playwright.async_api import async_playwright, Playwright, BrowserContext
-from dendrite_python_sdk.dendrite_browser.ActivePageManager import ActivePageManager
+
+from dendrite_python_sdk.dto.AuthenticateDTO import AuthenticateDTO
+from dendrite_python_sdk.dto.UploadAuthSessionDTO import UploadAuthSessionDTO
+from dendrite_python_sdk.dendrite_browser.ActivePageManager import (
+    ActivePageManager,
+)
 from dendrite_python_sdk.dendrite_browser.DendritePage import DendritePage
-from dendrite_python_sdk.dendrite_browser.authentication.authenticate import (
-    get_auth_session,
+from dendrite_python_sdk.dendrite_browser.constants import STEALTH_ARGS
+from dendrite_python_sdk.dendrite_browser.authentication.auth_session import (
+    AuthSession,
 )
-from dendrite_python_sdk.dto.GoogleSearchDTO import GoogleSearchDTO
 from dendrite_python_sdk.models.LLMConfig import LLMConfig
-from dendrite_python_sdk.request_handler import google_search_request
-from dendrite_python_sdk.responses.GoogleSearchResponse import (
-    SearchResult,
-)
-from dendrite_python_sdk.request_handler import config
+from dendrite_python_sdk.dendrite_browser.browser_api_client import BrowserAPIClient
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -25,28 +25,45 @@ logger.setLevel(logging.INFO)
 class DendriteBrowser:
     def __init__(
         self,
-        openai_api_key: str,
         id=None,
+        openai_api_key: Optional[str] = None,
         dendrite_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
         playwright_options: Any = {
             "headless": False,
+            "args": STEALTH_ARGS,
         },
     ):
+
+        if not dendrite_api_key or dendrite_api_key == "":
+            dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
+            if not dendrite_api_key or dendrite_api_key == "":
+                raise Exception("Dendrite API key is required to use DendriteBrowser")
+
+        if not anthropic_api_key or anthropic_api_key == "":
+            anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            if anthropic_api_key == "":
+                raise Exception("Anthropic API key is required to use DendriteBrowser")
+
+        if not openai_api_key or openai_api_key == "":
+            openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+            if not openai_api_key or openai_api_key == "":
+                raise Exception("OpenAI API key is required to use DendriteBrowser")
+
         self.id = uuid4() if id == None else id
+        self.auth_data: Optional[AuthSession] = None
         self.dendrite_api_key = dendrite_api_key
         self.playwright_options = playwright_options
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
         self.active_page_manager: Optional[ActivePageManager] = None
+        self.user_id: Optional[str] = None
+        self.browser_api_client = BrowserAPIClient(dendrite_api_key)
 
         llm_config = LLMConfig(
             openai_api_key=openai_api_key, anthropic_api_key=anthropic_api_key
         )
         self.llm_config = llm_config
-
-        if dendrite_api_key:
-            config["dendrite_api_key"] = dendrite_api_key
 
     async def get_active_page(self) -> DendritePage:
         active_page_manager = await self._get_active_page_manager()
@@ -56,12 +73,21 @@ class DendriteBrowser:
         return self.llm_config
 
     async def goto(
-        self, url: str, scroll_through_entire_page: Optional[bool] = True
+        self,
+        url: str,
+        new_page: bool = False,
+        scroll_through_entire_page: Optional[bool] = False,
+        timeout: Optional[float] = 15000,
+        expected_page: str = "",
     ) -> DendritePage:
         active_page_manager = await self._get_active_page_manager()
-        active_page = await active_page_manager.get_active_page()
+
+        if new_page:
+            active_page = await active_page_manager.open_new_page()
+        else:
+            active_page = await active_page_manager.get_active_page()
         try:
-            await active_page.page.goto(url, timeout=10000)
+            await active_page.page.goto(url, timeout=timeout)
         except TimeoutError:
             print("Timeout when loading page but continuing anyways.")
         except Exception as e:
@@ -70,7 +96,15 @@ class DendriteBrowser:
         if scroll_through_entire_page:
             await active_page.scroll_through_entire_page()
 
-        return await active_page_manager.get_active_page()
+        page = await active_page_manager.get_active_page()
+        if expected_page != "":
+            try:
+                prompt = f"We are checking if we have arrived on the expected type of page. If it is apparent that we have arrived on the wrong page, output an error. Here is the description: '{expected_page}'"
+                await page.ask(prompt, bool)
+            except Exception as e:
+                raise Exception(f"Incorrect navigation, reason: {e}")
+
+        return page
 
     def _is_launched(self):
         return self.browser_context != None
@@ -82,53 +116,26 @@ class DendriteBrowser:
         else:
             return self.active_page_manager
 
-    async def google_search(
-        self,
-        query: str,
-        filter_results_prompt: Optional[str] = None,
-        load_all_results: Optional[bool] = True,
-    ) -> List[SearchResult]:
-        query = quote(query)
-        url = f"https://www.google.com/search?q={query}"
-        page = await self.goto(url, scroll_through_entire_page=False)
-        page_information = await page.get_page_information()
-
-        if load_all_results == True:
-            try:
-                reject_all_cookies = await page.get_interactable_element(
-                    "The reject all cookies button"
-                )
-                await reject_all_cookies.get_playwright_locator().click(timeout=0)
-            except Exception as e:
-                print("Failed to close reject all button")
-
-            await page.scroll_to_bottom()
-
-        dto = GoogleSearchDTO(
-            query=query,
-            filter_results_prompt=filter_results_prompt,
-            page_information=page_information,
-            llm_config=self.llm_config,
-        )
-
-        response = await google_search_request(dto)
-        return response.results
-
-    async def launch(self, user_id: Optional[str] = None, domain: Optional[str] = None):
+    async def launch(self):
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self.playwright = await async_playwright().start()
         browser = await self.playwright.chromium.launch(**self.playwright_options)
-        self.browser_context = await browser.new_context()
-        await self.browser_context.add_init_script(
-            path="dendrite_python_sdk/dendrite_browser/scripts/eventListenerPatch.js"
-        )
 
-        if user_id and domain:
-            session_data = await get_auth_session(user_id, domain)
-            await self.browser_context.add_cookies(dict_to_list_of_dicts(session_data))
+        if self.auth_data:
+            self.browser_context = await browser.new_context(
+                storage_state=self.auth_data.to_storage_state(),
+                user_agent=self.auth_data.user_agent,
+            )
+        else:
+            self.browser_context = await browser.new_context()
 
         self.active_page_manager = ActivePageManager(self, self.browser_context)
         return browser, self.browser_context, self.active_page_manager
+
+    async def authenticate(self, domains: Union[str, list[str]]):
+        dto = AuthenticateDTO(domains=domains)
+        auth_session: AuthSession = await self.browser_api_client.authenticate(dto)
+        self.auth_data = auth_session
 
     async def new_page(self) -> DendritePage:
         active_page_manager = await self._get_active_page_manager()
@@ -142,6 +149,12 @@ class DendriteBrowser:
 
     async def close(self):
         if self.browser_context:
+            if self.auth_data:
+                storage_state = await self.browser_context.storage_state()
+                dto = UploadAuthSessionDTO(
+                    auth_data=self.auth_data, storage_state=storage_state
+                )
+                await self.browser_api_client.upload_auth_session(dto)
             await self.browser_context.close()
 
         if self.playwright:
@@ -149,34 +162,3 @@ class DendriteBrowser:
 
     async def get_download(self):
         pass
-
-
-class SetCookieParam(TypedDict, total=False):
-    name: str
-    value: str
-    url: str
-    domain: Optional[str]
-    path: Optional[str]
-    expires: Optional[float]
-    httpOnly: Optional[bool]
-    secure: Optional[bool]
-    sameSite: Optional[Literal["Lax", "None", "Strict"]]
-
-
-def dict_to_list_of_dicts(d: List[Dict[str, str]]) -> List[SetCookieParam]:
-    return [convert_dict_to_setcookieparam(row) for row in d]
-
-
-def convert_dict_to_setcookieparam(input_dict: Dict[str, Any]) -> SetCookieParam:
-    print(input_dict)
-    return SetCookieParam(
-        name=input_dict.get("name", ""),
-        value=input_dict.get("value", ""),
-        url=input_dict.get("url", ""),
-        domain=input_dict.get("domain"),
-        path=input_dict.get("path"),
-        expires=input_dict.get("expires"),
-        httpOnly=input_dict.get("httpOnly"),
-        secure=input_dict.get("secure"),
-        sameSite=input_dict.get("sameSite"),
-    )

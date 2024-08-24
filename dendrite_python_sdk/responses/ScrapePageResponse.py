@@ -1,11 +1,14 @@
-from typing import Any, List, Optional
+from typing import Any, Generic, List, Optional, TypeVar
 from pydantic import BaseModel
 
 from dendrite_python_sdk.dendrite_browser.common.status import Status
 
 
-class ScrapePageResponse(BaseModel):
-    json_data: Any
+T = TypeVar("T")
+
+
+class ScrapePageResponse(BaseModel, Generic[T]):
+    return_data: T
     message: str
     created_script: Optional[str] = None
     status: Status

@@ -15,14 +15,17 @@ async def main():
     # Go to google.com
     page = await dendrite_browser.goto("https://google.com")
 
-    # Get the reject cookies button
-    close_cookies = await page.get_interactable_element("reject cookies popup button")
+    try:
+        # Get the reject cookies button
+        close_cookies = await page.get_element("reject cookies popup button")
 
-    # Click the button, returns IncorrectOutcomeException if the popup wasn't closed
-    await close_cookies.click(expected_outcome="That the cookies popup closed.")
+        # Click the button, returns IncorrectOutcomeException if the popup wasn't closed
+        await close_cookies.click(expected_outcome="That the cookies popup closed.")
+    except Exception as e:
+        print("No cookie modal found")
 
     # Get the search bar
-    search_bar = await page.get_interactable_element("Return the search bar")
+    search_bar = await page.get_element("Return the search bar")
 
     # Enter "hello world" into it.
     await search_bar.fill(

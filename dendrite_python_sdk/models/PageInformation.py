@@ -11,5 +11,4 @@ class InteractableElementInfo(TypedDict):
 class PageInformation(BaseModel):
     url: str
     raw_html: str
-    interactable_element_info: Dict[str, InteractableElementInfo]
     screenshot_base64: str
