@@ -67,10 +67,12 @@ class DendriteRemoteBrowser(DendriteBrowser):
         return browser, self.browser_context, self.active_page_manager
 
     async def create_session(self) -> str:
-        return await self.http_client.send_request("browser/sessions", method="POST")
+        return await self.browser_api_client.send_request(
+            "browser/sessions", method="POST"
+        )
 
     async def get_download_session(self, session_id: str):
-        return await self.http_client.send_request(
+        return await self.browser_api_client.send_request(
             f"browser/sessions/{session_id}/download", method="GET"
         )
 
@@ -87,7 +89,7 @@ class DendriteRemoteBrowser(DendriteBrowser):
     async def start_remote_session(self, generate_session: bool = False) -> str:
         if generate_session:
             self.session_id = await self.create_session()
-        base_url = self.http_client.base_url.split("://", maxsplit=1)[1]
+        base_url = self.browser_api_client.base_url.split("://", maxsplit=1)[1]
         url = f"ws://{base_url}/browser/ws"
         if self.session_id:
             url += f"?session_id={self.session_id}"

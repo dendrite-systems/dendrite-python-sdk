@@ -48,7 +48,7 @@ class BrowserAPIClient(HTTPClient):
         return ScrapePageResponse(
             status=res["status"],
             message=res["message"],
-            return_data=json.loads(res["return_data"]),
+            return_data=res["return_data"],
             created_script=res.get("created_script", None),
             used_cache=res.get("used_cache", False),
         )
@@ -57,8 +57,9 @@ class BrowserAPIClient(HTTPClient):
         res = await self.send_request(
             "actions/ask-page", data=dto.dict(), method="POST"
         )
-        return_data = json.loads(res["return_data"])
-        return AskPageResponse(description=res["description"], return_data=return_data)
+        return AskPageResponse(
+            description=res["description"], return_data=res["return_data"]
+        )
 
     async def try_run_cached(
         self, dto: TryRunScriptDTO
@@ -69,7 +70,7 @@ class BrowserAPIClient(HTTPClient):
         if res is None:
             return None
 
-        loaded_value = json.loads(res["return_data"])
+        loaded_value = res["return_data"]
         if loaded_value == None:
             return None
 

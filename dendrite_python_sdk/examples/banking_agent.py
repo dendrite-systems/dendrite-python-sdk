@@ -46,7 +46,7 @@ async def list_account_information() -> AccountDetails:
     return res.return_data
 
 
-def get_cached_file():
+def get_file_path():
     # Define the project root and test directory
     filepath = os.path.join(
         "test", f"transactions_{datetime.now().strftime('%Y%m%d')}.xlsx"
@@ -67,15 +67,16 @@ def get_cached_file():
             # Return the filepath if the cache is valid
             return filepath
 
-    return None
+    return filepath
 
 
 async def get_transactions() -> str:
-    filepath = get_cached_file()
-    if filepath:
+    filepath = os.path.join(
+        "test", f"transactions_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    )
+    if os.path.exists(filepath):
         return filepath
 
-    filepath = str(filepath)
     dendrite = DendriteBrowser()
 
     # Attempt authentication and navigate to dashboard
@@ -102,6 +103,8 @@ async def get_transactions() -> str:
     await el.click()
 
     download = await page.get_download()
+
+    print("filepath: ", filepath)
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
     # Save the downloaded file to the specified path
@@ -266,5 +269,5 @@ async def run_conversation():
 
 
 if __name__ == "__main__":
-    asyncio.run(list_account_information())
-    # asyncio.run(run_conversation())
+    # asyncio.run(list_account_information())
+    asyncio.run(run_conversation())

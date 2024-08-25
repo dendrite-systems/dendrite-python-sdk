@@ -41,9 +41,11 @@ class HTTPClient:
                     method, url, params=params, json=data, headers=headers
                 )
                 response.raise_for_status()
-                print(f"{method} to '{url}', that took: { time.time() - start_time }")
-
-                return response.json()
+                dict_res = response.json()
+                print(
+                    f"{method} to '{url}', that took: { time.time() - start_time }\n\nResponse: {dict_res}\n\n"
+                )
+                return dict_res
             except httpx.HTTPStatusError as http_err:
                 detail = http_err.response.json()
                 print(

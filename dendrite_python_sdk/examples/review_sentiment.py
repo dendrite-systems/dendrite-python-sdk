@@ -14,7 +14,7 @@ import pandas as pd
 load_dotenv(find_dotenv())
 
 
-async def main():
+async def get_reviews(game_name: str):
     openai_api_key = os.environ.get("OPENAI_API_KEY", "")
     dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
     dendrite_browser = DendriteBrowser(
@@ -30,15 +30,28 @@ async def main():
     class ResponseData(BaseModel):
         reviews: List[Review]
 
-    # Go to the game 'Fishards' review page on steam
     page = await dendrite_browser.goto(
-        "https://steamcommunity.com/app/1637140/reviews/?browsefilter=toprated&snr=1_5_100010_"
+        f"https://store.steampowered.com/search/?term={game_name}"
     )
 
+    el = await page.get_element(
+        "The first result in the list of games", use_cache=False
+    )
+    await el.click()
+
+    await page.scroll_to_bottom()
+
+    el = await page.get_element(
+        "browser all reviews link at the bottom of the page", use_cache=False
+    )
+    await el.click()
+
+    await page.scroll_to_bottom()
+
     # Scrape all the reviews
-    res: ResponseData = await page.scrape(
+    res = await page.extract(
         "Get all the reviews in the structure of the model I specified. The text should be a stripped string that contains what the reviewer wrote in their post.",
-        pydantic_return_model=ResponseData,
+        ResponseData,
     )
 
     # Create a list of prompts asking if the reviewer thought the game had bad controls or not enough players online
@@ -49,7 +62,7 @@ async def main():
 Please output a valid json object without any backticks like this:
 
 {{"thought_controls_were_bad": "TRUE" or "FALSE" or "NOT_SPECIFIED", "thought_not_enough_players_online": "TRUE" or "FALSE" or "NOT_SPECIFIED"}}"""
-        for review in res.reviews
+        for review in res.return_data.reviews
     ]
 
     # Make a batch request to OpenAI containing all the prompts to OpenAI with our AI util functions
@@ -59,7 +72,7 @@ Please output a valid json object without any backticks like this:
 
     # Merge data from LLM and scraped reviews and put into an excel sheet
     review_data = []
-    for generated_result, review in zip(generated_results, res.reviews):
+    for generated_result, review in zip(generated_results, res.return_data.reviews):
         try:
             generated_result_dict = json.loads(generated_result)
             review_data.append(
@@ -82,4 +95,4 @@ Please output a valid json object without any backticks like this:
     df.to_excel("fishards_reviews.xlsx", index=False)
 
 
-asyncio.run(main())
+asyncio.run(get_reviews("fishards"))

@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from playwright.async_api import BrowserContext, Page, Frame
+from loguru import logger
+from playwright.async_api import BrowserContext, Page, Frame, Download, FileChooser
 from dendrite_python_sdk.dendrite_browser.DendritePage import DendritePage
 
 
@@ -38,12 +39,22 @@ class ActivePageManager:
 
     async def open_new_page(self) -> DendritePage:
         new_page = await self.browser_context.new_page()
-        agent_soup_page = DendritePage(new_page, self.dendrite_browser)
-        self.active_page = agent_soup_page
-        return agent_soup_page
+        dendrite_page = DendritePage(new_page, self.dendrite_browser)
+        self.active_page = dendrite_page
+        return dendrite_page
+
+    async def file_chooser_handler(self, file_chooser: FileChooser):
+        if self.active_page:
+            logger.debug("Setting file chooser")
+            self.active_page._set_file_chooser(file_chooser)
+
+    async def download_handler(self, download: Download):
+        if self.active_page:
+            self.active_page._set_download(download)
 
     def page_on_navigation_handler(self, frame: Frame):
-        self.active_page = DendritePage(frame.page, self.dendrite_browser)
+        if self.active_page:
+            self.active_page.page = frame.page
 
     def page_on_crash_handler(self, page):
         print("Page crashed:", page.url)
@@ -51,7 +62,9 @@ class ActivePageManager:
         page.reload()
 
     def page_on_open_handler(self, page: Page):
-        page.on("framenavigated", self.page_on_navigation_handler)
+        # page.on("framenavigated", self.page_on_navigation_handler)
         page.on("close", self.page_on_close_handler)
         page.on("crash", self.page_on_crash_handler)
+        page.on("filechooser", self.file_chooser_handler)
+        page.on("download", self.download_handler)
         self.active_page = DendritePage(page, self.dendrite_browser)

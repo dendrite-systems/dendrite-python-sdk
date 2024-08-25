@@ -274,10 +274,12 @@ class DendritePage:
             )
             res = await self.browser_api_client.scrape_page(scrape_dto)
 
-        converted_res = res
-        if type_spec:
+        converted_res = res.return_data
+        if type_spec != None:
             converted_res = convert_to_type_spec(type_spec, res.return_data)
 
+        print("converted_res: ", converted_res)
+        print("converted_res: ", type(converted_res))
         res.return_data = converted_res
 
         return res
@@ -444,8 +446,11 @@ class DendritePage:
                 return_schema=schema,
             )
             res = await self.browser_api_client.ask_page(dto)
+
+            print("res: ", res.return_data)
+            print(type(res.return_data))
             converted_res = res
-            if type_spec:
+            if type_spec != None:
                 converted_res = convert_to_type_spec(type_spec, res.return_data)
 
             return AskPageResponse(
@@ -491,7 +496,9 @@ class DendritePage:
             num_attempts = 0
             while num_attempts < max_retries:
                 num_attempts += 1
-                page_information = await self.get_page_information()
+                page_information = await self.get_page_information(
+                    only_visible_elements_in_html=True
+                )
                 dto = GetElementsDTO(
                     page_information=page_information,
                     llm_config=llm_config,
@@ -506,7 +513,7 @@ class DendritePage:
                         screenshot_base64=page_information.screenshot_base64,
                     )
 
-                for selector in selectors:
+                for selector in reversed(selectors["selectors"]):
                     try:
                         dendrite_elements = (
                             await self.selector_manager.get_all_elements_from_selector(
@@ -519,7 +526,9 @@ class DendritePage:
 
                 await asyncio.sleep(timeout)
 
-            page_information = await self.get_page_information()
+            page_information = await self.get_page_information(
+                only_visible_elements_in_html=True
+            )
             raise DendriteException(
                 message="Could not find suitable elements on the page.",
                 screenshot_base64=page_information.screenshot_base64,
@@ -561,7 +570,9 @@ class DendritePage:
         while num_attempts < max_retries:
             num_attempts += 1
 
-            page_information = await self.get_page_information()
+            page_information = await self.get_page_information(
+                only_visible_elements_in_html=True
+            )
             dto = GetElementsDTO(
                 page_information=page_information,
                 llm_config=llm_config,
@@ -573,7 +584,7 @@ class DendritePage:
             suitable_selectors = (
                 await self.browser_api_client.get_interactions_selector(dto)
             )
-            print("suitable_selectors: ", suitable_selectors)
+            print("suitable_selectors from server: ", suitable_selectors)
 
             if not suitable_selectors:
                 raise DendriteException(
@@ -581,21 +592,25 @@ class DendritePage:
                     screenshot_base64=page_information.screenshot_base64,
                 )
 
-            for selector in suitable_selectors["selectors"]:
+            for selector in reversed(suitable_selectors["selectors"]):
                 try:
-                    print("selector: ", selector)
+                    print("selector we are trying: ", selector)
                     dendrite_elements = (
                         await self.selector_manager.get_all_elements_from_selector(
                             selector
                         )
                     )
+                    print("returned these elements: ", dendrite_elements)
+
                     return dendrite_elements[0]
                 except Exception as e:
                     print("Error getting all selectors: ", e)
 
             await asyncio.sleep(timeout)
 
-        page_information = await self.get_page_information()
+        page_information = await self.get_page_information(
+            only_visible_elements_in_html=True
+        )
         raise DendriteException(
             message="Could not find suitable element on the page.",
             screenshot_base64=page_information.screenshot_base64,
