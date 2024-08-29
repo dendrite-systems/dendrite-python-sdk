@@ -4,7 +4,7 @@ from typing import Tuple
 
 import anthropic
 from anthropic.types import Message, ToolUseBlock
-from dendrite_python_sdk import DendriteRemoteBrowser
+from dendrite_python_sdk import DendriteBrowser
 from dendrite_python_sdk import DendritePage
 
 
@@ -115,7 +115,7 @@ async def open_unread_emails(page: DendritePage, subject: str):
 
 async def read_unread_emails():
     # All relevant API keys are automatically loaded from .env
-    browser = DendriteRemoteBrowser()
+    browser = DendriteBrowser()
     await browser.authenticate("https://outlook.live.com/mail/0/")
     page = await browser.goto("https://outlook.live.com/mail/0/")
     await page.wait_for("The emails and dashboard to be loaded")
