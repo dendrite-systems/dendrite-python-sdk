@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Generic,
     List,
     Literal,
     Optional,
@@ -22,17 +23,14 @@ from playwright.async_api import (
     Page,
     FrameLocator,
     Keyboard,
-    FileChooser,
-    Download,
     FilePayload,
 )
 
-
-from dendrite_python_sdk._common.event_sync import EventSync
 from dendrite_python_sdk._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_python_sdk._core.models.page_information import PageInformation
 from dendrite_python_sdk._core.models.response import DendriteElementsResponse
 from dendrite_python_sdk._core._type_spec import (
+    DownloadType,
     JsonSchema,
     PydanticModel,
     convert_to_type_spec,
@@ -43,7 +41,7 @@ from dendrite_python_sdk._core._utils import get_all_elements_from_selector
 
 
 if TYPE_CHECKING:
-    from dendrite_python_sdk import DendriteBrowser
+    from dendrite_python_sdk._core._base_browser import BaseDendriteBrowser
 from dendrite_python_sdk._api.dto.ask_page_dto import AskPageDTO
 from dendrite_python_sdk._api.dto.scrape_page_dto import ScrapePageDTO
 from dendrite_python_sdk._api.dto.get_elements_dto import GetElementsDTO
@@ -62,7 +60,7 @@ from dendrite_python_sdk._core._utils import (
 from dendrite_python_sdk._core.dendrite_element import DendriteElement
 
 
-class DendritePage:
+class DendritePage(Generic[DownloadType]):
     """
     Represents a page in the Dendrite browser environment.
 
@@ -70,12 +68,12 @@ class DendritePage:
     pages in the browser.
     """
 
-    def __init__(self, page: Page, dendrite_browser: "DendriteBrowser"):
+    def __init__(
+        self, page: Page, dendrite_browser: "BaseDendriteBrowser[DownloadType]"
+    ):
         self.playwright_page = page
         self.screenshot_manager = ScreenshotManager()
         self.dendrite_browser = dendrite_browser
-        self._upload_handler = EventSync[FileChooser]()
-        self._download_handler = EventSync[Download]()
         self.browser_api_client = dendrite_browser._browser_api_client
 
     @property
@@ -117,6 +115,18 @@ class DendritePage:
         """
 
         await self.playwright_page.goto(url, timeout=timeout, wait_until=wait_until)
+
+    async def get_download(self, timeout: float = 30000) -> DownloadType:
+        """
+        Retrieves the downloaded file data.
+
+        Args:
+            timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the download to complete. Defaults to 30.
+
+        Returns:
+            The downloaded file data.
+        """
+        return await self.dendrite_browser._get_download(timeout)
 
     def _get_context(self, element: Any) -> Union[Page, FrameLocator]:
         """
@@ -419,7 +429,7 @@ class DendritePage:
     async def wait_for(
         self,
         prompt: str,
-        timeout: float = 2,
+        timeout: float = 2000,
         max_retries: int = 5,
     ):
         """
@@ -431,7 +441,7 @@ class DendritePage:
 
         Args:
             prompt (str): The prompt to determine the condition to wait for on the page.
-            timeout (float, optional): The time (in seconds) to wait between each retry. Defaults to 2.
+            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 5.
 
         Returns:
@@ -617,7 +627,7 @@ class DendritePage:
         prompt_or_elements: str,
         use_cache: bool = True,
         max_retries: int = 3,
-        timeout: int = 3,
+        timeout: int = 3000,
         context: str = "",
     ) -> List[DendriteElement]:
         """
@@ -627,7 +637,7 @@ class DendritePage:
             prompt_or_elements (str): The prompt describing the elements to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout in seconds between retries. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -640,7 +650,7 @@ class DendritePage:
         prompt_or_elements: Dict[str, str],
         use_cache: bool = True,
         max_retries: int = 3,
-        timeout: int = 3,
+        timeout: int = 3000,
         context: str = "",
     ) -> DendriteElementsResponse:
         """
@@ -650,7 +660,7 @@ class DendritePage:
             prompt_or_elements (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout in seconds between retries. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -662,7 +672,7 @@ class DendritePage:
         prompt_or_elements: Union[str, Dict[str, str]],
         use_cache: bool = True,
         max_retries: int = 3,
-        timeout: int = 3,
+        timeout: int = 3000,
         context: str = "",
     ) -> Union[List[DendriteElement], DendriteElementsResponse]:
         """
@@ -675,7 +685,7 @@ class DendritePage:
             prompt_or_elements (Union[str, Dict[str, str]]): The prompt or dictionary of prompts for element retrieval.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout in seconds between retries. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -718,7 +728,7 @@ class DendritePage:
             context (str): Additional context to be added to each prompt.
             use_cache (bool): Whether to use cached results.
             max_retries (int): The maximum number of retry attempts.
-            timeout (int): The timeout in seconds between retries.
+            timeout (int): The timeout (in milliseconds) between retries.
 
         Returns:
             DendriteElementsResponse: A response object containing the retrieved elements mapped to their corresponding field names.
@@ -746,7 +756,7 @@ class DendritePage:
         prompt: str,
         use_cache=True,
         max_retries=3,
-        timeout=3,
+        timeout=3000,
     ) -> DendriteElement:
         """
         Retrieves a single Dendrite element based on the provided prompt.
@@ -755,7 +765,7 @@ class DendritePage:
             prompt (str): The prompt describing the element to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout in seconds between retries. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
 
         Returns:
             DendriteElement: The retrieved element.
@@ -785,7 +795,7 @@ class DendritePage:
             only_one (Literal[True]): Indicates that only one element should be retrieved.
             use_cache (bool): Whether to use cached results.
             max_retries: The maximum number of retry attempts.
-            timeout: The timeout in seconds between retries.
+            timeout: The timeout (in milliseconds) between retries.
 
         Returns:
             DendriteElement: The retrieved element.
@@ -828,7 +838,7 @@ class DendritePage:
             only_one (bool): Whether to retrieve only one element or a list of elements.
             use_cache (bool): Whether to use cached results.
             max_retries: The maximum number of retry attempts.
-            timeout: The timeout in seconds between retries.
+            timeout: The timeout (in milliseconds) between retries.
 
         Returns:
             Union[DendriteElement, List[DendriteElement]]: The retrieved element or list of elements.
@@ -842,6 +852,9 @@ class DendritePage:
         while num_attempts < max_retries:
             num_attempts += 1
 
+            logger.debug(
+                f"Attempt {num_attempts}/{max_retries} to get element for '{prompt}'"
+            )
             page_information = await self._get_page_information(
                 only_visible_elements_in_html=True
             )
@@ -853,6 +866,7 @@ class DendritePage:
                 only_one=only_one,
             )
             selectors = await self.browser_api_client.get_interactions_selector(dto)
+            logger.debug(f"Got selectors: {selectors}")
             if not selectors:
                 raise DendriteException(
                     message="Could not find suitable elements on the page.",
@@ -870,7 +884,7 @@ class DendritePage:
                     pass
                     # logger.error("Error getting all selectors: ", e)
 
-            await asyncio.sleep(timeout)
+            await asyncio.sleep(timeout * 0.001)
 
         raise DendriteException(
             message="Could not find suitable elements on the page.",
@@ -886,7 +900,7 @@ class DendritePage:
             Sequence[Union[str, pathlib.Path]],
             Sequence[FilePayload],
         ],
-        timeout: float = 30,
+        timeout: float = 30000,
     ) -> None:
         """
         Uploads files to the page using a file chooser.
@@ -894,25 +908,13 @@ class DendritePage:
         Args:
             files (Union[str, pathlib.Path, FilePayload, Sequence[Union[str, pathlib.Path]], Sequence[FilePayload]]): The file(s) to be uploaded.
                 This can be a file path, a `FilePayload` object, or a sequence of file paths or `FilePayload` objects.
-            timeout (float, optional): The maximum amount of time (in seconds) to wait for the file chooser to be ready. Defaults to 30.
+            timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the file chooser to be ready. Defaults to 30.
 
         Returns:
             None
         """
-        file_chooser = await self._upload_handler.get_data(timeout)
+        file_chooser = await self.dendrite_browser._get_filechooser(timeout)
         await file_chooser.set_files(files)
-
-    async def get_download(self, timeout: float = 30):  # timeout in seconds
-        """
-        Retrieves the downloaded file data.
-
-        Args:
-            timeout (float, optional): The maximum amount of time (in seconds) to wait for the download to complete. Defaults to 30.
-
-        Returns:
-            The downloaded file data.
-        """
-        return await self._download_handler.get_data(timeout)
 
     async def get_content(self):
         """
