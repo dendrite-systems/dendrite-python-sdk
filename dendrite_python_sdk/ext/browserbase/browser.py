@@ -1,9 +1,8 @@
-from typing import Any, Type
+from typing import Any
 
-from dendrite_python_sdk._common.constants import STEALTH_ARGS
 from dendrite_python_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
-from dendrite_python_sdk.ext.browser_base.provider import BrowserBaseProvider
-from dendrite_python_sdk.ext.browser_base.download import BrowserBaseDownload
+from dendrite_python_sdk.ext.browserbase.provider import BrowserBaseProvider
+from dendrite_python_sdk.ext.browserbase.download import BrowserBaseDownload
 
 
 class BrowserBaseBrowser(
@@ -14,6 +13,7 @@ class BrowserBaseBrowser(
         enable_proxy: bool = False,
         enable_downloads: bool = False,
         browserbase_api_key: str | None = None,
+        browserbase_project_id: str | None = None,
         openai_api_key: str | None = None,
         anthropic_api_key: str | None = None,
         dendrite_api_key: str | None = None,

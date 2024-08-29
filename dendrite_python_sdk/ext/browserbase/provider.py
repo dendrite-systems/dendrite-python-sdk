@@ -4,8 +4,8 @@ from loguru import logger
 from playwright.async_api import Playwright, Locator
 from dendrite_python_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
 from dendrite_python_sdk.ext._remote_provider import RemoteProvider
-from dendrite_python_sdk.ext._browser_base.download import BrowserBaseDownload
-from ._client import create_session, stop_session
+from dendrite_python_sdk.ext.browserbase import BrowserBaseDownload
+from ._client import BrowserBaseClient
 
 Locator.set_input_files
 
@@ -14,16 +14,27 @@ class BrowserBaseProvider(RemoteProvider[BrowserBaseDownload]):
     def __init__(
         self,
         api_key: Optional[str] = None,
+        project_id: Optional[str] = None,
         enable_proxy: bool = False,
         enable_downloads=False,
     ) -> None:
         super().__init__()
-        self._api_key = (
+
+        _api_key = (
             api_key if api_key is not None else os.environ.get("BROWSERBASE_API_KEY")
         )
-        if not self._api_key:
-            raise ValueError("BROWSERBASE_API_KEY environment variable is not set")
+        _project_id = (
+            project_id
+            if project_id is not None
+            else os.environ.get("BROWSERBASE_PROJECT_ID")
+        )
 
+        if not _api_key:
+            raise ValueError("BROWSERBASE_API_KEY environment variable is not set")
+        if not _project_id:
+            raise ValueError("BROWSERBASE_PROJECT_ID environment variable is not set")
+
+        self._client = BrowserBaseClient(_api_key, _project_id)
         self._enable_proxy = enable_proxy
         self._enable_downloads = enable_downloads
         self._managed_session = enable_downloads  # This is a flag to determine if the session is managed by us or not
@@ -31,13 +42,13 @@ class BrowserBaseProvider(RemoteProvider[BrowserBaseDownload]):
 
     async def _close(self, DendriteRemoteBrowser):
         if self._session_id:
-            await stop_session(self._session_id)
+            await self._client.stop_session(self._session_id)
 
     async def _start_browser(self, playwright: Playwright):
         logger.debug("Starting browser")
         if self._managed_session:
-            self._session_id = await create_session()
-        url = await self.browser_ws_url(self._session_id)
+            self._session_id = await self._client.create_session()
+        url = await self._client.connect_url(self._enable_proxy, self._session_id)
         logger.debug(f"Connecting to browser at {url}")
         return await playwright.chromium.connect_over_cdp(url)
 
@@ -55,14 +66,6 @@ class BrowserBaseProvider(RemoteProvider[BrowserBaseDownload]):
                 "eventsEnabled": True,
             },
         )
-
-    async def browser_ws_url(self, session_id: Optional[str] = None) -> str:
-        url = f"wss://connect.browserbase.com?apiKey={self._api_key}"
-        if session_id:
-            url += f"&sessionId={session_id}"
-        if self._enable_proxy:
-            url += "&enableProxy=true"
-        return url
 
     async def get_download(
         self, dendrite_browser: DendriteRemoteBrowser
