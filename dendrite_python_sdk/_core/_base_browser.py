@@ -294,7 +294,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         return self._active_page_manager
 
     @abstractmethod
-    async def _get_download(self) -> DownloadType:
+    async def _get_download(self, timeout: float = 30000) -> DownloadType:
         """
         Retrieves the download event from the browser.
 
@@ -306,9 +306,12 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         """
         pass
 
-    async def _get_filechooser(self, timeout: float = 30) -> FileChooser:
+    async def _get_filechooser(self, timeout: float = 30000) -> FileChooser:
         """
         Uploads files to the browser.
+
+        Args:
+            timeout (float): The maximum time to wait for the file chooser dialog. Defaults to 30000 milliseconds.
 
         Returns:
             FileChooser: The file chooser dialog.

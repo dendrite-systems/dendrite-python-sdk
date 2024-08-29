@@ -26,26 +26,30 @@ class DendriteBrowser(BaseDendriteBrowser[Download]):
         Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
     """
 
-    async def _get_download(self) -> Download:
+    async def _get_download(self, timeout: float = 30000) -> Download:
         """
         Retrieves the download event from the browser.
 
+        Args:
+            timeout (float): The maximum time (in milliseconds) to wait for the download event.
         Returns:
             Download: The download event.
 
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        return await self._download_handler.get_data()
+        return await self._download_handler.get_data(timeout)
 
-    async def _get_filechooser(self) -> FileChooser:
+    async def _get_filechooser(self, timeout: float = 30000) -> FileChooser:
         """
         Uploads files to the browser.
 
+        Args:
+            timeout (float): The maximum time (in milliseconds) to wait for the file chooser dialog.
         Returns:
             FileChooser: The file chooser dialog.
 
         Raises:
             Exception: If there is an issue uploading files.
         """
-        return await self._upload_handler.get_data()
+        return await self._upload_handler.get_data(timeout)

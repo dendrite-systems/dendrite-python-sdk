@@ -193,13 +193,13 @@ class DendriteElement:
         """
         await self.locator.highlight()
 
-    async def _wait_for_page_changes(self, old_url: str, timeout: float = 2):
+    async def _wait_for_page_changes(self, old_url: str, timeout: float = 2000):
         """
         Wait for page changes after an action.
 
         Args:
             old_url (str): The URL before the action.
-            timeout (float): The maximum time to wait for changes.
+            timeout (float): The maximum time (in milliseconds) to wait for changes.
 
         Returns:
             bool: True if the page changed, False otherwise.
