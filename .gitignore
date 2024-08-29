@@ -2,9 +2,7 @@
 exceptions/
 __pycache__/
 *.pyc
-<<<<<<< HEAD
-
 test/*
 test_screenshots/*
-=======
->>>>>>> origin/den-70-browser-auth
+.DS_Store
+.vscode/
