@@ -1,8 +1,7 @@
 import asyncio
 from dotenv import load_dotenv, find_dotenv
 
-from dendrite_python_sdk.ext.browser_base import BrowserBaseBrowser
-from dendrite_python_sdk.ext.browser_base.download import BrowserBaseDownload
+from dendrite_python_sdk.ext.browserbase import BrowserBaseBrowser
 
 
 load_dotenv(find_dotenv())
