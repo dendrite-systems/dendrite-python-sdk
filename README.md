@@ -228,12 +228,12 @@ Scrolls through the entire page.
 
 
 
-**`get_interactable_element(self, prompt: str) -> DendriteLocator`**  
+**`get_interactable_element(self, prompt: str) -> DendriteElement`**  
 
 Returns an interactable element based on a prompt.
 
 
-### DendriteLocator
+### DendriteElement
 
 Abstraction layer on top of Playwright's Locator class. Use `get_playwright_locator` to get the playwright locator.
 
