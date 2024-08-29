@@ -1,6 +1,10 @@
+from abc import ABC
 import inspect
 from typing import Any, Dict, Literal, TypeVar, Union
 from pydantic import BaseModel
+
+from playwright.async_api import Download
+from dendrite_python_sdk._core.models.download_interface import DownloadInterface
 
 
 Interaction = Literal["click", "fill", "hover"]
@@ -10,6 +14,8 @@ PydanticModel = TypeVar("PydanticModel", bound=BaseModel)
 PrimitiveType = Union[str, float, bool, int]
 JsonSchema = Dict[str, Any]
 TypeSpec = Union[PrimitiveType, PydanticModel, JsonSchema]
+
+DownloadType = TypeVar("DownloadType", bound=Union[DownloadInterface, Download])
 
 
 def to_json_schema(type_spec: TypeSpec) -> Dict[str, Any]:

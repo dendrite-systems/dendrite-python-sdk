@@ -40,7 +40,6 @@ class HTTPClient:
 
         async with httpx.AsyncClient(timeout=300) as client:
             try:
-                start_time = time.time()
                 response = await client.request(
                     method, url, params=params, json=data, headers=headers
                 )
@@ -51,9 +50,6 @@ class HTTPClient:
                 # )
                 return dict_res
             except httpx.HTTPStatusError as http_err:
-                detail = http_err.response.json()
-                with open("error.json", "w") as f:
-                    f.write(json.dumps(http_err.response.json(),indent=2))
                 logger.debug(
                     f"HTTP error occurred: {http_err.response.status_code}: {http_err.response.text}"
                 )

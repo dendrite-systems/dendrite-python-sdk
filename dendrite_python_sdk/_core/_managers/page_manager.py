@@ -4,7 +4,7 @@ from loguru import logger
 from playwright.async_api import BrowserContext, Page, Download, FileChooser
 
 if TYPE_CHECKING:
-    from dendrite_python_sdk._core.dendrite_browser import DendriteBrowser
+    from dendrite_python_sdk._core._base_browser import BaseDendriteBrowser
 from dendrite_python_sdk._core.dendrite_page import DendritePage
 
 
@@ -12,7 +12,7 @@ class PageManager:
     def __init__(self, dendrite_browser, browser_context: BrowserContext):
         self.active_page: Optional[DendritePage] = None
         self.browser_context = browser_context
-        self.dendrite_browser: DendriteBrowser = dendrite_browser
+        self.dendrite_browser: BaseDendriteBrowser = dendrite_browser
 
         browser_context.on("page", self._page_on_open_handler)
 
@@ -48,11 +48,11 @@ class PageManager:
 
     async def _file_chooser_handler(self, file_chooser: FileChooser):
         if self.active_page:
-            self.active_page._upload_handler.set_event(file_chooser)
+            self.dendrite_browser._upload_handler.set_event(file_chooser)
 
     async def _download_handler(self, download: Download):
         if self.active_page:
-            self.active_page._download_handler.set_event(download)
+            self.dendrite_browser._download_handler.set_event(download)
 
     async def _page_on_crash_handler(self, page: Page):
         logger.error(f"Page crashed: {page.url}")

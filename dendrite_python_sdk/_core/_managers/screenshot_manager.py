@@ -13,7 +13,6 @@ class ScreenshotManager:
 
     async def take_full_page_screenshot(self, page: Page) -> str:
         image_data = await page.screenshot(type="jpeg", full_page=True, timeout=30000)
-        print(f"Screenshot size: {len(image_data)} bytes")
         self.store_screenshot("full_test", image_data)
         if image_data is None:
             return ""
@@ -61,5 +60,4 @@ class ScreenshotManager:
 
         with open(filepath, "wb") as file:
             file.write(image_data)
-        print(f"Screenshot saved to {filepath}")
         return filepath

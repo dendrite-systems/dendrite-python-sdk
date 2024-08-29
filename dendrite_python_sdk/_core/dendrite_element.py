@@ -4,10 +4,11 @@ import functools
 import time
 from typing import TYPE_CHECKING, Optional
 
+from loguru import logger
 from playwright.async_api import Locator
 
 if TYPE_CHECKING:
-    from dendrite_python_sdk._core.dendrite_browser import DendriteBrowser
+    from dendrite_python_sdk._core._base_browser import BaseDendriteBrowser
 from dendrite_python_sdk._core.models.page_diff_information import PageDiffInformation
 from dendrite_python_sdk._core._type_spec import Interaction
 from dendrite_python_sdk._api.response.interaction_response import InteractionResponse
@@ -40,12 +41,16 @@ def perform_action(interaction_type: Interaction):
         ) -> InteractionResponse:
             expected_outcome: str | None = kwargs.pop("expected_outcome", None)
 
+            logger.debug(
+                f"Performing action: {interaction_type} on element: {self.locator}"
+            )
+
             if not expected_outcome:
                 return await func(self, *args, **kwargs)
 
-            llm_config = self.dendrite_browser.llm_config
+            llm_config = self._dendrite_browser.llm_config
 
-            page_before = await self.dendrite_browser.get_active_page()
+            page_before = await self._dendrite_browser.get_active_page()
             page_before_info = await page_before._get_page_information()
 
             # Call the original method here
@@ -58,7 +63,7 @@ def perform_action(interaction_type: Interaction):
 
             await self._wait_for_page_changes(page_before.url)
 
-            page_after = await self.dendrite_browser.get_active_page()
+            page_after = await self._dendrite_browser.get_active_page()
             page_after_info = await page_after._get_page_information()
             page_delta_information = PageDiffInformation(
                 page_before=page_before_info, page_after=page_after_info
@@ -72,7 +77,7 @@ def perform_action(interaction_type: Interaction):
                 page_delta_information=page_delta_information,
                 llm_config=llm_config,
             )
-            res = await self.browser_api_client.make_interaction(dto)
+            res = await self._browser_api_client.make_interaction(dto)
 
             if res.status == "failed":
                 raise IncorrectOutcomeException(
@@ -96,7 +101,7 @@ class DendriteElement:
     """
 
     def __init__(
-        self, dendrite_id: str, locator: Locator, dendrite_browser: DendriteBrowser
+        self, dendrite_id: str, locator: Locator, dendrite_browser: BaseDendriteBrowser
     ):
         """
         Initialize a DendriteElement.
@@ -108,8 +113,8 @@ class DendriteElement:
         """
         self.dendrite_id = dendrite_id
         self.locator = locator
-        self.dendrite_browser = dendrite_browser
-        self.browser_api_client = dendrite_browser._browser_api_client
+        self._dendrite_browser = dendrite_browser
+        self._browser_api_client = dendrite_browser._browser_api_client
 
     async def outer_html(self):
         return await self.locator.evaluate("(element) => element.outerHTML")
@@ -201,7 +206,7 @@ class DendriteElement:
         """
         start_time = time.time()
         while time.time() - start_time <= timeout:
-            page = await self.dendrite_browser.get_active_page()
+            page = await self._dendrite_browser.get_active_page()
             if page.url != old_url:
                 return True
             await asyncio.sleep(0.1)
