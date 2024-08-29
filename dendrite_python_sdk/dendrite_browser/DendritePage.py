@@ -255,7 +255,7 @@ class DendritePage:
 
         try_run_dto = TryRunScriptDTO(
             url=self.page.url,
-            raw_html=str(await self.get_soup(only_visible_elements=False)),
+            raw_html=str(await self.get_soup()),
             llm_config=self.dendrite_browser.get_llm_config(),
             prompt=prompt,
             return_data_json_schema=json_schema,
@@ -278,8 +278,6 @@ class DendritePage:
         if type_spec != None:
             converted_res = convert_to_type_spec(type_spec, res.return_data)
 
-        print("converted_res: ", converted_res)
-        print("converted_res: ", type(converted_res))
         res.return_data = converted_res
 
         return res
@@ -335,11 +333,9 @@ class DendritePage:
 
         return context
 
-    async def get_page_information(
-        self, only_visible_elements_in_html: bool = False
-    ) -> PageInformation:
+    async def get_page_information(self) -> PageInformation:
         start_time = time.time()
-        soup = await self.get_soup(only_visible_elements=only_visible_elements_in_html)
+        soup = await self.get_soup()
 
         base64 = await self.screenshot_manager.take_full_page_screenshot(self.page)
         print("time to get all: ", time.time() - start_time)
@@ -447,9 +443,8 @@ class DendritePage:
             )
             res = await self.browser_api_client.ask_page(dto)
 
-            print("res: ", res.return_data)
-            print(type(res.return_data))
-            converted_res = res
+            
+            converted_res = res.return_data
             if type_spec != None:
                 converted_res = convert_to_type_spec(type_spec, res.return_data)
 
@@ -496,9 +491,7 @@ class DendritePage:
             num_attempts = 0
             while num_attempts < max_retries:
                 num_attempts += 1
-                page_information = await self.get_page_information(
-                    only_visible_elements_in_html=True
-                )
+                page_information = await self.get_page_information()
                 dto = GetElementsDTO(
                     page_information=page_information,
                     llm_config=llm_config,
@@ -526,9 +519,7 @@ class DendritePage:
 
                 await asyncio.sleep(timeout)
 
-            page_information = await self.get_page_information(
-                only_visible_elements_in_html=True
-            )
+            page_information = await self.get_page_information()
             raise DendriteException(
                 message="Could not find suitable elements on the page.",
                 screenshot_base64=page_information.screenshot_base64,
@@ -570,9 +561,7 @@ class DendritePage:
         while num_attempts < max_retries:
             num_attempts += 1
 
-            page_information = await self.get_page_information(
-                only_visible_elements_in_html=True
-            )
+            page_information = await self.get_page_information()
             dto = GetElementsDTO(
                 page_information=page_information,
                 llm_config=llm_config,
@@ -608,9 +597,7 @@ class DendritePage:
 
             await asyncio.sleep(timeout)
 
-        page_information = await self.get_page_information(
-            only_visible_elements_in_html=True
-        )
+        page_information = await self.get_page_information()
         raise DendriteException(
             message="Could not find suitable element on the page.",
             screenshot_base64=page_information.screenshot_base64,
@@ -619,17 +606,14 @@ class DendritePage:
     async def get_content(self):
         return await self.page.content()
 
-    async def get_soup(self, only_visible_elements: bool = False) -> BeautifulSoup:
+    async def get_soup(self, ) -> BeautifulSoup:
         await self.generate_dendrite_ids()
 
         page_source = await self.page.content()
         soup = BeautifulSoup(page_source, "lxml")
         await self._expand_iframes(soup)
 
-        if only_visible_elements:
-            elems = soup.find_all(attrs={"data-hidden": True})
-            for elem in elems:
-                elem.extract()
+
         return soup
 
     async def _expand_iframes(self, page_source: BeautifulSoup):

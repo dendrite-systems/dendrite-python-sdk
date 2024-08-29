@@ -33,7 +33,7 @@ async def list_account_information() -> AccountDetails:
         expected_page="Should be the bank's dashboard and not a log in page. This can happen if we aren't authenticated.",
     )
 
-    # Next we navigate through a couple of tab
+    # Next we navigate through a couple of tabs
     el = await page.get_element("the företagskonto link")
     await el.click()
 
@@ -99,12 +99,13 @@ async def get_transactions() -> str:
         expected_outcome="A modal should show up with the option save the transactions as e.g csv"
     )
 
+    # Press the download button to downloads
     el = await page.get_element("the 'Spara' button in the download modal")
     await el.click()
 
+    # Get the downloaded transactions
     download = await page.get_download()
 
-    print("filepath: ", filepath)
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
     # Save the downloaded file to the specified path
@@ -198,7 +199,7 @@ assistant = client.beta.assistants.create(
     name="Bank Assistant",
     instructions="""You are a helpful assistant for banking operations. You can retrieve messages, list account information, get transactions, and analyze them. Use the available functions when necessary to assist the user.
 
-When analyzing transactions, always use the analyze_transactions function, which will automatically download the latest transactions before analysis. You don't need to call get_transactions separately.
+When analyzing transactions, always use the analyze_transactions function, which will automatically download the latest transactions before analysis.
 
 If a bank function fails to authenticate, suggest the user to use the Dendrite Vault plugin to authenticate.
 

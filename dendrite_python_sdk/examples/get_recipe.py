@@ -1,6 +1,9 @@
 import asyncio
+import os
 import time
-from dendrite_python_sdk.dendrite_browser.DendriteBrowser import DendriteBrowser
+from dendrite_python_sdk.dendrite_browser.DendriteRemoteBrowser import (
+    DendriteRemoteBrowser,
+)
 from openai import OpenAI
 from openai.types.chat import ChatCompletionUserMessageParam
 
@@ -15,8 +18,18 @@ def ai_request(prompt: str):
 
 
 async def find_recipe(recipe: str, preferences: str):
+    openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+    anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
+    browserbase_api_key = os.environ.get("BROWSERBASE_API_KEY", "")
+
     start_time = time.time()
-    dendrite = DendriteBrowser()
+    dendrite = DendriteRemoteBrowser(
+        openai_api_key=openai_api_key,
+        anthropic_api_key=anthropic_api_key,
+        dendrite_api_key=dendrite_api_key,
+        browserbase_api_key=browserbase_api_key,
+    )
     page = await dendrite.goto("https://www.ica.se/recept/")
 
     close_cookies_button = await page.get_element(
@@ -55,14 +68,16 @@ async def find_recipe(recipe: str, preferences: str):
         "Please output a nice, readable string containing the page's recipe that contains a header for ingredients and one for the steps in English.",
         str,
     )
-    print(f"Find recipe took: {time.time() - start_time }. Here is the recipe: {res}")
-    return res.return_data
+
+    generated_recipe = res.return_data
+    print(
+        f"Find recipe took: {time.time() - start_time}. Here is the recipe:\n\n{generated_recipe}"
+    )
+    return generated_recipe
 
 
-res = asyncio.run(
+asyncio.run(
     find_recipe(
         "tacos", "I am vegetarian and I want to cook something in less than 30 mins"
     )
 )
-
-print("res: ", res)

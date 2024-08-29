@@ -9,9 +9,10 @@ from dendrite_python_sdk.dendrite_browser.DendriteBrowser import DendriteBrowser
 class DendriteRemoteBrowser(DendriteBrowser):
     def __init__(
         self,
-        openai_api_key: str,
+        openai_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
         dendrite_api_key: Optional[str] = None,
+        browserbase_api_key: Optional[str] = None,
         playwright_options: Any = {
             "headless": False,
             "args": [
@@ -41,6 +42,13 @@ class DendriteRemoteBrowser(DendriteBrowser):
             anthropic_api_key=anthropic_api_key,
             playwright_options=playwright_options,
         )
+        self.browserbase_api_key = browserbase_api_key
+        if browserbase_api_key is None:
+            browserbase_api_key = os.environ.get("BROWSERBASE_API_KEY")
+
+        if self.browserbase_api_key is None:
+            raise Exception("Please enter a Browserbase API key")
+
         self.session_id = None
 
     async def launch(self):
@@ -59,10 +67,6 @@ class DendriteRemoteBrowser(DendriteBrowser):
         else:
             self.browser_context = await browser.new_context()
 
-        await self.browser_context.add_init_script(
-            path="dendrite_server/core/browser/scripts/eventListenerPatch.js"
-        )
-
         self.active_page_manager = ActivePageManager(self, self.browser_context)
         return browser, self.browser_context, self.active_page_manager
 
@@ -77,9 +81,7 @@ class DendriteRemoteBrowser(DendriteBrowser):
         )
 
     def get_browserbase_url(self, enable_proxy: bool = False):
-        base_url = os.environ.get("BROWSERBASE_CONNECTION_URI")
-        if base_url is None:
-            raise Exception("BROWSERBASE_CONNECTION_URI not set")
+        base_url = f"wss://connect.browserbase.com?apiKey={self.browserbase_api_key}"
 
         if enable_proxy:
             base_url = base_url + "&enableProxy=true"
