@@ -86,6 +86,6 @@ class BrowserBaseClient:
                                 f.write(array_buffer)
                             return
                 except Exception as e:
-                    print(f"Error fetching downloads: {e}")
+                    logger.debug(f"Error fetching downloads: {e}")
                 await asyncio.sleep(2)
-            print("Failed to download files within the time limit.")
+            logger.debug("Failed to download files within the time limit.")

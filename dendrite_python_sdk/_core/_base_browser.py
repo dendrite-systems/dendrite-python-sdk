@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import sys
 from typing import Any, Generic, Optional, TypeVar, Union
 from uuid import uuid4
 import os
@@ -111,6 +112,15 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         )
         self.llm_config = llm_config
 
+    async def __aenter__(self):
+        # Launch the browser and return the instance
+        await self._launch()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        # Ensure cleanup is handled
+        await self.close()
+
     async def get_active_page(self) -> DendritePage[DownloadType]:
         """
         Retrieves the currently active page managed by the PageManager.
@@ -147,6 +157,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
+
         active_page_manager = await self._get_active_page_manager()
 
         if new_page:
@@ -154,6 +165,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         else:
             active_page = await active_page_manager.get_active_page()
         try:
+            logger.info(f"Going to {url}")
             await active_page.playwright_page.goto(url, timeout=timeout)
         except TimeoutError:
             logger.debug("Timeout when loading page but continuing anyways.")
@@ -193,7 +205,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
                 user_agent=self._auth_data.user_agent,
             )
         else:
-            self.browser_context = browser.contexts[0]
+            self.browser_context = await browser.new_context()
 
         self._active_page_manager = PageManager(self, self.browser_context)
         return browser, self.browser_context, self._active_page_manager

@@ -848,10 +848,10 @@ class DendritePage(Generic[DownloadType]):
             num_attempts += 1
 
 
-            logger.debug(
-                f"Attempt {num_attempts}/{max_retries} to get element for '{prompt}'"
+            logger.info(
+                f"Getting element for '{prompt}' | Attempt {num_attempts}/{max_retries}"
             )
-
+  
             page_information = await self._get_page_information()
 
             dto = GetElementsDTO(
@@ -874,7 +874,8 @@ class DendritePage(Generic[DownloadType]):
                     dendrite_elements = await get_all_elements_from_selector(
                         self, selector
                     )
-
+                    logger.info(f"Got working selector: {selector}")
+                    logger.debug(f"Got element/s: {dendrite_elements}")
                     return dendrite_elements[0] if only_one else dendrite_elements
                 except Exception as e:
                     pass
