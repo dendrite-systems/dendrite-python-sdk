@@ -58,5 +58,5 @@ class DendriteRemoteBrowser(
         await self._provider._close(self)
         await super().close()
 
-    async def _get_download(self) -> DownloadType:
-        return await self._provider.get_download(self)
+    async def _get_download(self, timeout: float = 30000) -> DownloadType:
+        return await self._provider.get_download(self, timeout)

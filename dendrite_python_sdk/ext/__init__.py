@@ -1,4 +1,4 @@
-from .browser_base.browser import BrowserBaseBrowser, BrowserBaseDownload
+from .browserbase.browser import BrowserBaseBrowser, BrowserBaseDownload
 
 __all__ = [
     "BrowserBaseBrowser",

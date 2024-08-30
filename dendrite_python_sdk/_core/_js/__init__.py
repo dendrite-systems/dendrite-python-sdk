@@ -1,14 +1,11 @@
-import os
-
-_base_dir = os.path.dirname(__file__)
+from pathlib import Path
 
 
 def load_script(filename: str) -> str:
+    current_dir = Path(__file__).parent
 
-    path = os.path.join(_base_dir, filename)
-
-    with open(path, encoding="utf-8") as f:
-        return f.read()
+    file_path = current_dir / filename
+    return file_path.read_text(encoding="utf-8")
 
 
 GENERATE_DENDRITE_IDS_SCRIPT = load_script("generateDendriteIDs.js")

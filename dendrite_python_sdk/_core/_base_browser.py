@@ -147,6 +147,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
+
         active_page_manager = await self._get_active_page_manager()
 
         if new_page:
@@ -154,6 +155,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         else:
             active_page = await active_page_manager.get_active_page()
         try:
+            logger.info(f"Going to {url}")
             await active_page.playwright_page.goto(url, timeout=timeout)
         except TimeoutError:
             logger.debug("Timeout when loading page but continuing anyways.")

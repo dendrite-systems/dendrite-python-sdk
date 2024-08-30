@@ -41,8 +41,8 @@ def perform_action(interaction_type: Interaction):
         ) -> InteractionResponse:
             expected_outcome: str | None = kwargs.pop("expected_outcome", None)
 
-            logger.debug(
-                f"Performing action: {interaction_type} on element: {self.locator}"
+            logger.info(
+                f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'
             )
 
             if not expected_outcome:

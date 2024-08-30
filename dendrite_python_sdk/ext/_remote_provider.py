@@ -23,5 +23,7 @@ class RemoteProvider(ABC, Generic[DownloadType]):
         pass
 
     @abstractmethod
-    async def get_download(self, DendriteRemoteBrowser) -> DownloadType:
+    async def get_download(
+        self, DendriteRemoteBrowser, timeout: float = 30000
+    ) -> DownloadType:
         pass

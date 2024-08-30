@@ -15,13 +15,7 @@ class HTTPClient:
         self.base_url = self.resolve_base_url()
 
     def resolve_base_url(self):
-        return "http://localhost:8000/api/v1"
-        # return DENDRITE_API_BASE_URL
-        return (
-            "http://localhost:8000/api/v1"
-            if dev_mode
-            else "https://dendrite-server.azurewebsites.net/api/v1"
-        )
+        return DENDRITE_API_BASE_URL
 
     async def send_request(
         self,
@@ -52,6 +46,11 @@ class HTTPClient:
             except httpx.HTTPStatusError as http_err:
                 logger.debug(
                     f"HTTP error occurred: {http_err.response.status_code}: {http_err.response.text}"
+                )
+                raise
+            except httpx.ConnectError as connect_err:
+                logger.error(
+                    f"Connection error occurred: {connect_err}. {url} Server might be down"
                 )
                 raise
             except httpx.RequestError as req_err:
