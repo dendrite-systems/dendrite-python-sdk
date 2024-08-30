@@ -855,9 +855,8 @@ class DendritePage(Generic[DownloadType]):
             logger.info(
                 f"Getting element for '{prompt}' | Attempt {num_attempts}/{max_retries}"
             )
-            page_information = await self._get_page_information(
-                only_visible_elements_in_html=True
-            )
+            page_information = await self._get_page_information()
+
             dto = GetElementsDTO(
                 page_information=page_information,
                 llm_config=llm_config,
