@@ -33,16 +33,17 @@ BROWSERBASE_API_KEY=[only required for DendriteRemoteBrowser when scaling up]
 
 ## Installation
 
-Install the Dendrite SDK and Playwright. Playwright is a package that is used to control the browser. You'll also need `asyncio` for async operations.
+Install the Dendrite SDK. We also need to run playwright install to install the browser drivers.
+
 
 With pip:
 ```
-pip install dendrite-python-sdk asyncio && playwright install 
+pip install dendrite-python-sdk && playwright install 
 ```
 
 With poetry:
 ```
-poetry add dendrite-python-sdk asyncio && playwright install 
+poetry add dendrite-python-sdk && poetry run playwright install 
 ```
 
 
