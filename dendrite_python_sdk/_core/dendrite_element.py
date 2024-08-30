@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+import base64
 import functools
 import time
 from typing import TYPE_CHECKING, Optional
@@ -118,6 +119,21 @@ class DendriteElement:
 
     async def outer_html(self):
         return await self.locator.evaluate("(element) => element.outerHTML")
+
+    async def screenshot(self) -> str:
+        """
+        Take a screenshot of the element and return it as a base64-encoded string.
+
+        Returns:
+            str: A base64-encoded string of the JPEG image.
+                 Returns an empty string if the screenshot fails.
+        """
+        image_data = await self.locator.screenshot(type="jpeg", timeout=20000)
+
+        if image_data is None:
+            return ""
+
+        return base64.b64encode(image_data).decode()
 
     @perform_action("click")
     async def click(

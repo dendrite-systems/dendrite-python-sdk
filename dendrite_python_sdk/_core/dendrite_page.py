@@ -304,7 +304,7 @@ class DendritePage(Generic[DownloadType]):
 
         try_run_dto = TryRunScriptDTO(
             url=self.playwright_page.url,
-            raw_html=str(await self._get_soup(only_visible_elements=False)),
+            raw_html=str(await self._get_soup()),
             llm_config=self.dendrite_browser.llm_config,
             prompt=prompt,
             return_data_json_schema=json_schema,
@@ -367,19 +367,14 @@ class DendritePage(Generic[DownloadType]):
 
             await asyncio.sleep(0.1)
 
-    async def _get_page_information(
-        self, only_visible_elements_in_html: bool = False
-    ) -> PageInformation:
+    async def _get_page_information(self) -> PageInformation:
         """
         Retrieves information about the current page, including the URL, raw HTML, and a screenshot.
-
-        Args:
-            only_visible_elements_in_html (bool, optional): If True, only visible elements will be included in the HTML. Defaults to False.
 
         Returns:
             PageInformation: An object containing the page's URL, raw HTML, and a screenshot in base64 format.
         """
-        soup = await self._get_soup(only_visible_elements=only_visible_elements_in_html)
+        soup = await self._get_soup()
 
         base64 = await self.screenshot_manager.take_full_page_screenshot(
             self.playwright_page
@@ -608,7 +603,7 @@ class DendritePage(Generic[DownloadType]):
             )
             res = await self.browser_api_client.ask_page(dto)
 
-            converted_res = res
+            converted_res = res.return_data
             if type_spec is not None:
                 converted_res = convert_to_type_spec(type_spec, res.return_data)
 
@@ -852,12 +847,13 @@ class DendritePage(Generic[DownloadType]):
         while num_attempts < max_retries:
             num_attempts += 1
 
+
             logger.debug(
                 f"Attempt {num_attempts}/{max_retries} to get element for '{prompt}'"
             )
-            page_information = await self._get_page_information(
-                only_visible_elements_in_html=True
-            )
+
+            page_information = await self._get_page_information()
+
             dto = GetElementsDTO(
                 page_information=page_information,
                 llm_config=llm_config,
@@ -925,13 +921,10 @@ class DendritePage(Generic[DownloadType]):
         """
         return await self.playwright_page.content()
 
-    async def _get_soup(self, only_visible_elements: bool = False) -> BeautifulSoup:
+    async def _get_soup(self) -> BeautifulSoup:
         """
         Retrieves the page source as a BeautifulSoup object, with an option to exclude hidden elements.
         Generates Dendrite IDs in the DOM and expands iframes.
-
-        Args:
-            only_visible_elements (bool, optional): If True, only visible elements will be included in the soup. Defaults to False.
 
         Returns:
             BeautifulSoup: The parsed HTML of the current page.
@@ -941,11 +934,6 @@ class DendritePage(Generic[DownloadType]):
         page_source = await self.playwright_page.content()
         soup = BeautifulSoup(page_source, "lxml")
         await self._expand_iframes(soup)
-
-        if only_visible_elements:
-            elems = soup.find_all(attrs={"data-hidden": True})
-            for elem in elems:
-                elem.extract()
         return soup
 
     async def _expand_iframes(self, page_source: BeautifulSoup):
