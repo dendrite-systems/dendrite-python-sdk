@@ -40,7 +40,7 @@ def perform_action(interaction_type: Interaction):
             *args,
             **kwargs,
         ) -> InteractionResponse:
-            expected_outcome: str | None = kwargs.pop("expected_outcome", None)
+            expected_outcome: Optional[str] = kwargs.pop("expected_outcome", None)
 
             logger.info(
                 f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'

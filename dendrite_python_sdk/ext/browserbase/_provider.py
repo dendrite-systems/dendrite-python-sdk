@@ -1,10 +1,10 @@
 import os
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 from loguru import logger
 from playwright.async_api import Playwright, Locator
 from dendrite_python_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
 from dendrite_python_sdk.ext._remote_provider import RemoteProvider
-from dendrite_python_sdk.ext.browserbase.download import BrowserBaseDownload
+from dendrite_python_sdk.ext.browserbase._download import BrowserBaseDownload
 from ._client import BrowserBaseClient
 
 Locator.set_input_files

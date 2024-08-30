@@ -847,11 +847,10 @@ class DendritePage(Generic[DownloadType]):
         while num_attempts < max_retries:
             num_attempts += 1
 
-
             logger.info(
                 f"Getting element for '{prompt}' | Attempt {num_attempts}/{max_retries}"
             )
-  
+
             page_information = await self._get_page_information()
 
             dto = GetElementsDTO(

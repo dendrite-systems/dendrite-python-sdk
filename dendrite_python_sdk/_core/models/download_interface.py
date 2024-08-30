@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Union
 from playwright.async_api import Download
 
 
@@ -8,7 +9,7 @@ class DownloadInterface(ABC):
         self._download = download
 
     @abstractmethod
-    async def save_as(self, path: str | Path) -> None:
+    async def save_as(self, path: Union[str, Path]) -> None:
         pass
 
     @property
