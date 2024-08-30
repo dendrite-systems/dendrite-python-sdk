@@ -13,28 +13,16 @@ class ScreenshotManager:
 
     async def take_full_page_screenshot(self, page: Page) -> str:
         image_data = await page.screenshot(type="jpeg", full_page=True, timeout=30000)
-        self.store_screenshot("full_test", image_data)
         if image_data is None:
             return ""
 
         return base64.b64encode(image_data).decode("utf-8")
-
-    async def take_element_screenshot(self, page: Page, selector: str) -> str:
-        element = page.locator(selector)
-        image_data = await element.screenshot(type="jpeg", timeout=20000)
-
-        if image_data is None:
-            return ""
-
-        return base64.b64encode(image_data).decode()
 
     async def take_viewport_screenshot(self, page: Page) -> str:
         image_data = await page.screenshot(type="jpeg", timeout=30000)
 
         if image_data is None:
             return ""
-
-        self.store_screenshot("test", image_data)
 
         reduced_base64 = base64.b64encode(image_data).decode("utf-8")
 
