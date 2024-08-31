@@ -450,7 +450,7 @@ class DendritePage(Generic[DownloadType]):
 
         while num_attempts < max_retries:
             num_attempts += 1
-            await asyncio.sleep(timeout)
+            await asyncio.sleep(timeout * 0.001)
             try:
 
                 page_information = await self._get_page_information()
