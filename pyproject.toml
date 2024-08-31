@@ -1,11 +1,27 @@
 [tool.poetry]
 name = "dendrite-python-sdk"
 version = "0.1.0"
-description = ""
+description = "Dendrite is a suite of tools that makes it easy to create web integrations for AI agents. With Dendrite your can: Authenticate on websites, Interact with elements, Extract structured data, Download and upload files, Fill out forms"
+
 authors = [
    "Arian Hanifi <arian@dendrite.se>",
-   "Charles Maddock <charles@dendrite.se>"]
+   "Charles Maddock <charles@dendrite.se>",
+   "Sebastian Thunman <sebastian@dendrite.se"]
 readme = "README.md"
+homepage = "https://dendrite.se"
+repository = "https://github.com/dendrite-systems/dendrite-python-sdk"
+documentation = "https://docs.dendrite.se/introduction"
+
+
+
+keywords = ["AI agent", "playwright", "web", "web agents", "automation", "web extraction", "browser"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+
 
 [tool.poetry.dependencies]
 python = "^3.9"
