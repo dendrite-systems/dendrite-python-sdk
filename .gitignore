@@ -2,3 +2,7 @@
 exceptions/
 __pycache__/
 *.pyc
+test/*
+test_screenshots/*
+.DS_Store
+.vscode/

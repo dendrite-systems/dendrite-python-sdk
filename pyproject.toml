@@ -1,26 +1,27 @@
 [tool.poetry]
 name = "dendrite-python-sdk"
-version = "1.0.2"
+version = "0.1.0"
 description = ""
-authors = ["Charles Maddock <charles@dendrite.se>"]
+authors = [
+   "Arian Hanifi <arian@dendrite.se>",
+   "Charles Maddock <charles@dendrite.se>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-requests = "^2.31.0"
-python-dotenv = "^1.0.1"
 pydantic = "^2.6.0"
-openai = "^1.11.0"
 playwright = "^1.43.0"
 bs4 = "^0.0.2"
 lxml = "^5.2.1"
-backoff = "^2.2.1"
-pandas = "^2.2.2"
-openpyxl = "^3.1.2"
 typing-extensions = "^4.12.0"
+loguru = "^0.7.2"
+httpx = "^0.27.2"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.4"
+pylint = "^3.2.6"
+black = "^24.8.0"
+
 
 [build-system]
 requires = ["poetry-core", "requests", "python-dotenv", "pydantic"]

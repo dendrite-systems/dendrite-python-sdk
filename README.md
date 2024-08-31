@@ -27,7 +27,6 @@ You can use the keys in your code or have them in a `.env` file like this:
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 DENDRITE_API_KEY=
-BROWSERBASE_API_KEY=[only required for DendriteRemoteBrowser when scaling up]
 ```
 
 
@@ -84,4 +83,30 @@ async def hello_world():
 asyncio.run(hello_world())
 ```
 
+
+
+
 [See more advanced examples in our docs.](https://docs.dendrite.se)
+
+## Remote Browsers
+
+When you want to scale up your AI agents, we support using browsers hosted by Browserbase. This way you can run many agents in parallel without having to worry about the infrastructure. 
+
+To start using Browserbase just swap out the `DendriteBrowser` with `BrowserBaseBrowser` and add your Browserbase API key and project id, either in the code or in a `.env` file.:
+
+```python
+# from dendrite_python_sdk import DendriteBrowser
+from dendrite_python_sdk.ext.browserbase import BrowserBaseBrowser
+
+... 
+
+# browser = DendriteBrowser(...)
+browser = BrowserBaseBrowser(
+    # Include the previous arguments from DendriteBrowser
+    browserbase_api_key="...",
+    browserbase_project_id="..."
+)
+
+...
+
+```
