@@ -6,3 +6,4 @@ test/*
 test_screenshots/*
 .DS_Store
 .vscode/
+dist/

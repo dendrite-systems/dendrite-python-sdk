@@ -37,12 +37,12 @@ Install the Dendrite SDK. We also need to run playwright install to install the 
 
 With pip:
 ```
-pip install dendrite-python-sdk && playwright install 
+pip install dendrite-sdk && playwright install 
 ```
 
 With poetry:
 ```
-poetry add dendrite-python-sdk && poetry run playwright install 
+poetry add dendrite-sdk && poetry run playwright install 
 ```
 
 
@@ -52,7 +52,7 @@ For our first Dendrite script, let's start the `DendriteBrowser`, go to google.c
 
 ```python main.py
 import asyncio
-from dendrite_python_sdk import DendriteBrowser
+from dendrite_sdk import DendriteBrowser
 
 
 async def hello_world():
@@ -95,8 +95,8 @@ When you want to scale up your AI agents, we support using browsers hosted by Br
 To start using Browserbase just swap out the `DendriteBrowser` with `BrowserBaseBrowser` and add your Browserbase API key and project id, either in the code or in a `.env` file.:
 
 ```python
-# from dendrite_python_sdk import DendriteBrowser
-from dendrite_python_sdk.ext.browserbase import BrowserBaseBrowser
+# from dendrite_sdk import DendriteBrowser
+from dendrite_sdk.ext.browserbase import BrowserBaseBrowser
 
 ... 
 
