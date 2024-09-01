@@ -4,12 +4,12 @@ from loguru import logger
 from playwright.async_api import Download
 
 from dendrite_sdk._core.models.download_interface import DownloadInterface
-from dendrite_sdk.ext.browserbase._client import BrowserBaseClient
+from dendrite_sdk.ext.browserbase._client import BrowserbaseClient
 
 
-class BrowserBaseDownload(DownloadInterface):
+class BrowserbaseDownload(DownloadInterface):
     def __init__(
-        self, session_id: str, download: Download, client: BrowserBaseClient
+        self, session_id: str, download: Download, client: BrowserbaseClient
     ) -> None:
         super().__init__(download)
         self._session_id = session_id

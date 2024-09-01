@@ -4,13 +4,13 @@ from loguru import logger
 from playwright.async_api import Playwright, Locator
 from dendrite_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
 from dendrite_sdk.ext._remote_provider import RemoteProvider
-from dendrite_sdk.ext.browserbase._download import BrowserBaseDownload
-from ._client import BrowserBaseClient
+from dendrite_sdk.ext.browserbase._download import BrowserbaseDownload
+from ._client import BrowserbaseClient
 
 Locator.set_input_files
 
 
-class BrowserBaseProvider(RemoteProvider[BrowserBaseDownload]):
+class BrowserbaseProvider(RemoteProvider[BrowserbaseDownload]):
     def __init__(
         self,
         api_key: Optional[str] = None,
@@ -34,7 +34,7 @@ class BrowserBaseProvider(RemoteProvider[BrowserBaseDownload]):
         if not _project_id:
             raise ValueError("BROWSERBASE_PROJECT_ID environment variable is not set")
 
-        self._client = BrowserBaseClient(_api_key, _project_id)
+        self._client = BrowserbaseClient(_api_key, _project_id)
         self._enable_proxy = enable_proxy
         self._enable_downloads = enable_downloads
         self._managed_session = enable_downloads  # This is a flag to determine if the session is managed by us or not
@@ -69,11 +69,11 @@ class BrowserBaseProvider(RemoteProvider[BrowserBaseDownload]):
 
     async def get_download(
         self, dendrite_browser: DendriteRemoteBrowser, timeout: float = 30000
-    ) -> BrowserBaseDownload:
+    ) -> BrowserbaseDownload:
         if not self._session_id:
             raise ValueError(
                 "Downloads are not enabled for this provider. Specify enable_downloads=True in the constructor"
             )
 
         download = await dendrite_browser._download_handler.get_data(timeout)
-        return BrowserBaseDownload(self._session_id, download, self._client)
+        return BrowserbaseDownload(self._session_id, download, self._client)
