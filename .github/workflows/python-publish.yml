@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/dendrite-python-sdk
+      url: https://pypi.org/p/dendrite-sdk
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
     steps:
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/dendrite-python-sdk
+      url: https://test.pypi.org/p/dendrite-sdk
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
     steps:
@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/dendrite-python-sdk
+      url: https://pypi.org/p/dendrite-sdk
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
     steps:
