@@ -92,19 +92,27 @@ asyncio.run(hello_world())
 
 When you want to scale up your AI agents, we support using browsers hosted by Browserbase. This way you can run many agents in parallel without having to worry about the infrastructure. 
 
-To start using Browserbase just swap out the `DendriteBrowser` with `BrowserBaseBrowser` and add your Browserbase API key and project id, either in the code or in a `.env` file.:
+To start using Browserbase just swap out the `DendriteBrowser` with `BrowserbaseBrowser` and add your Browserbase API key and project id, either in the code or in a `.env` file like this:
+
+```bash
+# ... previous keys 
+BROWSERBASE_API_KEY=
+BROWSERBASE_PROJECT_ID=
+```
+
+
 
 ```python
-# from dendrite_sdk import DendriteBrowser
-from dendrite_sdk.ext.browserbase import BrowserBaseBrowser
+# from dendrite_python_sdk import DendriteBrowser
+from dendrite_sdk.ext.browserbase import BrowserbaseBrowser
 
 ... 
 
 # browser = DendriteBrowser(...)
-browser = BrowserBaseBrowser(
+browser = BrowserbaseBrowser(
     # Include the previous arguments from DendriteBrowser
-    browserbase_api_key="...",
-    browserbase_project_id="..."
+    browserbase_api_key="...", # or specify the browsebase keys in the .env file
+    browserbase_project_id="..." 
 )
 
 ...
