@@ -1,2 +1,2 @@
-from ._browser import BrowserBaseBrowser
-from ._download import BrowserBaseDownload
+from ._browser import BrowserbaseBrowser
+from ._download import BrowserbaseDownload

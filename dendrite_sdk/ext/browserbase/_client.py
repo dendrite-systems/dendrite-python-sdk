@@ -6,7 +6,7 @@ import httpx
 from loguru import logger
 
 
-class BrowserBaseClient:
+class BrowserbaseClient:
     def __init__(self, api_key: str, project_id: str) -> None:
         self.api_key = api_key
         self.project_id = project_id
@@ -14,7 +14,7 @@ class BrowserBaseClient:
     async def create_session(self) -> str:
         logger.debug("Creating session")
         """
-        Creates a session using the BrowserBase API.
+        Creates a session using the Browserbase API.
 
         Returns:
             str: The ID of the created session.

@@ -1,12 +1,12 @@
 from typing import Any, Optional
 
 from dendrite_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
-from dendrite_sdk.ext.browserbase._provider import BrowserBaseProvider
-from dendrite_sdk.ext.browserbase._download import BrowserBaseDownload
+from dendrite_sdk.ext.browserbase._provider import BrowserbaseProvider
+from dendrite_sdk.ext.browserbase._download import BrowserbaseDownload
 
 
-class BrowserBaseBrowser(
-    DendriteRemoteBrowser[BrowserBaseProvider, BrowserBaseDownload]
+class BrowserbaseBrowser(
+    DendriteRemoteBrowser[BrowserbaseProvider, BrowserbaseDownload]
 ):
     def __init__(
         self,
@@ -19,7 +19,7 @@ class BrowserBaseBrowser(
         dendrite_api_key: Optional[str] = None,
         playwright_options: Any = ...,
     ):
-        provider = BrowserBaseProvider(
+        provider = BrowserbaseProvider(
             enable_downloads=enable_downloads,
             enable_proxy=enable_proxy,
             api_key=browserbase_api_key,
