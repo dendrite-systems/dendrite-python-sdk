@@ -1,6 +1,6 @@
 # Dendrite
 
-[Read the full docs here](https://docs.dendrite.se)
+[Read the full docs here](https://docs.dendrite.systems)
 
 ## What is Dendrite?
 
