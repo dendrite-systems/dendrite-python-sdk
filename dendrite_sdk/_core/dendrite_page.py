@@ -456,7 +456,7 @@ class DendritePage(Generic[DownloadType]):
                 page_information = await self._get_page_information()
                 prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
                 res = await self.ask(prompt, bool)
-                if res.return_data:
+                if res:
                     return res
             except Exception as e:
                 logger.debug(f"Waited for page, but got this exception: {e}")
@@ -469,7 +469,7 @@ class DendritePage(Generic[DownloadType]):
         )
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[str]) -> AskPageResponse[str]:
+    async def ask(self, prompt: str, type_spec: Type[str]) -> str:
         """
         Asks a question about the current page and expects a response of type `str`.
 
@@ -482,7 +482,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[bool]) -> AskPageResponse[bool]:
+    async def ask(self, prompt: str, type_spec: Type[bool]) -> bool:
         """
         Asks a question about the current page and expects a responseof type `bool`.
 
@@ -495,7 +495,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[int]) -> AskPageResponse[int]:
+    async def ask(self, prompt: str, type_spec: Type[int]) -> int:
         """
         Asks a question about the current page and expects a response of type `int`.
 
@@ -508,7 +508,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[float]) -> AskPageResponse[float]:
+    async def ask(self, prompt: str, type_spec: Type[float]) -> float:
         """
         Asks a question about the current page and expects a response of type `float`.
 
@@ -521,9 +521,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(
-        self, prompt: str, type_spec: Type[PydanticModel]
-    ) -> AskPageResponse[PydanticModel]:
+    async def ask(self, prompt: str, type_spec: Type[PydanticModel]) -> PydanticModel:
         """
         Asks a question about the current page and expects a response of a custom `PydanticModel`.
 
@@ -536,9 +534,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(
-        self, prompt: str, type_spec: Type[JsonSchema]
-    ) -> AskPageResponse[JsonSchema]:
+    async def ask(self, prompt: str, type_spec: Type[JsonSchema]) -> JsonSchema:
         """
         Asks a question about the current page and expects a response conforming to a `JsonSchema`.
 
@@ -551,9 +547,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(
-        self, prompt: str, type_spec: None = None
-    ) -> AskPageResponse[JsonSchema]:
+    async def ask(self, prompt: str, type_spec: None = None) -> JsonSchema:
         """
         Asks a question without specifying a type and expects a response conforming to a default `JsonSchema`.
 
@@ -569,7 +563,7 @@ class DendritePage(Generic[DownloadType]):
         self,
         prompt: str,
         type_spec: Optional[TypeSpec] = None,
-    ) -> AskPageResponse[Any]:
+    ) -> TypeSpec:
         """
         Asks a question and processes the response based on the specified type.
 
@@ -607,9 +601,7 @@ class DendritePage(Generic[DownloadType]):
             if type_spec is not None:
                 converted_res = convert_to_type_spec(type_spec, res.return_data)
 
-            return AskPageResponse(
-                return_data=converted_res, description=res.description
-            )
+            return converted_res
         except Exception as e:
             raise DendriteException(
                 message=f"Failed to ask page: {e}",
