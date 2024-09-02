@@ -24,7 +24,7 @@ class HTTPClient:
         data: Optional[dict] = None,
         headers: Optional[dict] = None,
         method: str = "GET",
-    ) -> Any:
+    ) -> httpx.Response:
         url = f"{self.base_url}/{endpoint}"
 
         headers = headers or {}
@@ -38,11 +38,10 @@ class HTTPClient:
                     method, url, params=params, json=data, headers=headers
                 )
                 response.raise_for_status()
-                dict_res = response.json()
                 # logger.debug(
                 #     f"{method} to '{url}', that took: { time.time() - start_time }\n\nResponse: {dict_res}\n\n"
                 # )
-                return dict_res
+                return response
             except httpx.HTTPStatusError as http_err:
                 logger.debug(
                     f"HTTP error occurred: {http_err.response.status_code}: {http_err.response.text}"
