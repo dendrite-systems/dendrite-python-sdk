@@ -158,7 +158,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: Type[bool],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[bool]:
+    ) -> bool:
         """
         Extract data from a web page based on a prompt and return as a bool.
 
@@ -177,7 +177,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: Type[int],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[int]:
+    ) -> int:
         """
         Extract data from a web page based on a prompt and return as an integer.
 
@@ -196,7 +196,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: Type[float],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[float]:
+    ) -> float:
         """
         Extract data from a web page based on a prompt and return as a float.
 
@@ -215,7 +215,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: Optional[str],
         type_spec: Type[PydanticModel],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[PydanticModel]:
+    ) -> PydanticModel:
         """
         Extract data from a web page and convert it to a Pydantic model.
 
@@ -234,7 +234,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: Optional[str],
         type_spec: JsonSchema,
         use_cache: bool = True,
-    ) -> ScrapePageResponse[JsonSchema]:
+    ) -> JsonSchema:
         """
         Extract data from a web page based on a prompt and validate it against the specified JSON schema.
 
@@ -254,7 +254,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: None = None,
         use_cache: bool = True,
-    ) -> ScrapePageResponse[Any]:
+    ) -> Any:
         """
         Extract data based on a prompt.
 
@@ -272,7 +272,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: Optional[str],
         type_spec: Optional[TypeSpec] = None,
         use_cache: bool = True,
-    ) -> ScrapePageResponse:
+    ) -> TypeSpec:
         """
         Extract data from a web page based on a prompt and optional type specification.
 
@@ -327,7 +327,7 @@ class DendritePage(Generic[DownloadType]):
         if type_spec is not None:
             converted_res = convert_to_type_spec(type_spec, res.return_data)
 
-        res.return_data = converted_res
+        res = converted_res
 
         return res
 
@@ -456,7 +456,7 @@ class DendritePage(Generic[DownloadType]):
                 page_information = await self._get_page_information()
                 prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
                 res = await self.ask(prompt, bool)
-                if res.return_data:
+                if res:
                     return res
             except Exception as e:
                 logger.debug(f"Waited for page, but got this exception: {e}")
@@ -469,7 +469,7 @@ class DendritePage(Generic[DownloadType]):
         )
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[str]) -> AskPageResponse[str]:
+    async def ask(self, prompt: str, type_spec: Type[str]) -> str:
         """
         Asks a question about the current page and expects a response of type `str`.
 
@@ -482,7 +482,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[bool]) -> AskPageResponse[bool]:
+    async def ask(self, prompt: str, type_spec: Type[bool]) -> bool:
         """
         Asks a question about the current page and expects a responseof type `bool`.
 
@@ -495,7 +495,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[int]) -> AskPageResponse[int]:
+    async def ask(self, prompt: str, type_spec: Type[int]) -> int:
         """
         Asks a question about the current page and expects a response of type `int`.
 
@@ -508,7 +508,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(self, prompt: str, type_spec: Type[float]) -> AskPageResponse[float]:
+    async def ask(self, prompt: str, type_spec: Type[float]) -> float:
         """
         Asks a question about the current page and expects a response of type `float`.
 
@@ -521,9 +521,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(
-        self, prompt: str, type_spec: Type[PydanticModel]
-    ) -> AskPageResponse[PydanticModel]:
+    async def ask(self, prompt: str, type_spec: Type[PydanticModel]) -> PydanticModel:
         """
         Asks a question about the current page and expects a response of a custom `PydanticModel`.
 
@@ -536,9 +534,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(
-        self, prompt: str, type_spec: Type[JsonSchema]
-    ) -> AskPageResponse[JsonSchema]:
+    async def ask(self, prompt: str, type_spec: Type[JsonSchema]) -> JsonSchema:
         """
         Asks a question about the current page and expects a response conforming to a `JsonSchema`.
 
@@ -551,9 +547,7 @@ class DendritePage(Generic[DownloadType]):
         """
 
     @overload
-    async def ask(
-        self, prompt: str, type_spec: None = None
-    ) -> AskPageResponse[JsonSchema]:
+    async def ask(self, prompt: str, type_spec: None = None) -> JsonSchema:
         """
         Asks a question without specifying a type and expects a response conforming to a default `JsonSchema`.
 
@@ -569,7 +563,7 @@ class DendritePage(Generic[DownloadType]):
         self,
         prompt: str,
         type_spec: Optional[TypeSpec] = None,
-    ) -> AskPageResponse[Any]:
+    ) -> TypeSpec:
         """
         Asks a question and processes the response based on the specified type.
 
@@ -607,9 +601,7 @@ class DendritePage(Generic[DownloadType]):
             if type_spec is not None:
                 converted_res = convert_to_type_spec(type_spec, res.return_data)
 
-            return AskPageResponse(
-                return_data=converted_res, description=res.description
-            )
+            return converted_res
         except Exception as e:
             raise DendriteException(
                 message=f"Failed to ask page: {e}",
