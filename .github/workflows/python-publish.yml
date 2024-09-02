@@ -111,7 +111,7 @@ jobs:
     - name: Publish distribution 📦 to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
     
-  github-release:
+  manual-github-release:
     name: >-
       Sign the dendrite-python-sdk 📦 with Sigstore
       and upload them to GitHub Release
