@@ -33,7 +33,7 @@ def to_json_schema(type_spec: TypeSpec) -> Dict[str, Any]:
     raise ValueError(f"Unsupported type specification: {type_spec}")
 
 
-def convert_to_type_spec(type_spec: TypeSpec, return_data: Any):
+def convert_to_type_spec(type_spec: TypeSpec, return_data: Any) -> TypeSpec:
     if isinstance(type_spec, type):
         if issubclass(type_spec, BaseModel):
             return type_spec.model_validate(return_data)

@@ -158,7 +158,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: Type[bool],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[bool]:
+    ) -> bool:
         """
         Extract data from a web page based on a prompt and return as a bool.
 
@@ -177,7 +177,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: Type[int],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[int]:
+    ) -> int:
         """
         Extract data from a web page based on a prompt and return as an integer.
 
@@ -196,7 +196,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: Type[float],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[float]:
+    ) -> float:
         """
         Extract data from a web page based on a prompt and return as a float.
 
@@ -215,7 +215,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: Optional[str],
         type_spec: Type[PydanticModel],
         use_cache: bool = True,
-    ) -> ScrapePageResponse[PydanticModel]:
+    ) -> PydanticModel:
         """
         Extract data from a web page and convert it to a Pydantic model.
 
@@ -234,7 +234,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: Optional[str],
         type_spec: JsonSchema,
         use_cache: bool = True,
-    ) -> ScrapePageResponse[JsonSchema]:
+    ) -> JsonSchema:
         """
         Extract data from a web page based on a prompt and validate it against the specified JSON schema.
 
@@ -254,7 +254,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: str,
         type_spec: None = None,
         use_cache: bool = True,
-    ) -> ScrapePageResponse[Any]:
+    ) -> Any:
         """
         Extract data based on a prompt.
 
@@ -272,7 +272,7 @@ class DendritePage(Generic[DownloadType]):
         prompt: Optional[str],
         type_spec: Optional[TypeSpec] = None,
         use_cache: bool = True,
-    ) -> ScrapePageResponse:
+    ) -> TypeSpec:
         """
         Extract data from a web page based on a prompt and optional type specification.
 
@@ -327,7 +327,7 @@ class DendritePage(Generic[DownloadType]):
         if type_spec is not None:
             converted_res = convert_to_type_spec(type_spec, res.return_data)
 
-        res.return_data = converted_res
+        res = converted_res
 
         return res
 
