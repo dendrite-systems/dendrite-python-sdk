@@ -1,7 +1,36 @@
 import base64
 import os
-from typing import Optional
+from typing import List, Optional, Union
 from uuid import uuid4
+
+from loguru import logger
+
+from dendrite_sdk._exceptions._constants import INVALID_AUTH_SESSION_MSG
+
+
+class BaseDendriteException(Exception):
+    def __init__(self, message: str) -> None:
+        self._message = message
+        logger.error(self)
+        super().__init__(message)
+
+    @property
+    def message(self) -> str:
+        return self._message
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.message}"
+
+
+class InvalidAuthSessionError(BaseDendriteException):
+    def __init__(
+        self,
+        domain: Union[str, List[str]],
+        message: str = INVALID_AUTH_SESSION_MSG,
+    ) -> None:
+        self._domain = domain
+        message = message.format(domain=domain)
+        super().__init__(message)
 
 
 class DendriteException(Exception):
