@@ -90,19 +90,3 @@ class BrowserAPIClient(HTTPClient):
             created_script=res_dict.get("created_script", None),
             used_cache=res_dict.get("used_cache", False),
         )
-
-    async def create_session(self) -> str:
-        """
-        Creates a new browser session.
-
-        Returns:
-            str: The ID of the created session.
-        """
-        res = await self.send_request("browser/sessions", method="POST")
-        return res
-
-    async def get_download(self, session_id: str):
-        res = await self.send_request(
-            f"browser/sessions/{session_id}/download", method="GET"
-        )
-        return res
