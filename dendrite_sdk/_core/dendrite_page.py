@@ -734,7 +734,7 @@ class DendritePage(Generic[DownloadType]):
 
         results = await asyncio.gather(*tasks)
         elements_dict: Dict[str, DendriteElement] = {}
-        for element, field_name in zip(results, elements_dict.keys()):
+        for element, field_name in zip(results, prompt_dict.keys()):
             elements_dict[field_name] = element
         return DendriteElementsResponse(elements_dict)
 
