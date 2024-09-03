@@ -1,4 +1,10 @@
-DENDRITE_API_BASE_URL = "https://dendrite-server.azurewebsites.net/api/v1"
+import os
+
+DENDRITE_API_BASE_URL = (
+    "localhost:8000"
+    if os.environ.get("DENDRITE_DEV")
+    else "https://dendrite-server.azurewebsites.net/api/v1"
+)
 
 
 STEALTH_ARGS = [
