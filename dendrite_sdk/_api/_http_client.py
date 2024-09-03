@@ -33,6 +33,7 @@ class HTTPClient:
         if self.session_id:
             headers["X-Session-ID"] = self.session_id
 
+
         async with httpx.AsyncClient(timeout=300) as client:
             try:
                 response = await client.request(
