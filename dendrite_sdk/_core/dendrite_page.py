@@ -319,26 +319,16 @@ class DendritePage(Generic[DownloadType]):
         if prompt is None:
             prompt = ""
 
-        try_run_dto = TryRunScriptDTO(
-            url=self.playwright_page.url,
-            raw_html=str(await self._get_soup()),
+        page_information = await self._get_page_information()
+        scrape_dto = ScrapePageDTO(
+            page_information=page_information,
             llm_config=self.dendrite_browser.llm_config,
             prompt=prompt,
             return_data_json_schema=json_schema,
+            use_screenshot=True,
+            use_cache=use_cache,
         )
-
-        res = await self.browser_api_client.try_run_cached(try_run_dto)
-        if res is None:
-            page_information = await self._get_page_information()
-            scrape_dto = ScrapePageDTO(
-                page_information=page_information,
-                llm_config=self.dendrite_browser.llm_config,
-                prompt=prompt,
-                return_data_json_schema=json_schema,
-                use_screenshot=True,
-                use_cache=use_cache,
-            )
-            res = await self.browser_api_client.scrape_page(scrape_dto)
+        res = await self.browser_api_client.scrape_page(scrape_dto)
 
         converted_res = res.return_data
         if type_spec is not None:
@@ -453,7 +443,7 @@ class DendritePage(Generic[DownloadType]):
 
         Args:
             prompt (str): The prompt to determine the condition to wait for on the page.
-            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2.
+            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2000.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 5.
 
         Returns:
@@ -464,17 +454,29 @@ class DendritePage(Generic[DownloadType]):
         """
 
         num_attempts = 0
-
+        await asyncio.sleep(
+            0.2
+        )  # HACK: Wait for page to load slightly when running first time
         while num_attempts < max_retries:
             num_attempts += 1
-            await asyncio.sleep(timeout * 0.001)
             try:
-
+                start_time = time.time()
                 page_information = await self._get_page_information()
                 prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
                 res = await self.ask(prompt, bool)
+                elapsed_time = (
+                    time.time() - start_time
+                ) * 1000  # Convert to milliseconds
+
                 if res:
                     return res
+
+                if elapsed_time >= timeout:
+                    # If the response took longer than the timeout, continue immediately
+                    continue
+                else:
+                    # Otherwise, wait for the remaining time
+                    await asyncio.sleep((timeout - elapsed_time) * 0.001)
             except Exception as e:
                 logger.debug(f"Waited for page, but got this exception: {e}")
                 continue
