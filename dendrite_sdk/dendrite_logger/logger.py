@@ -5,7 +5,7 @@ import json
 import time
 from typing import Any, Dict, List, Literal, Optional, TypeVar, Union
 from uuid import uuid4
-from loguru import logger
+from loguru import logger as loguru_logger
 from pydantic import BaseModel, Field
 
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
@@ -33,11 +33,14 @@ class DendriteInteractionEvent(DendriteLoggerEvent):
 class DendriteExceptionEvent(DendriteLoggerEvent):
     type: Literal["exception"] = "exception"
 
-    def __init__(self, exception: Union[DendriteException, Exception], **data):
+    def __init__(self, exception: Union[DendriteException, Exception], image_base64: Optional[str] = None, **data):
+        if isinstance(exception, DendriteException):
+            image_base64 = exception._screenshot_base64
         super().__init__(
             type="exception",
             message=str(exception),
             metadata={"exception_type": type(exception).__name__},
+            image_base64=image_base64,
             **data
         )
 
@@ -97,21 +100,20 @@ class DendriteLogger:
             context = self._context_stack.pop()
             context.end()
             self._finalized_contexts.append(context)
-            logger.debug(f"Finalized Contexts: {self._finalized_contexts}")
+            loguru_logger.debug(f"Finalized Contexts: {self._finalized_contexts}")
 
     def to_json(self):
-        logger.debug("Finalizing dendrite logger")
+        loguru_logger.debug("Finalizing dendrite logger")
         data = [context.to_dict() for context in self._finalized_contexts]
         with open(self._output_path, "w") as f:
             json.dump(data, f, indent=2)
-        logger.debug(f"JSON log file created: {self._output_path}")
+        loguru_logger.debug(f"JSON log file created: {self._output_path}")
 
 def log_segment(name: str):
     def logging_segment(func):
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             _logger = DENDRITE_LOGGER_CONTEXTVAR.get()
-            logger.debug(f"Logger: {_logger}")
             result = None
             if not _logger:
                 return await func(*args, **kwargs)
@@ -123,7 +125,6 @@ def log_segment(name: str):
                 _logger.error(e)
                 raise e
             finally:
-                logger.debug(f"Result: {result}")
                 _logger.segment_end()
 
                 if result is not None:

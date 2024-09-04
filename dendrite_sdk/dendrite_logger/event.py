@@ -1,7 +1,7 @@
 from contextvars import ContextVar
 from typing import Union
 
-from loguru import logger
+from loguru import logger as loguru_logger
 
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
 from dendrite_sdk.dendrite_logger.logger import DENDRITE_LOGGER_CONTEXTVAR, DendriteLogger, DendriteLoggerEvent
@@ -10,7 +10,6 @@ from dendrite_sdk.dendrite_logger.logger import DENDRITE_LOGGER_CONTEXTVAR, Dend
 
 
 def start():
-
     dendrite_logger = DendriteLogger(output_path="dendrite_log.json")
     DENDRITE_LOGGER_CONTEXTVAR.set(dendrite_logger)
 
@@ -29,7 +28,7 @@ def error(exception: DendriteException):
 
 def stop():
     dendrite = DENDRITE_LOGGER_CONTEXTVAR.get()
-    logger.debug(f"Finalizing logger")
+    loguru_logger.debug(f"Finalizing logger")
     if not dendrite:
         return
     dendrite.to_json()
