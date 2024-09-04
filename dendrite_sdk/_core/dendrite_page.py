@@ -210,6 +210,25 @@ class DendritePage(Generic[DownloadType]):
     @overload
     async def extract(
         self,
+        prompt: str,
+        type_spec: Type[str],
+        use_cache: bool = True,
+    ) -> str:
+        """
+        Extract data from a web page based on a prompt and return as a string.
+
+        Args:
+            prompt (str): The prompt to guide the extraction.
+            type_spec (Type[str]): Specifies that the return type should be string.
+            use_cache (bool, optional): Whether to use cached results. Defaults to True.
+
+        Returns:
+            str: The extracted string data.
+        """
+
+    @overload
+    async def extract(
+        self,
         prompt: Optional[str],
         type_spec: Type[PydanticModel],
         use_cache: bool = True,
