@@ -6,36 +6,37 @@ import time
 from typing import Any, Dict, List, Literal, Optional, TypeVar, Union
 from uuid import uuid4
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
-from .html_generator import create_html_dashboard
 
-class DendriteLoggerEvent():
-
-    def __init__(self, type: str, message: str, metadata: Dict[str, Any] = {}) -> None:
-        self.id = str(uuid4())
-        self.type = type
-        self.message = message
-        self.timestamp = time.time()
-
-    def __repr__(self):
-        return f"Event(id={self.id}, type={self.type}, message={self.message}, timestamp={self.timestamp})"
+class DendriteLoggerEvent(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    type: str
+    message: str
+    timestamp: float = Field(default_factory=time.time)
+    metadata: Dict[str, Any] = {}
 
 class DendriteInteractionEvent(DendriteLoggerEvent):
     action: str
     element: str
 
-    def __init__(self, action: str, element: str, message: Optional[str] = None) -> None:
-        self.action = action
-        self.element = element
-        self.timestamp = time.time()
-        self.message = message or f"Performing action '{action}' on element '{element}'"
-        super().__init__("interaction", self.message)
+    def __init__(self, action: str, element: str, message: Optional[str] = None, **data):
+        super().__init__(
+            type="interaction",
+            message=message or f"Performing action '{action}' on element '{element}'",
+            metadata={"action": action, "element": element},
+            **data
+        )
 
 class DendriteExceptionEvent(DendriteLoggerEvent):
-    def __init__(self, exception: Union[DendriteException, Exception]) -> None:
-        super().__init__("exception", str(exception))
+    def __init__(self, exception: Union[DendriteException, Exception], **data):
+        super().__init__(
+            type="exception",
+            message=str(exception),
+            metadata={"exception_type": type(exception).__name__},
+            **data
+        )
 
 class DendriteQueryEvent(DendriteLoggerEvent):
     query: str
@@ -43,66 +44,62 @@ class DendriteQueryEvent(DendriteLoggerEvent):
 class DendriteQueryResponseEvent(DendriteLoggerEvent):
     query_id: str
 
-EventType = TypeVar("EventType",bound=DendriteLoggerEvent)
+EventType = TypeVar("EventType", bound=DendriteLoggerEvent)
 
-class DendriteLoggerContext():
-    def __init__(self, name) -> None:
-        self._start_time = time.time()
-        self.name = name
-        self._events: List[DendriteLoggerEvent] = []
-        super().__init__()
+class DendriteLoggerContext(BaseModel):
+    name: str
+    start_time: float = Field(default_factory=time.time)
+    end_time: Optional[float] = None
+    elapsed_time: Optional[float] = None
+    events: List[DendriteLoggerEvent] = []
 
     def end(self):
-        end_time = time.time()
-        self.elapsed_time = end_time - self._start_time
+        self.end_time = time.time()
+        self.elapsed_time = self.end_time - self.start_time
 
-    def add_event(self, event: DendriteLoggerEvent) -> None:
-        self._events.append(event)
+    def add_event(self, event: DendriteLoggerEvent):
+        self.events.append(event)
 
-    def __repr__(self):
-        events_repr = "\n  ".join([repr(event) for event in self._events])
-        return (f"Context(name={self.name}, start_time={self._start_time}, "
-                f"elapsed_time={getattr(self, 'elapsed_time', 'Not Ended')}, "
-                f"events=[\n  {events_repr}\n])")
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "elapsed_time": self.elapsed_time,
+            "events": [event.dict() for event in self.events]
+        }
 
 class DendriteLogger:
-
-    def __init__(self, output_path: str) -> None:
+    def __init__(self, output_path: str):
         self._output_path: str = output_path
         self._context_stack: List[DendriteLoggerContext] = []
-        self._finalized_contexts: List[DendriteLoggerContext]= []
+        self._finalized_contexts: List[DendriteLoggerContext] = []
 
-    def add_event(self, event: DendriteLoggerEvent) -> None:
-        self._context_stack[-1].add_event(event)
+    def add_event(self, event: DendriteLoggerEvent):
+        if self._context_stack:
+            self._context_stack[-1].add_event(event)
 
-    def error(self, exception: Union[DendriteException,Exception]) -> None:
+    def error(self, exception: Union[DendriteException, Exception]):
         event = DendriteExceptionEvent(exception)
-        self._context_stack[-1].add_event(event)
+        self.add_event(event)
 
-    def segment_start(self, name:str) -> None:
-        context = DendriteLoggerContext(name)
+    def segment_start(self, name: str):
+        context = DendriteLoggerContext(name=name)
         self._context_stack.append(context)
 
-    def segment_end(self) -> None:
-        context=self._context_stack.pop()
-        context.end()
-        self._finalized_contexts.append(context)
-        logger.debug(f"Finalized Contexts: {self._finalized_contexts}")
+    def segment_end(self):
+        if self._context_stack:
+            context = self._context_stack.pop()
+            context.end()
+            self._finalized_contexts.append(context)
+            logger.debug(f"Finalized Contexts: {self._finalized_contexts}")
 
     def to_json(self):
         logger.debug("Finalizing dendrite logger")
-        res = []
-        for context in self._finalized_contexts:
-            res.append(str(context))
+        data = [context.to_dict() for context in self._finalized_contexts]
         with open(self._output_path, "w") as f:
-            f.write(json.dumps(res, indent=4))
-        self.to_html()
-
-    def to_html(self):
-        json_file = self._output_path
-        html_file = self._output_path.rsplit('.', 1)[0] + '.html'
-        create_html_dashboard(json_file, html_file)
-        logger.debug(f"HTML dashboard created: {html_file}")
+            json.dump(data, f, indent=2)
+        logger.debug(f"JSON log file created: {self._output_path}")
 
 def log_segment(name: str):
     def logging_segment(func):

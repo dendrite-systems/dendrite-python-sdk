@@ -1,30 +1,17 @@
-
-from datetime import datetime
 import json
-from typing import Any, Dict, List
+from typing import List, Dict, Any
 
-
-def parse_context(context_str: str) -> Dict[str, Any]:
-    """Parse the context string into a dictionary."""
-    lines = context_str.split('\n')
-    context = {}
-    context['name'] = lines[0].split('name=')[1].split(',')[0]
-    context['start_time'] = float(lines[0].split('start_time=')[1].split(',')[0])
-    context['elapsed_time'] = lines[0].split('elapsed_time=')[1].split(',')[0]
+def create_dashboard(input_file: str, output_file: str):
+    """Create the dashboard HTML file from the input JSON file."""
+    with open(input_file, 'r') as f:
+        data = json.load(f)
     
-    events = []
-    for line in lines[2:-1]:  # Skip the first two lines and the last line
-        event = {}
-        parts = line.strip().split(', ')
-        for part in parts:
-            key, value = part.split('=')
-            event[key] = value.strip("'")
-        events.append(event)
+    html_content = generate_html(data)
     
-    context['events'] = events
-    return context
+    with open(output_file, 'w') as f:
+        f.write(html_content)
 
-def generate_html(contexts: List[Dict[str, Any]]) -> str:
+def generate_html(data: List[Dict[str, Any]]) -> str:
     """Generate HTML content for the dashboard."""
     html_content = """
     <!DOCTYPE html>
@@ -47,95 +34,59 @@ def generate_html(contexts: List[Dict[str, Any]]) -> str:
                 text-align: center;
                 color: #2c3e50;
             }
-            .context {
+            #dashboard {
                 background-color: #fff;
                 border-radius: 8px;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                margin-bottom: 20px;
                 padding: 20px;
-            }
-            .context-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-            }
-            .context-name {
-                font-size: 1.2em;
-                font-weight: bold;
-                color: #3498db;
-            }
-            .context-time {
-                font-size: 0.9em;
-                color: #7f8c8d;
-            }
-            .event {
-                background-color: #ecf0f1;
-                border-radius: 4px;
-                padding: 10px;
-                margin-bottom: 10px;
-            }
-            .event-header {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 5px;
-            }
-            .event-type {
-                font-weight: bold;
-                color: #e74c3c;
-            }
-            .event-time {
-                font-size: 0.8em;
-                color: #95a5a6;
             }
         </style>
     </head>
     <body>
         <h1>DendriteLogger Dashboard</h1>
-    """
-
-    for context in contexts:
-        html_content += f"""
-        <div class="context">
-            <div class="context-header">
-                <span class="context-name">{context['name']}</span>
-                <span class="context-time">
-                    Start: {datetime.fromtimestamp(context['start_time']).strftime('%Y-%m-%d %H:%M:%S')}
-                    | Duration: {context['elapsed_time']}
-                </span>
-            </div>
-        """
-
-        for event in context['events']:
-            html_content += f"""
-            <div class="event">
-                <div class="event-header">
-                    <span class="event-type">{event['type']}</span>
-                    <span class="event-time">{datetime.fromtimestamp(float(event['timestamp'])).strftime('%Y-%m-%d %H:%M:%S')}</span>
-                </div>
-                <div>{event['message']}</div>
-            </div>
-            """
-
-        html_content += "</div>"
-
-    html_content += """
+        <div id="dashboard"></div>
+        <script>
+            const data = %s;
+            
+            function formatTime(timestamp) {
+                return new Date(timestamp * 1000).toLocaleString();
+            }
+            
+            function createContextElement(context) {
+                const contextElement = document.createElement('div');
+                contextElement.className = 'context';
+                contextElement.innerHTML = `
+                    <h2>${context.name}</h2>
+                    <p>Start: ${formatTime(context.start_time)}</p>
+                    <p>Duration: ${context.elapsed_time.toFixed(2)}s</p>
+                    <h3>Events:</h3>
+                `;
+                
+                const eventsList = document.createElement('ul');
+                context.events.forEach(event => {
+                    const eventItem = document.createElement('li');
+                    eventItem.innerHTML = `
+                        <strong>${event.type}</strong> - ${event.message}
+                        <br>
+                        <small>${formatTime(event.timestamp)}</small>
+                    `;
+                    eventsList.appendChild(eventItem);
+                });
+                
+                contextElement.appendChild(eventsList);
+                return contextElement;
+            }
+            
+            const dashboard = document.getElementById('dashboard');
+            data.forEach(context => {
+                dashboard.appendChild(createContextElement(context));
+            });
+        </script>
     </body>
     </html>
-    """
+    """ % json.dumps(data)
 
     return html_content
 
-def create_dashboard(input_file: str, output_file: str):
-    """Create the dashboard HTML file from the input JSON file."""
-    with open(input_file, 'r') as f:
-        data = json.load(f)
-    
-    contexts = [parse_context(context_str) for context_str in data]
-    html_content = generate_html(contexts)
-    
-    with open(output_file, 'w') as f:
-        f.write(html_content)
-
 if __name__ == "__main__":
-    create_dashboard("dendrite.json", "dendrite_dashboard.html")
+    create_dashboard("dendrite_log.json", "dendrite_log.html")
