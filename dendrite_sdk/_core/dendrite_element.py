@@ -42,13 +42,15 @@ def perform_action(interaction_type: Interaction):
             **kwargs,
         ) -> InteractionResponse:
             expected_outcome: Optional[str] = kwargs.pop("expected_outcome", None)
+            
+            page_before = await self._dendrite_browser.get_active_page()
+            page_before_info = await page_before._get_page_information()
 
-            dendrite_logger.add(DendriteInteractionEvent(action=interaction_type, element=self.dendrite_id))
+            dendrite_logger.add(DendriteInteractionEvent(action=interaction_type, element=self.dendrite_id, image_base64= page_before_info.screenshot_base64))
 
             logger.info(
                 f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'
             )
-
 
             if not expected_outcome:
                 return await func(self, *args, **kwargs)
@@ -66,7 +68,7 @@ def perform_action(interaction_type: Interaction):
                 **kwargs,
             )
 
-
+            dendrite_logger.add(DendriteInteractionEvent(action=interaction_type, element=self.dendrite_id))
             await self._wait_for_page_changes(page_before.url)
 
             page_after = await self._dendrite_browser.get_active_page()
@@ -74,7 +76,6 @@ def perform_action(interaction_type: Interaction):
             page_delta_information = PageDiffInformation(
                 page_before=page_before_info, page_after=page_after_info
             )
-
 
             dto = MakeInteractionDTO(
                 url=page_before.url,
@@ -97,7 +98,6 @@ def perform_action(interaction_type: Interaction):
         return wrapper
 
     return decorator
-
 
 class DendriteElement:
     """

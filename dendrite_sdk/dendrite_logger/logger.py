@@ -15,21 +15,24 @@ class DendriteLoggerEvent(BaseModel):
     type: str
     message: str
     timestamp: float = Field(default_factory=time.time)
+    image_base64: Optional[str] = None
     metadata: Dict[str, Any] = {}
 
 class DendriteInteractionEvent(DendriteLoggerEvent):
-    action: str
-    element: str
+    type: Literal["interaction"] = "interaction"
 
-    def __init__(self, action: str, element: str, message: Optional[str] = None, **data):
+    def __init__(self, action: str, element: str, message: Optional[str] = None, image_base64: Optional[str] = None, **data):
         super().__init__(
             type="interaction",
             message=message or f"Performing action '{action}' on element '{element}'",
             metadata={"action": action, "element": element},
+            image_base64=image_base64,
             **data
         )
 
 class DendriteExceptionEvent(DendriteLoggerEvent):
+    type: Literal["exception"] = "exception"
+
     def __init__(self, exception: Union[DendriteException, Exception], **data):
         super().__init__(
             type="exception",
@@ -39,9 +42,11 @@ class DendriteExceptionEvent(DendriteLoggerEvent):
         )
 
 class DendriteQueryEvent(DendriteLoggerEvent):
+    type: Literal["query"] = "query"
     query: str
 
 class DendriteQueryResponseEvent(DendriteLoggerEvent):
+    type: Literal["query_response"] = "query_response"
     query_id: str
 
 EventType = TypeVar("EventType", bound=DendriteLoggerEvent)
