@@ -18,6 +18,21 @@ class DendriteLoggerEvent(BaseModel):
     image_base64: Optional[str] = None
     metadata: Dict[str, Any] = {}
 
+    def __repr__(self):
+        # Get the class name dynamically
+        class_name = type(self).__name__
+        # Truncate image_base64 to 64 characters if present
+        truncated_image_base64 = (
+            self.image_base64[:64] + "..." if self.image_base64 and len(self.image_base64) > 64 else self.image_base64
+        )
+        return (
+            f"{class_name}(id={self.id}, type={self.type}, message={self.message}, "
+            f"timestamp={self.timestamp}, image_base64={truncated_image_base64}, metadata={self.metadata})"
+        )
+
+    def __str__(self):
+        return self.__repr__()
+
 class DendriteInteractionEvent(DendriteLoggerEvent):
     type: Literal["interaction"] = "interaction"
 
