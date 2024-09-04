@@ -7,4 +7,4 @@ test_screenshots/*
 .DS_Store
 .vscode/
 dist/
-examples/*
+examples/
