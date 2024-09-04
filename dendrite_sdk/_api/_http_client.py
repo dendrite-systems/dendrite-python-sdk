@@ -1,5 +1,3 @@
-import json
-import time
 from typing import Any, Optional
 
 import httpx
@@ -10,8 +8,9 @@ from dendrite_sdk._common.constants import DENDRITE_API_BASE_URL
 
 
 class HTTPClient:
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, session_id: Optional[str] = None):
         self.api_key = api_key
+        self.session_id = session_id
         self.base_url = self.resolve_base_url()
 
     def resolve_base_url(self):
@@ -31,6 +30,8 @@ class HTTPClient:
         headers["Content-Type"] = "application/json"
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        if self.session_id:
+            headers["X-Session-ID"] = self.session_id
 
         async with httpx.AsyncClient(timeout=300) as client:
             try:

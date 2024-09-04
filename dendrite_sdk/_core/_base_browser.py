@@ -56,7 +56,6 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
 
     def __init__(
         self,
-        id=None,
         openai_api_key: Optional[str] = None,
         dendrite_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
@@ -94,13 +93,13 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
             if not openai_api_key or openai_api_key == "":
                 raise Exception("OpenAI API key is required to use DendriteBrowser")
 
-        self._id = uuid4() if id is None else id
+        self._id = uuid4().hex
         self._auth_data: Optional[AuthSession] = None
         self._dendrite_api_key = dendrite_api_key
         self._playwright_options = playwright_options
         self._active_page_manager: Optional[PageManager] = None
         self._user_id: Optional[str] = None
-        self._browser_api_client = BrowserAPIClient(dendrite_api_key)
+        self._browser_api_client = BrowserAPIClient(dendrite_api_key, self._id)
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
 
