@@ -9,8 +9,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
-
-
+from .html_generator import create_html_dashboard
 
 class DendriteLoggerEvent():
 
@@ -34,12 +33,9 @@ class DendriteInteractionEvent(DendriteLoggerEvent):
         self.message = message or f"Performing action '{action}' on element '{element}'"
         super().__init__("interaction", self.message)
 
-
-
 class DendriteExceptionEvent(DendriteLoggerEvent):
     def __init__(self, exception: Union[DendriteException, Exception]) -> None:
-        pass
-
+        super().__init__("exception", str(exception))
 
 class DendriteQueryEvent(DendriteLoggerEvent):
     query: str
@@ -69,7 +65,6 @@ class DendriteLoggerContext():
                 f"elapsed_time={getattr(self, 'elapsed_time', 'Not Ended')}, "
                 f"events=[\n  {events_repr}\n])")
 
-
 class DendriteLogger:
 
     def __init__(self, output_path: str) -> None:
@@ -83,7 +78,6 @@ class DendriteLogger:
     def error(self, exception: Union[DendriteException,Exception]) -> None:
         event = DendriteExceptionEvent(exception)
         self._context_stack[-1].add_event(event)
-
 
     def segment_start(self, name:str) -> None:
         context = DendriteLoggerContext(name)
@@ -100,11 +94,15 @@ class DendriteLogger:
         res = []
         for context in self._finalized_contexts:
             res.append(str(context))
-        with open("dendrite.json", "w") as f:
+        with open(self._output_path, "w") as f:
             f.write(json.dumps(res, indent=4))
+        self.to_html()
 
     def to_html(self):
-        pass
+        json_file = self._output_path
+        html_file = self._output_path.rsplit('.', 1)[0] + '.html'
+        create_html_dashboard(json_file, html_file)
+        logger.debug(f"HTML dashboard created: {html_file}")
 
 def log_segment(name: str):
     def logging_segment(func):
