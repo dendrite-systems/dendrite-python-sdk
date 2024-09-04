@@ -47,8 +47,6 @@ from dendrite_sdk._api.dto.scrape_page_dto import ScrapePageDTO
 from dendrite_sdk._api.dto.get_elements_dto import GetElementsDTO
 from dendrite_sdk._api.dto.scrape_page_dto import ScrapePageDTO
 from dendrite_sdk._api.dto.try_run_script_dto import TryRunScriptDTO
-from dendrite_sdk._api.response.ask_page_response import AskPageResponse
-from dendrite_sdk._api.response.scrape_page_response import ScrapePageResponse
 
 from dendrite_sdk._core._managers.screenshot_manager import ScreenshotManager
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
@@ -212,6 +210,25 @@ class DendritePage(Generic[DownloadType]):
     @overload
     async def extract(
         self,
+        prompt: str,
+        type_spec: Type[str],
+        use_cache: bool = True,
+    ) -> str:
+        """
+        Extract data from a web page based on a prompt and return as a string.
+
+        Args:
+            prompt (str): The prompt to guide the extraction.
+            type_spec (Type[str]): Specifies that the return type should be string.
+            use_cache (bool, optional): Whether to use cached results. Defaults to True.
+
+        Returns:
+            str: The extracted string data.
+        """
+
+    @overload
+    async def extract(
+        self,
         prompt: Optional[str],
         type_spec: Type[PydanticModel],
         use_cache: bool = True,
@@ -302,26 +319,16 @@ class DendritePage(Generic[DownloadType]):
         if prompt is None:
             prompt = ""
 
-        try_run_dto = TryRunScriptDTO(
-            url=self.playwright_page.url,
-            raw_html=str(await self._get_soup()),
+        page_information = await self._get_page_information()
+        scrape_dto = ScrapePageDTO(
+            page_information=page_information,
             llm_config=self.dendrite_browser.llm_config,
             prompt=prompt,
             return_data_json_schema=json_schema,
+            use_screenshot=True,
+            use_cache=use_cache,
         )
-
-        res = await self.browser_api_client.try_run_cached(try_run_dto)
-        if res is None:
-            page_information = await self._get_page_information()
-            scrape_dto = ScrapePageDTO(
-                page_information=page_information,
-                llm_config=self.dendrite_browser.llm_config,
-                prompt=prompt,
-                return_data_json_schema=json_schema,
-                use_screenshot=True,
-                use_cache=use_cache,
-            )
-            res = await self.browser_api_client.scrape_page(scrape_dto)
+        res = await self.browser_api_client.scrape_page(scrape_dto)
 
         converted_res = res.return_data
         if type_spec is not None:
@@ -436,7 +443,7 @@ class DendritePage(Generic[DownloadType]):
 
         Args:
             prompt (str): The prompt to determine the condition to wait for on the page.
-            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2.
+            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2000.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 5.
 
         Returns:
@@ -447,17 +454,29 @@ class DendritePage(Generic[DownloadType]):
         """
 
         num_attempts = 0
-
+        await asyncio.sleep(
+            0.2
+        )  # HACK: Wait for page to load slightly when running first time
         while num_attempts < max_retries:
             num_attempts += 1
-            await asyncio.sleep(timeout * 0.001)
             try:
-
+                start_time = time.time()
                 page_information = await self._get_page_information()
                 prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
                 res = await self.ask(prompt, bool)
+                elapsed_time = (
+                    time.time() - start_time
+                ) * 1000  # Convert to milliseconds
+
                 if res:
                     return res
+
+                if elapsed_time >= timeout:
+                    # If the response took longer than the timeout, continue immediately
+                    continue
+                else:
+                    # Otherwise, wait for the remaining time
+                    await asyncio.sleep((timeout - elapsed_time) * 0.001)
             except Exception as e:
                 logger.debug(f"Waited for page, but got this exception: {e}")
                 continue
@@ -722,7 +741,9 @@ class DendritePage(Generic[DownloadType]):
         """
         tasks = []
         for field_name, prompt in prompt_dict.items():
-            full_prompt = f"{prompt}\n\nHere is some extra context: {context}"
+            full_prompt = prompt
+            if context != "":
+                full_prompt += f"\n\nHere is some extra context: {context}"
             task = self._get_element(
                 full_prompt,
                 only_one=True,
@@ -835,12 +856,12 @@ class DendritePage(Generic[DownloadType]):
         """
 
         llm_config = self.dendrite_browser.llm_config
-        num_attempts = 0
-        while num_attempts < max_retries:
-            num_attempts += 1
+        for attempt in range(max_retries):
+            is_last_attempt = attempt == max_retries - 1
+            force_not_use_cache = is_last_attempt
 
             logger.info(
-                f"Getting element for '{prompt}' | Attempt {num_attempts}/{max_retries}"
+                f"Getting element for '{prompt}' | Attempt {attempt + 1}/{max_retries}"
             )
 
             page_information = await self._get_page_information()
@@ -849,7 +870,7 @@ class DendritePage(Generic[DownloadType]):
                 page_information=page_information,
                 llm_config=llm_config,
                 prompt=prompt,
-                use_cache=use_cache,
+                use_cache=use_cache and not force_not_use_cache,
                 only_one=only_one,
             )
             selectors = await self.browser_api_client.get_interactions_selector(dto)
@@ -866,16 +887,24 @@ class DendritePage(Generic[DownloadType]):
                         self, selector
                     )
                     logger.info(f"Got working selector: {selector}")
-                    logger.debug(f"Got element/s: {dendrite_elements}")
                     return dendrite_elements[0] if only_one else dendrite_elements
                 except Exception as e:
-                    pass
-                    # logger.error("Error getting all selectors: ", e)
+                    if is_last_attempt:
+                        logger.warning(
+                            f"Last attempt: Failed to get elements from selector with cache disabled",
+                            exc_info=e,
+                        )
+                    else:
+                        logger.warning(
+                            f"Attempt {attempt + 1}: Failed to get elements from selector, trying again",
+                            exc_info=e,
+                        )
 
-            await asyncio.sleep(timeout * 0.001)
+            if not is_last_attempt:
+                await asyncio.sleep(timeout * 0.001)
 
         raise DendriteException(
-            message="Could not find suitable elements on the page.",
+            message="Could not find suitable elements on the page after all attempts.",
             screenshot_base64=page_information.screenshot_base64,
         )
 
