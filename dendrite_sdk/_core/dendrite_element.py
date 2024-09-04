@@ -43,10 +43,10 @@ def perform_action(interaction_type: Interaction):
         ) -> InteractionResponse:
             expected_outcome: Optional[str] = kwargs.pop("expected_outcome", None)
             
-            page_before = await self._dendrite_browser.get_active_page()
-            page_before_info = await page_before._get_page_information()
+            # page_before = await self._dendrite_browser.get_active_page()
+            # page_before_info = await page_before._get_page_information()
 
-            dendrite_logger.add(DendriteInteractionEvent(action=interaction_type, element=self.dendrite_id, image_base64= page_before_info.screenshot_base64))
+            dendrite_logger.add(DendriteInteractionEvent(action=interaction_type, element=self.dendrite_id))
 
             logger.info(
                 f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'

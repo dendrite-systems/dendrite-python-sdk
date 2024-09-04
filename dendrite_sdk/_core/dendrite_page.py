@@ -24,12 +24,15 @@ from playwright.async_api import (
 )
 
 from dendrite_sdk._api.response.interaction_response import InteractionResponse
+from dendrite_sdk import dendrite_logger
 from dendrite_sdk._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_sdk._core.dendrite_element import DendriteElement
 from dendrite_sdk._core.mixin.ask import AskMixin
 from dendrite_sdk._core.mixin.extract import ExtractionMixin
 from dendrite_sdk._core.mixin.get_element import GetElementMixin
 from dendrite_sdk._core.models.page_information import PageInformation
+from dendrite_sdk.dendrite_logger.logger import DendriteLoggerEvent, log_segment
+
 
 
 if TYPE_CHECKING:
@@ -370,7 +373,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         return await element.click(
             expected_outcome=expected_outcome,
             timeout=timeout,
-            force=force,
             *args,
             **kwargs,
         )

@@ -9,6 +9,7 @@ from loguru import logger as loguru_logger
 from pydantic import BaseModel, Field
 
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk.dendrite_logger.html import create_dashboard
 
 class DendriteLoggerEvent(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
@@ -93,7 +94,8 @@ class DendriteLoggerContext(BaseModel):
         }
 
 class DendriteLogger:
-    def __init__(self, output_path: str):
+    def __init__(self, output_path: str, session_id: Optional[str] = None):
+        self.session_id = session_id
         self._output_path: str = output_path
         self._context_stack: List[DendriteLoggerContext] = []
         self._finalized_contexts: List[DendriteLoggerContext] = []
@@ -123,6 +125,10 @@ class DendriteLogger:
         with open(self._output_path, "w") as f:
             json.dump(data, f, indent=2)
         loguru_logger.debug(f"JSON log file created: {self._output_path}")
+    
+    def to_html(self):
+        create_dashboard(self._output_path, "dendrite_log.html")
+
 
 def log_segment(name: str):
     def logging_segment(func):

@@ -4,6 +4,7 @@ import httpx
 from loguru import logger
 
 
+from dendrite_sdk import dendrite_logger
 from dendrite_sdk._common.constants import DENDRITE_API_BASE_URL
 
 
@@ -43,6 +44,7 @@ class HTTPClient:
                 # logger.debug(
                 #     f"{method} to '{url}', that took: { time.time() - start_time }\n\nResponse: {dict_res}\n\n"
                 # )
+                dendrite_logger.update_current_observation({"request_id": response.headers.get("X-Request-ID")})
                 return response
             except httpx.HTTPStatusError as http_err:
                 logger.debug(
