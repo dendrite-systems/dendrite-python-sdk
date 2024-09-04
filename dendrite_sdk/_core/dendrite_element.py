@@ -203,6 +203,12 @@ class DendriteElement:
         timeout = kwargs.pop("timeout", 2000)
         await self.locator.hover(timeout=timeout, *args, **kwargs)
 
+    async def focus(self):
+        """
+        Focus on the element.
+        """
+        await self.locator.focus()
+
     async def highlight(self):
         """
         Highlights the element. This is a convenience method for debugging purposes.
