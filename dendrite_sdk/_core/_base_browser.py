@@ -12,6 +12,7 @@ from playwright.async_api import (
     Download,
 )
 
+from dendrite_sdk import dendrite_logger
 from dendrite_sdk._api.dto.authenticate_dto import AuthenticateDTO
 from dendrite_sdk._api.dto.upload_auth_session_dto import UploadAuthSessionDTO
 from dendrite_sdk._common.event_sync import EventSync
@@ -112,6 +113,9 @@ class BaseDendriteBrowser(ABC):
         self._browser_api_client = BrowserAPIClient(dendrite_api_key, self._id)
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
+
+        dendrite_logger.start()
+
         self._upload_handler = EventSync[FileChooser]()
         self._download_handler = EventSync[Download]()
         self.closed = False
@@ -294,6 +298,9 @@ class BaseDendriteBrowser(ABC):
         """
 
         self.closed = True
+        logger.info("Closing browser")
+        dendrite_logger.stop()
+
         if self.browser_context:
             if self._auth_data:
                 storage_state = await self.browser_context.storage_state()

@@ -9,6 +9,8 @@ from loguru import logger
 from playwright.async_api import Locator
 
 from dendrite_sdk._exceptions.dendrite_exception import IncorrectOutcomeError
+from dendrite_sdk import dendrite_logger
+from dendrite_sdk.dendrite_logger.logger import DendriteInteractionEvent, log_segment
 
 if TYPE_CHECKING:
     from dendrite_sdk._core._base_browser import BaseDendriteBrowser
@@ -16,7 +18,6 @@ from dendrite_sdk._core.models.page_diff_information import PageDiffInformation
 from dendrite_sdk._core._type_spec import Interaction
 from dendrite_sdk._api.response.interaction_response import InteractionResponse
 from dendrite_sdk._api.dto.make_interaction_dto import MakeInteractionDTO
-
 
 def perform_action(interaction_type: Interaction):
     """
@@ -33,6 +34,7 @@ def perform_action(interaction_type: Interaction):
     """
 
     def decorator(func):
+        @log_segment(f"Action: '{interaction_type}'")
         @functools.wraps(func)
         async def wrapper(
             self: DendriteElement,
@@ -41,9 +43,12 @@ def perform_action(interaction_type: Interaction):
         ) -> InteractionResponse:
             expected_outcome: Optional[str] = kwargs.pop("expected_outcome", None)
 
+            dendrite_logger.add(DendriteInteractionEvent(action=interaction_type, element=self.dendrite_id))
+
             logger.info(
                 f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'
             )
+
 
             if not expected_outcome:
                 return await func(self, *args, **kwargs)
@@ -61,6 +66,7 @@ def perform_action(interaction_type: Interaction):
                 **kwargs,
             )
 
+
             await self._wait_for_page_changes(page_before.url)
 
             page_after = await self._dendrite_browser.get_active_page()
@@ -68,6 +74,7 @@ def perform_action(interaction_type: Interaction):
             page_delta_information = PageDiffInformation(
                 page_before=page_before_info, page_after=page_after_info
             )
+
 
             dto = MakeInteractionDTO(
                 url=page_before.url,

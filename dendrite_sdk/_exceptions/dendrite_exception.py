@@ -11,7 +11,7 @@ from dendrite_sdk._exceptions._constants import INVALID_AUTH_SESSION_MSG
 class BaseDendriteException(Exception):
     def __init__(self, message: str, screenshot_base64: Optional[str] = None) -> None:
         self._message = message
-        logger.error(self)
+        self._screenshot_base64 = None
         super().__init__(message)
 
     @property
