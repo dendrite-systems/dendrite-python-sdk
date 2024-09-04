@@ -1,7 +1,7 @@
 import os
 
 DENDRITE_API_BASE_URL = (
-    "localhost:8000"
+    "http://localhost:8000/api/v1"
     if os.environ.get("DENDRITE_DEV")
     else "https://dendrite-server.azurewebsites.net/api/v1"
 )
