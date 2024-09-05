@@ -19,6 +19,11 @@ class PageManager:
 
     async def new_page(self) -> DendritePage:
         new_page = await self.browser_context.new_page()
+
+        # if we added the page via the new_page method, we don't want to add it again since it is done in the on_open_handler
+        if self.active_page and new_page == self.active_page.playwright_page:
+            return self.active_page
+
         dendrite_page = DendritePage(new_page, self.dendrite_browser)
         self.pages.append(dendrite_page)
         self.active_page = dendrite_page
@@ -31,7 +36,7 @@ class PageManager:
         return self.active_page
 
     async def _page_on_close_handler(self, page: Page):
-        if self.browser_context:
+        if self.browser_context and not self.dendrite_browser.closed:
             copy_pages = self.pages.copy()
             for dendrite_page in copy_pages:
                 if dendrite_page.playwright_page == page:
@@ -62,10 +67,6 @@ class PageManager:
         page.on("crash", self._page_on_crash_handler)
         page.on("filechooser", self._file_chooser_handler)
         page.on("download", self._download_handler)
-
-        # if we added the page via the new_page method, we don't want to add it again
-        if self.active_page and page == self.active_page.playwright_page:
-            return
 
         dendrite_page = DendritePage(page, self.dendrite_browser)
         self.pages.append(dendrite_page)

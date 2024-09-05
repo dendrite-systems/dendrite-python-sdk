@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import sys
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, Generic, List, Optional, TypeVar, Union
 from uuid import uuid4
 import os
 from loguru import logger
@@ -28,6 +28,7 @@ from dendrite_sdk._core.models.authentication import (
 )
 from dendrite_sdk._core.models.llm_config import LLMConfig
 from dendrite_sdk._api.browser_api_client import BrowserAPIClient
+from dendrite_sdk._exceptions.dendrite_exception import BrowserNotLaunchedError
 
 
 class BaseDendriteBrowser(ABC, Generic[DownloadType]):
@@ -102,14 +103,27 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         self._browser_api_client = BrowserAPIClient(dendrite_api_key, self._id)
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
-
         self._upload_handler = EventSync[FileChooser]()
         self._download_handler = EventSync[Download]()
+        self.closed = False
 
         llm_config = LLMConfig(
             openai_api_key=openai_api_key, anthropic_api_key=anthropic_api_key
         )
         self.llm_config = llm_config
+
+    @property
+    def pages(self) -> List[DendritePage[DownloadType]]:
+        """
+        Retrieves the list of active pages managed by the PageManager.
+
+        Returns:
+            List[DendritePage]: The list of active pages.
+        """
+        if self._active_page_manager:
+            return self._active_page_manager.pages
+        else:
+            raise BrowserNotLaunchedError()
 
     async def __aenter__(self):
         # Launch the browser and return the instance
@@ -206,6 +220,9 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         else:
             self.browser_context = await browser.new_context()
 
+        await self.browser_context.tracing.start(
+            screenshots=True, snapshots=True, sources=True
+        )
         self._active_page_manager = PageManager(self, self.browser_context)
         return browser, self.browser_context, self._active_page_manager
 
@@ -267,6 +284,8 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         Raises:
             Exception: If there is an issue closing the browser or uploading session data.
         """
+
+        self.closed = True
         if self.browser_context:
             if self._auth_data:
                 storage_state = await self.browser_context.storage_state()
