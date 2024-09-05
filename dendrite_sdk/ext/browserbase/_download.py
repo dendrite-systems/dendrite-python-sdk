@@ -15,6 +15,12 @@ class BrowserbaseDownload(DownloadInterface):
         self._session_id = session_id
         self._client = client
 
+    async def get_dowload(self):
+        logger.info(f"Getting downloads")
+        await self._client.save_downloads_on_disk(
+            self._session_id, await self._download.path(), 30
+        )
+
     async def save_as(self, path: Union[str, Path], timeout: float = 20) -> None:
         """
         Downloads all of the downloaded files to a specified path on disk.

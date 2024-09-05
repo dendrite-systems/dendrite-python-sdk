@@ -1,8 +1,6 @@
 import asyncio
 from typing import Generic, Optional, TypeVar
 
-from loguru import logger
-
 
 T = TypeVar("T")
 
@@ -65,7 +63,6 @@ class EventSync(Generic[T]):
             Exception: If the event is set but no data is available.
         """
         try:
-            logger.info(f"Waiting for {timeout*0.001} seconds")
             await asyncio.wait_for(self.event.wait(), timeout * 0.001)
             if not self.data:
                 raise Exception(f"No {self.data.__class__.__name__} was found.")

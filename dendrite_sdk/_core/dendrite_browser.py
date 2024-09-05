@@ -2,7 +2,7 @@ from playwright.async_api import FileChooser, Download
 from dendrite_sdk._core._base_browser import BaseDendriteBrowser
 
 
-class DendriteBrowser(BaseDendriteBrowser[Download]):
+class DendriteBrowser(BaseDendriteBrowser):
     """
     DendriteBrowser is a class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.

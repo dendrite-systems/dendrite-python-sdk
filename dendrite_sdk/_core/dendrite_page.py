@@ -23,6 +23,7 @@ from playwright.async_api import (
     Page,
     FrameLocator,
     Keyboard,
+    Download,
     FilePayload,
 )
 
@@ -30,7 +31,6 @@ from dendrite_sdk._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_sdk._core.models.page_information import PageInformation
 from dendrite_sdk._core.models.response import DendriteElementsResponse
 from dendrite_sdk._core._type_spec import (
-    DownloadType,
     JsonSchema,
     PydanticModel,
     convert_to_type_spec,
@@ -58,7 +58,7 @@ from dendrite_sdk._core._utils import (
 from dendrite_sdk._core.dendrite_element import DendriteElement
 
 
-class DendritePage(Generic[DownloadType]):
+class DendritePage:
     """
     Represents a page in the Dendrite browser environment.
 
@@ -66,9 +66,7 @@ class DendritePage(Generic[DownloadType]):
     pages in the browser.
     """
 
-    def __init__(
-        self, page: Page, dendrite_browser: "BaseDendriteBrowser[DownloadType]"
-    ):
+    def __init__(self, page: Page, dendrite_browser: "BaseDendriteBrowser"):
         self.playwright_page = page
         self.screenshot_manager = ScreenshotManager()
         self.dendrite_browser = dendrite_browser
@@ -114,7 +112,7 @@ class DendritePage(Generic[DownloadType]):
 
         await self.playwright_page.goto(url, timeout=timeout, wait_until=wait_until)
 
-    async def get_download(self, timeout: float = 30000) -> DownloadType:
+    async def get_download(self, timeout: float = 30000) -> Download:
         """
         Retrieves the downloaded file data.
 

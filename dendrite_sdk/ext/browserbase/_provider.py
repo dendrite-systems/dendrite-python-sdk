@@ -7,10 +7,8 @@ from dendrite_sdk.ext._remote_provider import RemoteProvider
 from dendrite_sdk.ext.browserbase._download import BrowserbaseDownload
 from ._client import BrowserbaseClient
 
-Locator.set_input_files
 
-
-class BrowserbaseProvider(RemoteProvider[BrowserbaseDownload]):
+class BrowserbaseProvider(RemoteProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
@@ -68,12 +66,11 @@ class BrowserbaseProvider(RemoteProvider[BrowserbaseDownload]):
         )
 
     async def get_download(
-        self, dendrite_browser: DendriteRemoteBrowser, timeout: float = 30000
+        self, dendrite_browser: DendriteRemoteBrowser, timeout
     ) -> BrowserbaseDownload:
         if not self._session_id:
             raise ValueError(
                 "Downloads are not enabled for this provider. Specify enable_downloads=True in the constructor"
             )
-
         download = await dendrite_browser._download_handler.get_data(timeout)
         return BrowserbaseDownload(self._session_id, download, self._client)
