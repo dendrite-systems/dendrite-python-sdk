@@ -10,6 +10,7 @@ from dendrite_sdk._core.dendrite_page import DendritePage
 
 class PageManager:
     def __init__(self, dendrite_browser, browser_context: BrowserContext):
+        self.pages: list[DendritePage] = []
         self.active_page: Optional[DendritePage] = None
         self.browser_context = browser_context
         self.dendrite_browser: BaseDendriteBrowser = dendrite_browser
@@ -19,6 +20,7 @@ class PageManager:
     async def new_page(self) -> DendritePage:
         new_page = await self.browser_context.new_page()
         dendrite_page = DendritePage(new_page, self.dendrite_browser)
+        self.pages.append(dendrite_page)
         self.active_page = dendrite_page
         return dendrite_page
 
@@ -29,22 +31,19 @@ class PageManager:
         return self.active_page
 
     async def _page_on_close_handler(self, page: Page):
-        agent_soup_page = DendritePage(page, self.dendrite_browser)
         if self.browser_context:
-            try:
-                if self.active_page and agent_soup_page == self.active_page:
-                    await self.active_page.playwright_page.title()
-            except:
-                logger.debug("The active tab was closed. Will switch to the last page.")
-                if self.browser_context.pages:
-                    self.active_page = DendritePage(
-                        self.browser_context.pages[-1], self.dendrite_browser
-                    )
-                    await self.active_page.playwright_page.bring_to_front()
-                    logger.debug("Switched the active tab to: ", self.active_page.url)
-                else:
-                    await self.new_page()
-                    logger.debug("Opened a new page since all others are closed.")
+            copy_pages = self.pages.copy()
+            for dendrite_page in copy_pages:
+                if dendrite_page.playwright_page == page:
+                    self.pages.remove(dendrite_page)
+                    break
+
+            if self.pages:
+                self.active_page = self.pages[-1]
+                await self.active_page.playwright_page.bring_to_front()
+                logger.debug("Switched the active tab to: ", self.active_page.url)
+            else:
+                pass
 
     async def _file_chooser_handler(self, file_chooser: FileChooser):
         if self.active_page:
@@ -63,4 +62,11 @@ class PageManager:
         page.on("crash", self._page_on_crash_handler)
         page.on("filechooser", self._file_chooser_handler)
         page.on("download", self._download_handler)
-        self.active_page = DendritePage(page, self.dendrite_browser)
+
+        # if we added the page via the new_page method, we don't want to add it again
+        if self.active_page and page == self.active_page.playwright_page:
+            return
+
+        dendrite_page = DendritePage(page, self.dendrite_browser)
+        self.pages.append(dendrite_page)
+        self.active_page = dendrite_page
