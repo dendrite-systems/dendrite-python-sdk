@@ -33,6 +33,14 @@ class InvalidAuthSessionError(BaseDendriteException):
         super().__init__(message)
 
 
+class BrowserNotLaunchedError(BaseDendriteException):
+    def __init__(
+        self,
+        message: str = "The browser should have been automatically launched by the DendriteBrowser object.. Please reach out to us on GitHub or Discord if you are facing this issue.",
+    ) -> None:
+        super().__init__(message)
+
+
 class DendriteException(Exception):
     def __init__(self, message: str, screenshot_base64: str) -> None:
         self._message = message
