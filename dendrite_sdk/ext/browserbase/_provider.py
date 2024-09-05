@@ -73,4 +73,7 @@ class BrowserbaseProvider(RemoteProvider):
                 "Downloads are not enabled for this provider. Specify enable_downloads=True in the constructor"
             )
         download = await dendrite_browser._download_handler.get_data(timeout)
+        await self._client.save_downloads_on_disk(
+            self._session_id, await download.path(), 30
+        )
         return BrowserbaseDownload(self._session_id, download, self._client)

@@ -64,7 +64,6 @@ class BrowserbaseClient:
         headers = {"x-bb-api-key": self.api_key}
 
         file_path = Path(path)
-
         async with httpx.AsyncClient() as session:
             timeout = time.time() + retry_for_seconds
             while time.time() < timeout:
