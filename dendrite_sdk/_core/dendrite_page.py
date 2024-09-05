@@ -114,7 +114,7 @@ class DendritePage:
 
     async def get_download(self, timeout: float = 30000) -> Download:
         """
-        Retrieves the downloaded file data.
+        Retrieves the download event associated with.
 
         Args:
             timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the download to complete. Defaults to 30.
