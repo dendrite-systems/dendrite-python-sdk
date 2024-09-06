@@ -97,7 +97,7 @@ class DendritePage(Generic[DownloadType]):
     async def goto(
         self,
         url: str,
-        timeout: Optional[float] = 30000,
+        timeout: float = 30000,
         wait_until: Optional[
             Literal["commit", "domcontentloaded", "load", "networkidle"]
         ] = "load",
@@ -107,7 +107,7 @@ class DendritePage(Generic[DownloadType]):
 
         Args:
             url (str): The URL to navigate to.
-            timeout (Optional[float]): Maximum navigation time in milliseconds.
+            timeout (float): Maximum navigation time in milliseconds.
             wait_until (Optional[Literal["commit", "domcontentloaded", "load", "networkidle"]]):
                 When to consider navigation succeeded.
         """

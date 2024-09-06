@@ -138,7 +138,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         self,
         url: str,
         new_page: bool = False,
-        timeout: Optional[float] = 15000,
+        timeout: float = 15000,
         expected_page: str = "",
     ) -> DendritePage[DownloadType]:
         """
@@ -146,9 +146,9 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
 
         Args:
             url (str): The URL to navigate to.
-            new_page (bool, optional): Whether to open the URL in a new page. Defaults to False.
-            timeout (Optional[float], optional): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
-            expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
+            new_page (bool): Whether to open the URL in a new page. Defaults to False.
+            timeout (float): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
+            expected_page (str): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
             DendritePage: The page object after navigation.
