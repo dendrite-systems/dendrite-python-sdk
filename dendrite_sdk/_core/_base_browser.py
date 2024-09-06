@@ -27,6 +27,11 @@ from dendrite_sdk._core.models.authentication import (
     AuthSession,
 )
 from dendrite_sdk._core.models.llm_config import LLMConfig
+from dendrite_sdk._exceptions.dendrite_exception import (
+    BrowserError,
+    MissingApiKeyError,
+    NavigationError,
+)
 from dendrite_sdk._api.browser_api_client import BrowserAPIClient
 
 
@@ -51,7 +56,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         llm_config (LLMConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
 
     Raises:
-        Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
+        MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
     """
 
     def __init__(
@@ -75,23 +80,23 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
             playwright_options (Any, optional): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
 
         Raises:
-            Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
+            MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
         """
 
         if not dendrite_api_key or dendrite_api_key == "":
             dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
             if not dendrite_api_key or dendrite_api_key == "":
-                raise Exception("Dendrite API key is required to use DendriteBrowser")
+                raise MissingApiKeyError("Dendrite API key is required to use DendriteBrowser")
 
         if not anthropic_api_key or anthropic_api_key == "":
             anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
             if anthropic_api_key == "":
-                raise Exception("Anthropic API key is required to use DendriteBrowser")
+                raise MissingApiKeyError("Anthropic API key is required to use DendriteBrowser")
 
         if not openai_api_key or openai_api_key == "":
             openai_api_key = os.environ.get("OPENAI_API_KEY", "")
             if not openai_api_key or openai_api_key == "":
-                raise Exception("OpenAI API key is required to use DendriteBrowser")
+                raise MissingApiKeyError("OpenAI API key is required to use DendriteBrowser")
 
         self._id = uuid4().hex
         self._auth_data: Optional[AuthSession] = None
@@ -154,7 +159,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
             DendritePage: The page object after navigation.
 
         Raises:
-            Exception: If there is an error during navigation or if the expected page type is not found.
+            NavigationError: If there is an error during navigation or if the expected page type is not found.
         """
 
         active_page_manager = await self._get_active_page_manager()
@@ -177,7 +182,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
                 prompt = f"We are checking if we have arrived on the expected type of page. If it is apparent that we have arrived on the wrong page, output an error. Here is the description: '{expected_page}'"
                 await page.ask(prompt, bool)
             except Exception as e:
-                raise Exception(f"Incorrect navigation, reason: {e}")
+                raise NavigationError(f"Incorrect navigation, reason: {e}")
 
         return page
 
@@ -247,10 +252,10 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
             cookies (List[Dict[str, Any]]): A list of cookies to be added to the browser context.
 
         Raises:
-            Exception: If the browser context is not initialized.
+            BrowserError: If the browser context is not initialized.
         """
         if not self.browser_context:
-            raise Exception("Browser context not initialized")
+            raise BrowserError("Browser context not initialized")
 
         await self.browser_context.add_cookies(cookies)
 

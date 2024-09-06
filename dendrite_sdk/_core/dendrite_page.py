@@ -49,7 +49,10 @@ from dendrite_sdk._api.dto.scrape_page_dto import ScrapePageDTO
 from dendrite_sdk._api.dto.try_run_script_dto import TryRunScriptDTO
 
 from dendrite_sdk._core._managers.screenshot_manager import ScreenshotManager
-from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._exceptions.dendrite_exception import (
+    DendriteError,
+    DendriteException,
+)
 
 
 from dendrite_sdk._core._utils import (
@@ -401,7 +404,7 @@ class DendritePage(Generic[DownloadType]):
         an exception is raised.
 
         Raises:
-            Exception: If the Dendrite IDs could not be generated after 3 attempts.
+            DendriteError: If the Dendrite IDs could not be generated after 3 attempts.
         """
         tries = 0
         while tries < 3:
@@ -417,7 +420,7 @@ class DendritePage(Generic[DownloadType]):
                 )
                 tries += 1
 
-        raise Exception("Failed to add d-ids to DOM.")
+        raise DendriteError("Failed to add d-ids to DOM.")
 
     async def scroll_through_entire_page(self) -> None:
         """

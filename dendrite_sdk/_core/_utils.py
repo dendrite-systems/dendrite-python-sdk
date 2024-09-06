@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 
 from dendrite_sdk._core.dendrite_element import DendriteElement
+from dendrite_sdk._exceptions.dendrite_exception import DendriteError
 
 if TYPE_CHECKING:
     from dendrite_sdk._core.dendrite_page import DendritePage
@@ -108,6 +109,6 @@ async def get_all_elements_from_selector(
         )
 
     if len(dendrite_elements) == 0:
-        raise Exception(f"No elements found for selector '{selector}'")
+        raise DendriteError(f"No elements found for selector '{selector}'")
 
     return dendrite_elements

@@ -22,6 +22,22 @@ class BaseDendriteException(Exception):
         return f"{self.__class__.__name__}: {self.message}"
 
 
+class MissingApiKeyError(BaseDendriteException):
+    pass
+
+
+class NavigationError(BaseDendriteException):
+    pass
+
+
+class BrowserError(BaseDendriteException):
+    pass
+
+
+class DendriteError(BaseDendriteException):
+    pass
+
+
 class InvalidAuthSessionError(BaseDendriteException):
     def __init__(
         self,
