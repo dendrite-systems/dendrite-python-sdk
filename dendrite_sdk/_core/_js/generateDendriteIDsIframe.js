@@ -42,21 +42,23 @@
     document.querySelectorAll('*').forEach((element, index) => {
         try {
             const markHidden = (hidden_element) => {
+                // Mark the hidden element itself
                 hidden_element.setAttribute('data-hidden', 'true');
-                hidden_element.querySelectorAll('*').forEach(child => {
-                    child.setAttribute('data-hidden', 'true');
-                });
-            };
+    
+            }
         
-            is_marked_hidden = element.getAttribute("data-hidden") === "true"
-            if(!is_marked_hidden){
-                const computedStyle = window.getComputedStyle(element);
-                const isHidden = computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || element.getAttribute("aria-hidden") === "true" ;
-                                            
-                if (isHidden) {
-                    markHidden(element);
-                }
-            } 
+            // const is_marked_hidden = element.getAttribute("data-hidden") === "true";
+            const computedStyle = window.getComputedStyle(element);
+            const isHidden = computedStyle.display === 'none' || 
+                                computedStyle.visibility === 'hidden';
+                                // computedStyle.width === '0px' || 
+                                // computedStyle.height === '0px';
+        
+            if (isHidden) {
+                markHidden(element , computedStyle);
+            }else{
+                element.removeAttribute("data-hidden") // in case we hid it in a previous call
+            }
 
             const xpath = getXPathForElement(element);
             if(frame_path){
