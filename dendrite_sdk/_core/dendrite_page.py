@@ -28,6 +28,7 @@ from playwright.async_api import (
 )
 
 from dendrite_sdk._core._js import GENERATE_DENDRITE_IDS_SCRIPT
+from dendrite_sdk._core.mixin.extract import ExtractionMixin
 from dendrite_sdk._core.models.page_information import PageInformation
 from dendrite_sdk._core.models.response import DendriteElementsResponse
 from dendrite_sdk._core._type_spec import (
@@ -58,7 +59,7 @@ from dendrite_sdk._core._utils import (
 from dendrite_sdk._core.dendrite_element import DendriteElement
 
 
-class DendritePage:
+class DendritePage(ExtractionMixin):
     """
     Represents a page in the Dendrite browser environment.
 
@@ -147,194 +148,6 @@ class DendritePage:
                     context = context.frame_locator(f"xpath=//iframe[@d-id='{path}']")
 
         return context
-
-    @overload
-    async def extract(
-        self,
-        prompt: str,
-        type_spec: Type[bool],
-        use_cache: bool = True,
-    ) -> bool:
-        """
-        Extract data from a web page based on a prompt and return as a bool.
-
-        Args:
-            prompt (str): The prompt to guide the extraction.
-            type_spec (Type[bool]): Specifies that the return type should be boolean.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            ScrapePageResponse[bool]: The extracted boolean data wrapped in a ScrapePageResponse.
-        """
-
-    @overload
-    async def extract(
-        self,
-        prompt: str,
-        type_spec: Type[int],
-        use_cache: bool = True,
-    ) -> int:
-        """
-        Extract data from a web page based on a prompt and return as an integer.
-
-        Args:
-            prompt (str): The prompt to guide the extraction.
-            type_spec (Type[int]): Specifies that the return type should be integer.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            ScrapePageResponse[int]: The extracted integer data wrapped in a ScrapePageResponse.
-        """
-
-    @overload
-    async def extract(
-        self,
-        prompt: str,
-        type_spec: Type[float],
-        use_cache: bool = True,
-    ) -> float:
-        """
-        Extract data from a web page based on a prompt and return as a float.
-
-        Args:
-            prompt (str): The prompt to guide the extraction.
-            type_spec (Type[float]): Specifies that the return type should be float.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            ScrapePageResponse[float]: The extracted float data wrapped in a ScrapePageResponse.
-        """
-
-    @overload
-    async def extract(
-        self,
-        prompt: str,
-        type_spec: Type[str],
-        use_cache: bool = True,
-    ) -> str:
-        """
-        Extract data from a web page based on a prompt and return as a string.
-
-        Args:
-            prompt (str): The prompt to guide the extraction.
-            type_spec (Type[str]): Specifies that the return type should be string.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            str: The extracted string data.
-        """
-
-    @overload
-    async def extract(
-        self,
-        prompt: Optional[str],
-        type_spec: Type[PydanticModel],
-        use_cache: bool = True,
-    ) -> PydanticModel:
-        """
-        Extract data from a web page and convert it to a Pydantic model.
-
-        Args:
-            prompt (Optional[str]): The prompt to guide the extraction. Can be None.
-            type_spec (Type[PydanticModel]): The Pydantic model to convert the extracted data into.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            ScrapePageResponse[PydanticModel]: The extracted data as a Pydantic model wrapped in a ScrapePageResponse.
-        """
-
-    @overload
-    async def extract(
-        self,
-        prompt: Optional[str],
-        type_spec: JsonSchema,
-        use_cache: bool = True,
-    ) -> JsonSchema:
-        """
-        Extract data from a web page based on a prompt and validate it against the specified JSON schema.
-
-        Args:
-            prompt (Optional[str]): The prompt to guide the extraction. Can be None.
-            type_spec (JsonSchema): The JSON schema to validate the extracted data against.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            ScrapePageResponse[JsonSchema]: The extracted data conforming to the JSON schema wrapped in a ScrapePageResponse.
-        """
-        ...
-
-    @overload
-    async def extract(
-        self,
-        prompt: str,
-        type_spec: None = None,
-        use_cache: bool = True,
-    ) -> Any:
-        """
-        Extract data based on a prompt.
-
-        Args:
-            prompt (str): The prompt to guide the extraction.
-            type_spec (None, optional): No type specification. Defaults to None.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            ScrapePageResponse[Any]: The extracted data of any type wrapped in a ScrapePageResponse.
-        """
-
-    async def extract(
-        self,
-        prompt: Optional[str],
-        type_spec: Optional[TypeSpec] = None,
-        use_cache: bool = True,
-    ) -> TypeSpec:
-        """
-        Extract data from a web page based on a prompt and optional type specification.
-
-        This function scrapes data from a web page using the provided prompt and type specification.
-        It can handle various data types and schemas, including boolean, integer, float, Pydantic models,
-        and JSON schemas.
-
-        Args:
-            prompt (Optional[str]): The prompt to guide the extraction. If None, an empty string is used.
-            type_spec (Optional[TypeSpec], optional): The type specification for the extracted data. Defaults to None.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-
-        Returns:
-            ScrapePageResponse: The extracted data wrapped in a ScrapePageResponse object.
-
-        Raises:
-            Any exceptions that may occur during the scraping process.
-
-        Note:
-            This function uses overloading to provide type-specific behavior based on the `type_spec` argument.
-        """
-
-        json_schema = None
-        if type_spec:
-            json_schema = to_json_schema(type_spec)
-
-        if prompt is None:
-            prompt = ""
-
-        page_information = await self._get_page_information()
-        scrape_dto = ScrapePageDTO(
-            page_information=page_information,
-            llm_config=self.dendrite_browser.llm_config,
-            prompt=prompt,
-            return_data_json_schema=json_schema,
-            use_screenshot=True,
-            use_cache=use_cache,
-        )
-        res = await self.browser_api_client.scrape_page(scrape_dto)
-
-        converted_res = res.return_data
-        if type_spec is not None:
-            converted_res = convert_to_type_spec(type_spec, res.return_data)
-
-        res = converted_res
-
-        return res
 
     async def scroll_to_bottom(self, timeout: float = 30000) -> None:
         """
