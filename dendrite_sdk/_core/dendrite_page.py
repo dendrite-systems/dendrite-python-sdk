@@ -5,15 +5,11 @@ import time
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Generic,
     List,
     Literal,
     Optional,
     Sequence,
-    Type,
     Union,
-    overload,
 )
 
 from bs4 import BeautifulSoup, Tag
@@ -28,27 +24,16 @@ from playwright.async_api import (
 )
 
 from dendrite_sdk._core._js import GENERATE_DENDRITE_IDS_SCRIPT
+from dendrite_sdk._core.dendrite_element import DendriteElement
 from dendrite_sdk._core.mixin.ask import AskMixin
 from dendrite_sdk._core.mixin.extract import ExtractionMixin
+from dendrite_sdk._core.mixin.get_element import GetElementMixin
 from dendrite_sdk._core.models.page_information import PageInformation
-from dendrite_sdk._core.models.response import DendriteElementsResponse
-from dendrite_sdk._core._type_spec import (
-    JsonSchema,
-    PydanticModel,
-    convert_to_type_spec,
-    to_json_schema,
-    TypeSpec,
-)
-from dendrite_sdk._core._utils import get_all_elements_from_selector
 
 
 if TYPE_CHECKING:
     from dendrite_sdk._core._base_browser import BaseDendriteBrowser
-from dendrite_sdk._api.dto.ask_page_dto import AskPageDTO
-from dendrite_sdk._api.dto.scrape_page_dto import ScrapePageDTO
-from dendrite_sdk._api.dto.get_elements_dto import GetElementsDTO
-from dendrite_sdk._api.dto.scrape_page_dto import ScrapePageDTO
-from dendrite_sdk._api.dto.try_run_script_dto import TryRunScriptDTO
+
 
 from dendrite_sdk._core._managers.screenshot_manager import ScreenshotManager
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
@@ -57,10 +42,9 @@ from dendrite_sdk._exceptions.dendrite_exception import DendriteException
 from dendrite_sdk._core._utils import (
     expand_iframes,
 )
-from dendrite_sdk._core.dendrite_element import DendriteElement
 
 
-class DendritePage(ExtractionMixin, AskMixin):
+class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
     """
     Represents a page in the Dendrite browser environment.
 
@@ -299,287 +283,6 @@ class DendritePage(ExtractionMixin, AskMixin):
             screenshot_base64=page_information.screenshot_base64,
         )
 
-    @overload
-    async def get_elements(
-        self,
-        prompt_or_elements: str,
-        use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 3000,
-        context: str = "",
-    ) -> List[DendriteElement]:
-        """
-        Retrieves a list of Dendrite elements based on a string prompt.
-
-        Args:
-            prompt_or_elements (str): The prompt describing the elements to be retrieved.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
-            context (str, optional): Additional context for the retrieval. Defaults to an empty string.
-
-        Returns:
-            List[DendriteElement]: A list of Dendrite elements found on the page.
-        """
-
-    @overload
-    async def get_elements(
-        self,
-        prompt_or_elements: Dict[str, str],
-        use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 3000,
-        context: str = "",
-    ) -> DendriteElementsResponse:
-        """
-        Retrieves Dendrite elements based on a dictionary.
-
-        Args:
-            prompt_or_elements (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
-            context (str, optional): Additional context for the retrieval. Defaults to an empty string.
-
-        Returns:
-            DendriteElementsResponse: A response object containing the retrieved elements with attributes matching the keys in the dict.
-        """
-
-    async def get_elements(
-        self,
-        prompt_or_elements: Union[str, Dict[str, str]],
-        use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 3000,
-        context: str = "",
-    ) -> Union[List[DendriteElement], DendriteElementsResponse]:
-        """
-        Retrieves Dendrite elements based on either a string prompt or a dictionary of prompts.
-
-        This method determines the type of the input (string or dictionary) and retrieves the appropriate elements.
-        If the input is a string, it fetches a list of elements. If the input is a dictionary, it fetches elements for each key-value pair.
-
-        Args:
-            prompt_or_elements (Union[str, Dict[str, str]]): The prompt or dictionary of prompts for element retrieval.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
-            context (str, optional): Additional context for the retrieval. Defaults to an empty string.
-
-        Returns:
-            Union[List[DendriteElement], DendriteElementsResponse]: A list of elements or a response object containing the retrieved elements.
-
-        Raises:
-            ValueError: If the input is neither a string nor a dictionary.
-        """
-
-        if isinstance(prompt_or_elements, str):
-            return await self._get_element(
-                prompt_or_elements,
-                only_one=False,
-                use_cache=use_cache,
-                max_retries=max_retries,
-                timeout=timeout,
-            )
-        if isinstance(prompt_or_elements, dict):
-            return await self.get_elements_from_dict(
-                prompt_or_elements, context, use_cache, max_retries, timeout
-            )
-
-        raise ValueError("Prompt must be either a string prompt or a dictionary")
-
-    async def get_elements_from_dict(
-        self,
-        prompt_dict: Dict[str, str],
-        context: str,
-        use_cache: bool,
-        max_retries: int,
-        timeout: int,
-    ):
-        """
-        Retrieves Dendrite elements based on a dictionary of prompts, each associated with a context.
-
-        This method sends a request for each prompt in the dictionary, adding context to each prompt, and retrieves the corresponding elements.
-
-        Args:
-            prompt_dict (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
-            context (str): Additional context to be added to each prompt.
-            use_cache (bool): Whether to use cached results.
-            max_retries (int): The maximum number of retry attempts.
-            timeout (int): The timeout (in milliseconds) between retries.
-
-        Returns:
-            DendriteElementsResponse: A response object containing the retrieved elements mapped to their corresponding field names.
-        """
-        tasks = []
-        for field_name, prompt in prompt_dict.items():
-            full_prompt = prompt
-            if context != "":
-                full_prompt += f"\n\nHere is some extra context: {context}"
-            task = self._get_element(
-                full_prompt,
-                only_one=True,
-                use_cache=use_cache,
-                max_retries=max_retries,
-                timeout=timeout,
-            )
-            tasks.append(task)
-
-        results = await asyncio.gather(*tasks)
-        elements_dict: Dict[str, DendriteElement] = {}
-        for element, field_name in zip(results, prompt_dict.keys()):
-            elements_dict[field_name] = element
-        return DendriteElementsResponse(elements_dict)
-
-    async def get_element(
-        self,
-        prompt: str,
-        use_cache=True,
-        max_retries=3,
-        timeout=3000,
-    ) -> DendriteElement:
-        """
-        Retrieves a single Dendrite element based on the provided prompt.
-
-        Args:
-            prompt (str): The prompt describing the element to be retrieved.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
-
-        Returns:
-            DendriteElement: The retrieved element.
-        """
-        return await self._get_element(
-            prompt,
-            only_one=True,
-            use_cache=use_cache,
-            max_retries=max_retries,
-            timeout=timeout,
-        )
-
-    @overload
-    async def _get_element(
-        self,
-        prompt: str,
-        only_one: Literal[True],
-        use_cache: bool,
-        max_retries,
-        timeout,
-    ) -> DendriteElement:
-        """
-        Retrieves a single Dendrite element based on the provided prompt.
-
-        Args:
-            prompt (str): The prompt describing the element to be retrieved.
-            only_one (Literal[True]): Indicates that only one element should be retrieved.
-            use_cache (bool): Whether to use cached results.
-            max_retries: The maximum number of retry attempts.
-            timeout: The timeout (in milliseconds) between retries.
-
-        Returns:
-            DendriteElement: The retrieved element.
-        """
-
-    @overload
-    async def _get_element(
-        self,
-        prompt: str,
-        only_one: Literal[False],
-        use_cache: bool,
-        max_retries,
-        timeout,
-    ) -> List[DendriteElement]:
-        """
-        Retrieves a list of Dendrite elements based on the provided prompt.
-
-        Args:
-            prompt (str): The prompt describing the elements to be retrieved.
-            only_one (Literal[False]): Indicates that multiple elements should be retrieved.
-            use_cache (bool): Whether to use cached results.
-            max_retries: The maximum number of retry attempts.
-            timeout: The timeout in seconds between retries.
-
-        Returns:
-            List[DendriteElement]: A list of retrieved elements.
-        """
-
-    async def _get_element(
-        self, prompt: str, only_one: bool, use_cache: bool, max_retries, timeout
-    ):
-        """
-        Retrieves Dendrite elements based on the provided prompt, either a single element or a list of elements.
-
-        This method sends a request with the prompt and retrieves the elements based on the `only_one` flag.
-        If no elements are found within the specified retries, an exception is raised.
-
-        Args:
-            prompt (str): The prompt describing the elements to be retrieved.
-            only_one (bool): Whether to retrieve only one element or a list of elements.
-            use_cache (bool): Whether to use cached results.
-            max_retries: The maximum number of retry attempts.
-            timeout: The timeout (in milliseconds) between retries.
-
-        Returns:
-            Union[DendriteElement, List[DendriteElement]]: The retrieved element or list of elements.
-
-        Raises:
-            DendriteException: If no suitable elements are found within the specified retries.
-        """
-
-        llm_config = self.dendrite_browser.llm_config
-        for attempt in range(max_retries):
-            is_last_attempt = attempt == max_retries - 1
-            force_not_use_cache = is_last_attempt
-
-            logger.info(
-                f"Getting element for '{prompt}' | Attempt {attempt + 1}/{max_retries}"
-            )
-
-            page_information = await self._get_page_information()
-
-            dto = GetElementsDTO(
-                page_information=page_information,
-                llm_config=llm_config,
-                prompt=prompt,
-                use_cache=use_cache and not force_not_use_cache,
-                only_one=only_one,
-            )
-            selectors = await self.browser_api_client.get_interactions_selector(dto)
-            logger.debug(f"Got selectors: {selectors}")
-            if not selectors:
-                raise DendriteException(
-                    message="Could not find suitable elements on the page.",
-                    screenshot_base64=page_information.screenshot_base64,
-                )
-
-            for selector in reversed(selectors["selectors"]):
-                try:
-                    dendrite_elements = await get_all_elements_from_selector(
-                        self, selector
-                    )
-                    logger.info(f"Got working selector: {selector}")
-                    return dendrite_elements[0] if only_one else dendrite_elements
-                except Exception as e:
-                    if is_last_attempt:
-                        logger.warning(
-                            f"Last attempt: Failed to get elements from selector with cache disabled",
-                            exc_info=e,
-                        )
-                    else:
-                        logger.warning(
-                            f"Attempt {attempt + 1}: Failed to get elements from selector, trying again",
-                            exc_info=e,
-                        )
-
-            if not is_last_attempt:
-                await asyncio.sleep(timeout * 0.001)
-
-        raise DendriteException(
-            message="Could not find suitable elements on the page after all attempts.",
-            screenshot_base64=page_information.screenshot_base64,
-        )
-
     async def upload_files(
         self,
         files: Union[
@@ -640,6 +343,35 @@ class DendritePage(ExtractionMixin, AskMixin):
             None
         """
         await expand_iframes(self.playwright_page, page_source)
+
+    async def _get_all_elements_from_selector(self, selector: str):
+        dendrite_elements: List[DendriteElement] = []
+        soup = await self._get_soup()
+        elements = soup.select(selector)
+
+        for element in elements:
+            frame = self._get_context(element)
+            d_id = element.get("d-id", "")
+            locator = frame.locator(f"xpath=//*[@d-id='{d_id}']")
+
+            if not d_id:
+                continue
+
+            if isinstance(d_id, list):
+                d_id = d_id[0]
+
+            dendrite_elements.append(
+                DendriteElement(
+                    d_id,
+                    locator,
+                    self.dendrite_browser,
+                )
+            )
+
+        if len(dendrite_elements) == 0:
+            raise Exception(f"No elements found for selector '{selector}'")
+
+        return dendrite_elements
 
     async def _dump_html(self, path: str) -> None:
         """
