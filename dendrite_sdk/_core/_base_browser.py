@@ -112,7 +112,7 @@ class BaseDendriteBrowser(ABC):
         self.llm_config = llm_config
 
     @property
-    def pages(self) -> List[DendritePage[DownloadType]]:
+    def pages(self) -> List[DendritePage]:
         """
         Retrieves the list of active pages managed by the PageManager.
 

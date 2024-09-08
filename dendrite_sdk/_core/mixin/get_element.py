@@ -268,7 +268,7 @@ class GetElementMixin(DendritePageProtocol):
 
             for selector in reversed(selectors["selectors"]):
                 try:
-                    dendrite_elements = await self.get_all_elements_from_selector(
+                    dendrite_elements = await self._get_all_elements_from_selector(
                         selector
                     )
                     logger.info(f"Got working selector: {selector}")
@@ -276,12 +276,12 @@ class GetElementMixin(DendritePageProtocol):
                 except Exception as e:
                     if is_last_attempt:
                         logger.warning(
-                            f"Last attempt: Failed to get elements from selector with cache disabled",
+                            f"Last attempt: Failed to get elements from selector with cache disabled {e}",
                             exc_info=e,
                         )
                     else:
                         logger.warning(
-                            f"Attempt {attempt + 1}: Failed to get elements from selector, trying again",
+                            f"Attempt {attempt + 1}: Failed to get elements from selector, trying again {e}",
                             exc_info=e,
                         )
 
