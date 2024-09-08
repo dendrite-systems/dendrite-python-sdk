@@ -20,6 +20,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+include = ["dendrite_sdk/py.typed"]
 
 
 
