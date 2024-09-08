@@ -63,17 +63,7 @@ class BrowserbaseClient:
         url = f"https://www.browserbase.com/v1/sessions/{session_id}/downloads"
         headers = {"x-bb-api-key": self.api_key}
 
-        path = Path(path)
-
-        # Determine the correct file path
-        if path.is_dir():
-            file_path = path / "downloads.zip"
-        else:
-            # Ensure the file has a .zip extension
-            if path.suffix != ".zip":
-                raise ValueError("The file name provided must have a .zip extension.")
-            file_path = path
-
+        file_path = Path(path)
         async with httpx.AsyncClient() as session:
             timeout = time.time() + retry_for_seconds
             while time.time() < timeout:

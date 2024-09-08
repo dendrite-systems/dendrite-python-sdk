@@ -5,9 +5,7 @@ from dendrite_sdk.ext.browserbase._provider import BrowserbaseProvider
 from dendrite_sdk.ext.browserbase._download import BrowserbaseDownload
 
 
-class BrowserbaseBrowser(
-    DendriteRemoteBrowser[BrowserbaseProvider, BrowserbaseDownload]
-):
+class BrowserbaseBrowser(DendriteRemoteBrowser[BrowserbaseProvider]):
     def __init__(
         self,
         enable_proxy: bool = False,

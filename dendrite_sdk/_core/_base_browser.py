@@ -19,7 +19,6 @@ from dendrite_sdk._core._managers.page_manager import (
     PageManager,
 )
 
-from dendrite_sdk._core._type_spec import DownloadType
 from dendrite_sdk._core.dendrite_page import DendritePage
 from dendrite_sdk._common.constants import STEALTH_ARGS
 from dendrite_sdk._core.models.download_interface import DownloadInterface
@@ -31,7 +30,7 @@ from dendrite_sdk._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk._exceptions.dendrite_exception import BrowserNotLaunchedError
 
 
-class BaseDendriteBrowser(ABC, Generic[DownloadType]):
+class BaseDendriteBrowser(ABC):
     """
     DendriteBrowser is a class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
@@ -134,7 +133,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         # Ensure cleanup is handled
         await self.close()
 
-    async def get_active_page(self) -> DendritePage[DownloadType]:
+    async def get_active_page(self) -> DendritePage:
         """
         Retrieves the currently active page managed by the PageManager.
 
@@ -154,7 +153,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         new_page: bool = False,
         timeout: Optional[float] = 15000,
         expected_page: str = "",
-    ) -> DendritePage[DownloadType]:
+    ) -> DendritePage:
         """
         Navigates to the specified URL, optionally in a new tab
 
@@ -243,7 +242,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         auth_session: AuthSession = await self._browser_api_client.authenticate(dto)
         self._auth_data = auth_session
 
-    async def new_page(self) -> DendritePage[DownloadType]:
+    async def new_page(self) -> DendritePage:
         """
         Opens a new page in the browser.
 
@@ -324,7 +323,7 @@ class BaseDendriteBrowser(ABC, Generic[DownloadType]):
         return self._active_page_manager
 
     @abstractmethod
-    async def _get_download(self, timeout: float = 30000) -> DownloadType:
+    async def _get_download(self, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 

@@ -15,8 +15,6 @@ PrimitiveType = Union[str, float, bool, int]
 JsonSchema = Dict[str, Any]
 TypeSpec = Union[PrimitiveType, PydanticModel, JsonSchema]
 
-DownloadType = TypeVar("DownloadType", bound=Union[DownloadInterface, Download])
-
 
 def to_json_schema(type_spec: TypeSpec) -> Dict[str, Any]:
     if isinstance(type_spec, dict):

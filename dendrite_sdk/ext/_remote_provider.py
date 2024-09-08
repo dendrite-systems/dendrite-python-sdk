@@ -1,15 +1,13 @@
-from typing import Generic, TypeVar, TYPE_CHECKING
-from playwright.async_api import Browser, Playwright, BrowserContext
+from typing import TYPE_CHECKING
+from playwright.async_api import Browser, Playwright, Download
 
 from abc import ABC, abstractmethod
-
-from dendrite_sdk._core._type_spec import DownloadType
 
 if TYPE_CHECKING:
     from dendrite_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
 
 
-class RemoteProvider(ABC, Generic[DownloadType]):
+class RemoteProvider(ABC):
     @abstractmethod
     async def _close(self, DendriteRemoteBrowser):
         pass
@@ -25,5 +23,5 @@ class RemoteProvider(ABC, Generic[DownloadType]):
     @abstractmethod
     async def get_download(
         self, DendriteRemoteBrowser, timeout: float = 30000
-    ) -> DownloadType:
+    ) -> Download:
         pass

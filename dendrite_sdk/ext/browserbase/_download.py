@@ -1,5 +1,8 @@
 from pathlib import Path
+import re
+import shutil
 from typing import Union
+import zipfile
 from loguru import logger
 from playwright.async_api import Download
 
@@ -17,9 +20,49 @@ class BrowserbaseDownload(DownloadInterface):
 
     async def save_as(self, path: Union[str, Path], timeout: float = 20) -> None:
         """
-        Downloads all of the downloaded files to a specified path on disk.
-        The files are returned in a zip file at the specified path.
-        If the path points to a directory, the zip file will be saved in that directory as downloads.zip
+        Save the latest file from the downloaded ZIP archive to the specified path.
+
+        Args:
+            path (Union[str, Path]): The destination file path where the latest file will be saved.
+            timeout (float, optional): Timeout for the save operation. Defaults to 20 seconds.
+
+        Raises:
+            Exception: If no matching files are found in the ZIP archive or if the file cannot be saved.
         """
-        logger.info(f"Saving downloads to {path}")
-        await self._client.save_downloads_on_disk(self._session_id, path, timeout)
+
+        destination_path = Path(path)
+
+        try:
+            source_path = await self._download.path()
+            destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with zipfile.ZipFile(source_path, "r") as zip_ref:
+                # Get all file names in the ZIP
+                file_list = zip_ref.namelist()
+
+                # Filter and sort files based on timestamp
+                timestamp_pattern = re.compile(r"-(\d+)\.")
+                sorted_files = sorted(
+                    file_list,
+                    key=lambda x: int(
+                        timestamp_pattern.search(x).group(1) # type: ignore
+                        if timestamp_pattern.search(x)
+                        else 0
+                    ),
+                    reverse=True,
+                )
+
+                if not sorted_files:
+                    raise Exception("No files found in the Browserbase download ZIP")
+
+                # Extract the latest file
+                latest_file = sorted_files[0]
+                with zip_ref.open(latest_file) as source, open(
+                    destination_path, "wb"
+                ) as target:
+                    shutil.copyfileobj(source, target)
+            logger.info(f"Latest file saved successfully to {destination_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to save latest file from ZIP archive: {e}")
+            raise e
