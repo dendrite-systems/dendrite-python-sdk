@@ -130,26 +130,30 @@ class AskMixin(DendritePageProtocol):
         llm_config = self.dendrite_browser.llm_config
         page_information = await self._get_page_information()
 
-        try:
-            schema = None
-            if type_spec:
-                schema = to_json_schema(type_spec)
+        schema = None
+        if type_spec:
+            schema = to_json_schema(type_spec)
 
-            dto = AskPageDTO(
-                page_information=page_information,
-                llm_config=llm_config,
-                prompt=prompt,
-                return_schema=schema,
-            )
-            res = await self.browser_api_client.ask_page(dto)
-
-            converted_res = res.return_data
-            if type_spec is not None:
-                converted_res = convert_to_type_spec(type_spec, res.return_data)
-
-            return converted_res
-        except Exception as e:
+        dto = AskPageDTO(
+            page_information=page_information,
+            llm_config=llm_config,
+            prompt=prompt,
+            return_schema=schema,
+        )
+        res = await self.browser_api_client.ask_page(dto)
+        if res.status == "error":
             raise DendriteException(
-                message=f"Failed to ask page: {e}",
+                message=res.return_data,
                 screenshot_base64=page_information.screenshot_base64,
-            ) from e
+            )
+
+            # raise DendriteException(
+            #     message=res.,
+            #     screenshot_base64=page_information.screenshot_base64,
+            # )
+
+        converted_res = res.return_data
+        if type_spec is not None:
+            converted_res = convert_to_type_spec(type_spec, res.return_data)
+
+        return converted_res

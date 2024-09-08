@@ -67,7 +67,9 @@ class BrowserAPIClient(HTTPClient):
         )
         res_dict = res.json()
         return AskPageResponse(
-            description=res_dict["description"], return_data=res_dict["return_data"]
+            status=res_dict["status"],
+            description=res_dict["description"],
+            return_data=res_dict["return_data"],
         )
 
     async def try_run_cached(
