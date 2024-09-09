@@ -3,6 +3,7 @@ from typing import Any, List, TYPE_CHECKING
 
 from dendrite_sdk._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk._core.models.page_information import PageInformation
+
 if TYPE_CHECKING:
     from dendrite_sdk._core._base_browser import BaseDendriteBrowser
 from dendrite_sdk._core.dendrite_element import DendriteElement
