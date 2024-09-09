@@ -330,7 +330,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         timeout: int = 2000,
         force: bool = False,
         *args,
-        kwargs,
+        kwargs = {},
     ) -> InteractionResponse:
         """
         Clicks an element on the page based on the provided prompt.
@@ -372,7 +372,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             timeout=timeout,
             force=force,
             *args,
-            **kwargs,
+            **kwargs
         )
 
     async def fill(
@@ -384,7 +384,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         max_retries: int = 3,
         timeout: int = 2000,
         *args,
-        kwargs,
+        kwargs = {},
     ) -> InteractionResponse:
         """
         Fills an element on the page with the provided value based on the given prompt.
