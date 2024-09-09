@@ -23,6 +23,7 @@ from playwright.async_api import (
     FilePayload,
 )
 
+from dendrite_sdk._api.response.interaction_response import InteractionResponse
 from dendrite_sdk._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_sdk._core.dendrite_element import DendriteElement
 from dendrite_sdk._core.mixin.ask import AskMixin
@@ -281,6 +282,101 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         raise DendriteException(
             message=f"Retried {max_retries} times but failed to wait for the requested condition.",
             screenshot_base64=page_information.screenshot_base64,
+        )
+
+    async def click(
+        self,
+        prompt: str,
+        expected_outcome: Optional[str] = None,
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 2000,
+        force: bool = False,
+        *args,
+        kwargs,
+    ) -> InteractionResponse:
+        """
+        Clicks an element on the page based on the provided prompt.
+
+        This method combines the functionality of get_element and click,
+        allowing for a more concise way to interact with elements on the page.
+
+        Args:
+            prompt (str): The prompt describing the element to be clicked.
+            expected_outcome (Optional[str]): The expected outcome of the click action.
+            use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
+            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) for the click operation. Defaults to 2000.
+            force (bool, optional): Whether to force the click operation. Defaults to False.
+            *args: Additional positional arguments for the click operation.
+            kwargs: Additional keyword arguments for the click operation.
+
+        Returns:
+            InteractionResponse: The response from the interaction.
+
+        Raises:
+            DendriteException: If no suitable element is found or if the click operation fails.
+        """
+        element = await self.get_element(
+            prompt,
+            use_cache=use_cache,
+            max_retries=max_retries,
+            timeout=timeout,
+        )
+        return await element.click(
+            expected_outcome=expected_outcome,
+            timeout=timeout,
+            force=force,
+            *args,
+            **kwargs,
+        )
+
+    async def fill(
+        self,
+        prompt: str,
+        value: str,
+        expected_outcome: Optional[str] = None,
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 2000,
+        *args,
+        kwargs,
+    ) -> InteractionResponse:
+        """
+        Fills an element on the page with the provided value based on the given prompt.
+
+        This method combines the functionality of get_element and fill,
+        allowing for a more concise way to interact with elements on the page.
+
+        Args:
+            prompt (str): The prompt describing the element to be filled.
+            value (str): The value to fill the element with.
+            expected_outcome (Optional[str]): The expected outcome of the fill action.
+            use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
+            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) for the fill operation. Defaults to 2000.
+            *args: Additional positional arguments for the fill operation.
+            kwargs: Additional keyword arguments for the fill operation.
+
+        Returns:
+            InteractionResponse: The response from the interaction.
+
+        Raises:
+            DendriteException: If no suitable element is found or if the fill operation fails.
+        """
+        element = await self.get_element(
+            prompt,
+            use_cache=use_cache,
+            max_retries=max_retries,
+            timeout=timeout,
+        )
+
+        return await element.fill(
+            value,
+            expected_outcome=expected_outcome,
+            timeout=timeout,
+            *args,
+            **kwargs,
         )
 
     async def upload_files(

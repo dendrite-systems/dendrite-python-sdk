@@ -45,7 +45,7 @@ class BrowserbaseDownload(DownloadInterface):
                 sorted_files = sorted(
                     file_list,
                     key=lambda x: int(
-                        timestamp_pattern.search(x).group(1) # type: ignore
+                        timestamp_pattern.search(x).group(1)  # type: ignore
                         if timestamp_pattern.search(x)
                         else 0
                     ),
