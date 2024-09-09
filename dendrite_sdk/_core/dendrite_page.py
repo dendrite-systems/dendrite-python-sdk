@@ -37,7 +37,10 @@ if TYPE_CHECKING:
 
 
 from dendrite_sdk._core._managers.screenshot_manager import ScreenshotManager
-from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._exceptions.dendrite_exception import (
+    DendriteException,
+    PageConditionNotMet,
+)
 
 
 from dendrite_sdk._core._utils import (
@@ -289,30 +292,31 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         )  # HACK: Wait for page to load slightly when running first time
         while num_attempts < max_retries:
             num_attempts += 1
+            start_time = time.time()
+
+            page_information = await self._get_page_information()
+            prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
             try:
-                start_time = time.time()
-                page_information = await self._get_page_information()
-                prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
                 res = await self.ask(prompt, bool)
-                elapsed_time = (
-                    time.time() - start_time
-                ) * 1000  # Convert to milliseconds
+            except DendriteException as e:
+                logger.debug(
+                    f"Attempt {num_attempts}/{max_retries} failed: {e.message}"
+                )
 
-                if res:
-                    return res
+            elapsed_time = (time.time() - start_time) * 1000  # Convert to milliseconds
 
-                if elapsed_time >= timeout:
-                    # If the response took longer than the timeout, continue immediately
-                    continue
-                else:
-                    # Otherwise, wait for the remaining time
-                    await asyncio.sleep((timeout - elapsed_time) * 0.001)
-            except Exception as e:
-                logger.debug(f"Waited for page, but got this exception: {e}")
+            if res:
+                return res
+
+            if elapsed_time >= timeout:
+                # If the response took longer than the timeout, continue immediately
                 continue
+            else:
+                # Otherwise, wait for the remaining time
+                await asyncio.sleep((timeout - elapsed_time) * 0.001)
 
         page_information = await self._get_page_information()
-        raise DendriteException(
+        raise PageConditionNotMet(
             message=f"Retried {max_retries} times but failed to wait for the requested condition.",
             screenshot_base64=page_information.screenshot_base64,
         )
