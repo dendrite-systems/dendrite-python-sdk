@@ -32,37 +32,34 @@ class BrowserbaseDownload(DownloadInterface):
 
         destination_path = Path(path)
 
-        try:
-            source_path = await self._download.path()
-            destination_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path = await self._download.path()
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with zipfile.ZipFile(source_path, "r") as zip_ref:
-                # Get all file names in the ZIP
-                file_list = zip_ref.namelist()
+        with zipfile.ZipFile(source_path, "r") as zip_ref:
+            # Get all file names in the ZIP
+            file_list = zip_ref.namelist()
 
-                # Filter and sort files based on timestamp
-                timestamp_pattern = re.compile(r"-(\d+)\.")
-                sorted_files = sorted(
-                    file_list,
-                    key=lambda x: int(
-                        timestamp_pattern.search(x).group(1)  # type: ignore
-                        if timestamp_pattern.search(x)
-                        else 0
-                    ),
-                    reverse=True,
+            # Filter and sort files based on timestamp
+            timestamp_pattern = re.compile(r"-(\d+)\.")
+            sorted_files = sorted(
+                file_list,
+                key=lambda x: int(
+                    timestamp_pattern.search(x).group(1)  # type: ignore
+                    if timestamp_pattern.search(x)
+                    else 0
+                ),
+                reverse=True,
+            )
+
+            if not sorted_files:
+                raise FileNotFoundError(
+                    "No files found in the Browserbase download ZIP"
                 )
 
-                if not sorted_files:
-                    raise Exception("No files found in the Browserbase download ZIP")
-
-                # Extract the latest file
-                latest_file = sorted_files[0]
-                with zip_ref.open(latest_file) as source, open(
-                    destination_path, "wb"
-                ) as target:
-                    shutil.copyfileobj(source, target)
-            logger.info(f"Latest file saved successfully to {destination_path}")
-
-        except Exception as e:
-            logger.error(f"Failed to save latest file from ZIP archive: {e}")
-            raise e
+            # Extract the latest file
+            latest_file = sorted_files[0]
+            with zip_ref.open(latest_file) as source, open(
+                destination_path, "wb"
+            ) as target:
+                shutil.copyfileobj(source, target)
+        logger.info(f"Latest file saved successfully to {destination_path}")
