@@ -148,7 +148,7 @@ class GetElementMixin(DendritePageProtocol):
         self,
         prompt: str,
         use_cache=True,
-        max_retries=3,
+        max_retries=2,
         timeout=3000,
     ) -> Optional[DendriteElement]:
         """
@@ -258,16 +258,16 @@ class GetElementMixin(DendritePageProtocol):
                 use_cache=use_cache and not force_not_use_cache,
                 only_one=only_one,
             )
-            selectors = await self.browser_api_client.get_interactions_selector(dto)
-            logger.debug(f"Got selectors: {selectors}")
-            if not selectors:
+            res = await self.browser_api_client.get_interactions_selector(dto)
+            logger.debug(f"Got selectors: {res}")
+            if not res.selectors:
                 continue
                 # raise DendriteException(
                 #     message="Could not find suitable elements on the page.",
                 #     screenshot_base64=page_information.screenshot_base64,
                 # )
 
-            for selector in reversed(selectors["selectors"]):
+            for selector in reversed(res.selectors):
 
                 dendrite_elements = await self._get_all_elements_from_selector(selector)
                 if len(dendrite_elements) > 0:
