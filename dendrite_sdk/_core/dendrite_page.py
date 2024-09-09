@@ -360,6 +360,13 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             max_retries=max_retries,
             timeout=timeout,
         )
+
+        if not element:
+            raise DendriteException(
+                message=f"No element found with the prompt: {prompt}",
+                screenshot_base64="",
+            )
+
         return await element.click(
             expected_outcome=expected_outcome,
             timeout=timeout,
@@ -407,6 +414,12 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             max_retries=max_retries,
             timeout=timeout,
         )
+
+        if not element:
+            raise DendriteException(
+                message=f"No element found with the prompt: {prompt}",
+                screenshot_base64="",
+            )
 
         return await element.fill(
             value,
