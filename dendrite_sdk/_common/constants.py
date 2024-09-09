@@ -64,7 +64,7 @@ STEALTH_ARGS = [
     "--font-render-hinting=none",
     "--disable-logging",
     "--enable-surface-synchronization",
-    #"--run-all-compositor-stages-before-draw",
+    # "--run-all-compositor-stages-before-draw",
     "--disable-threaded-animation",
     "--disable-threaded-scrolling",
     "--disable-checker-imaging",

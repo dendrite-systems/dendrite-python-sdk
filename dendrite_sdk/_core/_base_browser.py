@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import sys
-from typing import Any, Generic, List, Optional, TypeVar, Union
+from typing import Any, List, Optional, Union
 from uuid import uuid4
 import os
 from loguru import logger
@@ -21,13 +21,17 @@ from dendrite_sdk._core._managers.page_manager import (
 
 from dendrite_sdk._core.dendrite_page import DendritePage
 from dendrite_sdk._common.constants import STEALTH_ARGS
-from dendrite_sdk._core.models.download_interface import DownloadInterface
 from dendrite_sdk._core.models.authentication import (
     AuthSession,
 )
 from dendrite_sdk._core.models.llm_config import LLMConfig
 from dendrite_sdk._api.browser_api_client import BrowserAPIClient
-from dendrite_sdk._exceptions.dendrite_exception import BrowserNotLaunchedError
+from dendrite_sdk._exceptions.dendrite_exception import (
+    BrowserNotLaunchedError,
+    DendriteException,
+    IncorrectOutcomeError,
+    MissingApiKeyError,
+)
 
 
 class BaseDendriteBrowser(ABC):
@@ -81,17 +85,23 @@ class BaseDendriteBrowser(ABC):
         if not dendrite_api_key or dendrite_api_key == "":
             dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
             if not dendrite_api_key or dendrite_api_key == "":
-                raise Exception("Dendrite API key is required to use DendriteBrowser")
+                raise MissingApiKeyError(
+                    "Dendrite API key is required to use DendriteBrowser"
+                )
 
         if not anthropic_api_key or anthropic_api_key == "":
             anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
             if anthropic_api_key == "":
-                raise Exception("Anthropic API key is required to use DendriteBrowser")
+                raise MissingApiKeyError(
+                    "Anthropic API key is required to use DendriteBrowser"
+                )
 
         if not openai_api_key or openai_api_key == "":
             openai_api_key = os.environ.get("OPENAI_API_KEY", "")
             if not openai_api_key or openai_api_key == "":
-                raise Exception("OpenAI API key is required to use DendriteBrowser")
+                raise MissingApiKeyError(
+                    "OpenAI API key is required to use DendriteBrowser"
+                )
 
         self._id = uuid4().hex
         self._auth_data: Optional[AuthSession] = None
@@ -188,8 +198,8 @@ class BaseDendriteBrowser(ABC):
             try:
                 prompt = f"We are checking if we have arrived on the expected type of page. If it is apparent that we have arrived on the wrong page, output an error. Here is the description: '{expected_page}'"
                 await active_page.ask(prompt, bool)
-            except Exception as e:
-                raise Exception(f"Incorrect navigation, reason: {e}")
+            except DendriteException as e:
+                raise IncorrectOutcomeError(f"Incorrect navigation, reason: {e}")
 
         return active_page
 
@@ -292,9 +302,11 @@ class BaseDendriteBrowser(ABC):
                 )
                 await self._browser_api_client.upload_auth_session(dto)
             await self.browser_context.close()
-
-        if self._playwright:
-            await self._playwright.stop()
+        try:
+            if self._playwright:
+                await self._playwright.stop()
+        except AttributeError:
+            pass
 
     def _is_launched(self):
         """
