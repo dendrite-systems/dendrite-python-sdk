@@ -56,7 +56,7 @@ class BrowserNotLaunchedError(BaseDendriteException):
 
 
 class DendriteException(Exception):
-    def __init__(self, message: str, screenshot_base64: str) -> None:
+    def __init__(self, message: str, screenshot_base64: str = "") -> None:
         self._message = message
         self._screenshot_base64 = screenshot_base64
         self._name: Optional[str] = None
