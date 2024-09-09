@@ -477,7 +477,9 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         """
         await expand_iframes(self.playwright_page, page_source)
 
-    async def _get_all_elements_from_selector(self, selector: str):
+    async def _get_all_elements_from_selector(
+        self, selector: str
+    ) -> List[DendriteElement]:
         dendrite_elements: List[DendriteElement] = []
         soup = await self._get_soup()
         elements = soup.select(selector)
@@ -500,9 +502,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
                     self.dendrite_browser,
                 )
             )
-
-        if len(dendrite_elements) == 0:
-            raise Exception(f"No elements found for selector '{selector}'")
 
         return dendrite_elements
 

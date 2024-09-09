@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, List, Literal, Union, overload
+from typing import Dict, List, Literal, Optional, Union, overload
 
 from loguru import logger
 
@@ -150,7 +150,7 @@ class GetElementMixin(DendritePageProtocol):
         use_cache=True,
         max_retries=3,
         timeout=3000,
-    ) -> DendriteElement:
+    ) -> Optional[DendriteElement]:
         """
         Retrieves a single Dendrite element based on the provided prompt.
 
@@ -179,7 +179,7 @@ class GetElementMixin(DendritePageProtocol):
         use_cache: bool,
         max_retries,
         timeout,
-    ) -> DendriteElement:
+    ) -> Optional[DendriteElement]:
         """
         Retrieves a single Dendrite element based on the provided prompt.
 
@@ -219,7 +219,7 @@ class GetElementMixin(DendritePageProtocol):
 
     async def _get_element(
         self, prompt: str, only_one: bool, use_cache: bool, max_retries, timeout
-    ):
+    ) -> Union[Optional[DendriteElement], List[DendriteElement]]:
         """
         Retrieves Dendrite elements based on the provided prompt, either a single element or a list of elements.
 
@@ -261,34 +261,29 @@ class GetElementMixin(DendritePageProtocol):
             selectors = await self.browser_api_client.get_interactions_selector(dto)
             logger.debug(f"Got selectors: {selectors}")
             if not selectors:
-                raise DendriteException(
-                    message="Could not find suitable elements on the page.",
-                    screenshot_base64=page_information.screenshot_base64,
-                )
+                continue
+                # raise DendriteException(
+                #     message="Could not find suitable elements on the page.",
+                #     screenshot_base64=page_information.screenshot_base64,
+                # )
 
             for selector in reversed(selectors["selectors"]):
-                try:
-                    dendrite_elements = await self._get_all_elements_from_selector(
-                        selector
-                    )
+
+                dendrite_elements = await self._get_all_elements_from_selector(selector)
+                if len(dendrite_elements) > 0:
                     logger.info(f"Got working selector: {selector}")
                     return dendrite_elements[0] if only_one else dendrite_elements
-                except Exception as e:
-                    if is_last_attempt:
-                        logger.warning(
-                            f"Last attempt: Failed to get elements from selector with cache disabled {e}",
-                            exc_info=e,
-                        )
-                    else:
-                        logger.warning(
-                            f"Attempt {attempt + 1}: Failed to get elements from selector, trying again {e}",
-                            exc_info=e,
-                        )
+
+                if is_last_attempt:
+                    logger.warning(
+                        f"Last attempt: Failed to get elements from selector with cache disabled"
+                    )
+                else:
+                    logger.warning(
+                        f"Attempt {attempt + 1}: Failed to get elements from selector, trying again "
+                    )
 
             if not is_last_attempt:
                 await asyncio.sleep(timeout * 0.001)
 
-        raise DendriteException(
-            message="Could not find suitable elements on the page after all attempts.",
-            screenshot_base64=page_information.screenshot_base64,
-        )
+        return None
