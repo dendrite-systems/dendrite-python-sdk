@@ -79,35 +79,3 @@ def get_frame_context(page: Page, iframe_path: str) -> Union[FrameLocator, Page]
     for iframe_id in iframe_path_list:
         frame_context = frame_context.frame_locator(f"[tf623_id='{iframe_id}']")
     return frame_context
-
-
-async def get_all_elements_from_selector(
-    page: "DendritePage", selector: str
-) -> List[DendriteElement]:
-    dendrite_elements: List[DendriteElement] = []
-    soup = await page._get_soup()
-    elements = soup.select(selector)
-
-    for element in elements:
-        frame = page._get_context(element)
-        d_id = element.get("d-id", "")
-        locator = frame.locator(f"xpath=//*[@d-id='{d_id}']")
-
-        if not d_id:
-            continue
-
-        if isinstance(d_id, list):
-            d_id = d_id[0]
-
-        dendrite_elements.append(
-            DendriteElement(
-                d_id,
-                locator,
-                page.dendrite_browser,
-            )
-        )
-
-    if len(dendrite_elements) == 0:
-        raise Exception(f"No elements found for selector '{selector}'")
-
-    return dendrite_elements

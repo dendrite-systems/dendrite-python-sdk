@@ -275,7 +275,7 @@ class BaseDendriteBrowser(ABC):
             Exception: If the browser context is not initialized.
         """
         if not self.browser_context:
-            raise Exception("Browser context not initialized")
+            raise DendriteException("Browser context not initialized")
 
         await self.browser_context.add_cookies(cookies)
 

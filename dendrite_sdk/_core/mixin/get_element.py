@@ -4,7 +4,6 @@ from typing import Dict, List, Literal, Optional, Union, overload
 from loguru import logger
 
 from dendrite_sdk._api.dto.get_elements_dto import GetElementsDTO
-from dendrite_sdk._core._utils import get_all_elements_from_selector
 from dendrite_sdk._core.dendrite_element import DendriteElement
 from dendrite_sdk._core.models.response import DendriteElementsResponse
 from dendrite_sdk._core.protocol.page_protocol import DendritePageProtocol
