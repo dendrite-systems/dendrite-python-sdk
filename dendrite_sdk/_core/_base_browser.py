@@ -184,15 +184,14 @@ class BaseDendriteBrowser(ABC):
         except Exception as e:
             logger.debug(f"Exception when loading page but continuing anyways. {e}")
 
-        page = await active_page_manager.get_active_page()
         if expected_page != "":
             try:
                 prompt = f"We are checking if we have arrived on the expected type of page. If it is apparent that we have arrived on the wrong page, output an error. Here is the description: '{expected_page}'"
-                await page.ask(prompt, bool)
+                await active_page.ask(prompt, bool)
             except Exception as e:
                 raise Exception(f"Incorrect navigation, reason: {e}")
 
-        return page
+        return active_page
 
     async def _launch(self):
         """
