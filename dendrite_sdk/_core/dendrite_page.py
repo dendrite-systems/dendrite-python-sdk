@@ -135,46 +135,65 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
 
         return context
 
-    async def scroll_to_bottom(self, timeout: float = 30000) -> None:
+    async def scroll_to_bottom(
+        self,
+        timeout: float = 30000,
+        scroll_increment: int = 1000,
+        no_progress_limit: int = 3,
+    ) -> None:
         """
-        Scrolls to the bottom of the page continuously until the bottom is reached or a timeout occurs.
-
-        This method scrolls the page in increments of 1000 pixels, checking the scroll position
-        and resetting the timeout if progress is made. It stops scrolling once the bottom is reached
-        or if the specified timeout is exceeded.
+        Scrolls to the bottom of the page until no more progress is made or a timeout occurs.
 
         Args:
             timeout (float, optional): The maximum amount of time (in milliseconds) to continue scrolling. Defaults to 30000.
+            scroll_increment (int, optional): The number of pixels to scroll in each step. Defaults to 1000.
+            no_progress_limit (int, optional): The number of consecutive attempts with no progress before stopping. Defaults to 3.
 
         Returns:
             None
         """
-        i = 0
-        last_scroll_position = 0
         start_time = time.time()
+        last_scroll_position = 0
+        no_progress_count = 0
 
         while True:
             current_scroll_position = await self.playwright_page.evaluate(
                 "window.scrollY"
             )
+            scroll_height = await self.playwright_page.evaluate(
+                "document.body.scrollHeight"
+            )
 
-            await self.playwright_page.evaluate(f"window.scrollTo(0, {i})")
-            i += 1000
+            # Scroll down
+            await self.playwright_page.evaluate(
+                f"window.scrollTo(0, {current_scroll_position + scroll_increment})"
+            )
 
+            # Check if we've reached the bottom
+            if (
+                self.playwright_page.viewport_size
+                and current_scroll_position
+                + self.playwright_page.viewport_size["height"]
+                >= scroll_height
+            ):
+                break
+
+            # Check if we've made progress
+            if current_scroll_position > last_scroll_position:
+                no_progress_count = 0
+            else:
+                no_progress_count += 1
+
+            # Stop if we haven't made progress for several attempts
+            if no_progress_count >= no_progress_limit:
+                break
+
+            # Check if we've exceeded the timeout
             if time.time() - start_time > timeout * 0.001:
                 break
 
-            if current_scroll_position - last_scroll_position > 1000:
-                start_time = time.time()
-
             last_scroll_position = current_scroll_position
-
-        #     # Check if the timeout has been exceeded
-        #     if time.time() - start_time > timeout * 0.001:
-        #         logger.debug("Timeout exceeded. Stopping scrolling.")
-        # break
-
-        logger.debug("Done scrolling to the bottom of the page.")
+            await asyncio.sleep(0.1)
 
     async def close(self) -> None:
         """
