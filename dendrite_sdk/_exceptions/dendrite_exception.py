@@ -9,7 +9,7 @@ from dendrite_sdk._exceptions._constants import INVALID_AUTH_SESSION_MSG
 
 
 class BaseDendriteException(Exception):
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str, screenshot_base64: Optional[str] = None) -> None:
         self._message = message
         logger.error(self)
         super().__init__(message)
@@ -20,6 +20,16 @@ class BaseDendriteException(Exception):
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.message}"
+
+
+class MissingApiKeyError(BaseDendriteException):
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
+class PageConditionNotMet(BaseDendriteException):
+    def __init__(self, message: str, screenshot_base64: Optional[str] = None):
+        super().__init__(message)
 
 
 class InvalidAuthSessionError(BaseDendriteException):
@@ -33,6 +43,10 @@ class InvalidAuthSessionError(BaseDendriteException):
         super().__init__(message)
 
 
+class IncorrectOutcomeError(BaseDendriteException):
+    pass
+
+
 class BrowserNotLaunchedError(BaseDendriteException):
     def __init__(
         self,
@@ -42,7 +56,7 @@ class BrowserNotLaunchedError(BaseDendriteException):
 
 
 class DendriteException(Exception):
-    def __init__(self, message: str, screenshot_base64: str) -> None:
+    def __init__(self, message: str, screenshot_base64: str = "") -> None:
         self._message = message
         self._screenshot_base64 = screenshot_base64
         self._name: Optional[str] = None

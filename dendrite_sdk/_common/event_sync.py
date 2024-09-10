@@ -1,6 +1,8 @@
 import asyncio
 from typing import Generic, Optional, TypeVar
 
+from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+
 
 T = TypeVar("T")
 
@@ -65,7 +67,7 @@ class EventSync(Generic[T]):
         try:
             await asyncio.wait_for(self.event.wait(), timeout * 0.001)
             if not self.data:
-                raise Exception(f"No {self.data.__class__.__name__} was found.")
+                raise DendriteException(f"No {self.data.__class__.__name__} was found.")
             data = self.data
 
             self.data = None

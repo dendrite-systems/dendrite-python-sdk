@@ -2,6 +2,7 @@ from typing import Optional
 
 from loguru import logger
 from dendrite_sdk._core.models.authentication import AuthSession
+from dendrite_sdk._api.response.get_element_response import GetElementResponse
 from dendrite_sdk._api.dto.ask_page_dto import AskPageDTO
 from dendrite_sdk._api.dto.authenticate_dto import AuthenticateDTO
 from dendrite_sdk._api.dto.get_elements_dto import GetElementsDTO
@@ -33,11 +34,13 @@ class BrowserAPIClient(HTTPClient):
             "actions/upload-auth-session", data=dto.dict(), method="POST"
         )
 
-    async def get_interactions_selector(self, dto: GetElementsDTO) -> dict:
+    async def get_interactions_selector(
+        self, dto: GetElementsDTO
+    ) -> GetElementResponse:
         res = await self.send_request(
             "actions/get-interaction-selector", data=dto.dict(), method="POST"
         )
-        return res.json()
+        return GetElementResponse(**res.json())
 
     async def make_interaction(self, dto: MakeInteractionDTO) -> InteractionResponse:
         res = await self.send_request(
@@ -67,7 +70,9 @@ class BrowserAPIClient(HTTPClient):
         )
         res_dict = res.json()
         return AskPageResponse(
-            description=res_dict["description"], return_data=res_dict["return_data"]
+            status=res_dict["status"],
+            description=res_dict["description"],
+            return_data=res_dict["return_data"],
         )
 
     async def try_run_cached(

@@ -37,7 +37,10 @@ if TYPE_CHECKING:
 
 
 from dendrite_sdk._core._managers.screenshot_manager import ScreenshotManager
-from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._exceptions.dendrite_exception import (
+    DendriteException,
+    PageConditionNotMet,
+)
 
 
 from dendrite_sdk._core._utils import (
@@ -247,7 +250,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
                 )
                 tries += 1
 
-        raise Exception("Failed to add d-ids to DOM.")
+        raise DendriteException("Failed to add d-ids to DOM.")
 
     async def scroll_through_entire_page(self) -> None:
         """
@@ -289,30 +292,31 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         )  # HACK: Wait for page to load slightly when running first time
         while num_attempts < max_retries:
             num_attempts += 1
+            start_time = time.time()
+
+            page_information = await self._get_page_information()
+            prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
             try:
-                start_time = time.time()
-                page_information = await self._get_page_information()
-                prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
                 res = await self.ask(prompt, bool)
-                elapsed_time = (
-                    time.time() - start_time
-                ) * 1000  # Convert to milliseconds
+            except DendriteException as e:
+                logger.debug(
+                    f"Attempt {num_attempts}/{max_retries} failed: {e.message}"
+                )
 
-                if res:
-                    return res
+            elapsed_time = (time.time() - start_time) * 1000  # Convert to milliseconds
 
-                if elapsed_time >= timeout:
-                    # If the response took longer than the timeout, continue immediately
-                    continue
-                else:
-                    # Otherwise, wait for the remaining time
-                    await asyncio.sleep((timeout - elapsed_time) * 0.001)
-            except Exception as e:
-                logger.debug(f"Waited for page, but got this exception: {e}")
+            if res:
+                return res
+
+            if elapsed_time >= timeout:
+                # If the response took longer than the timeout, continue immediately
                 continue
+            else:
+                # Otherwise, wait for the remaining time
+                await asyncio.sleep((timeout - elapsed_time) * 0.001)
 
         page_information = await self._get_page_information()
-        raise DendriteException(
+        raise PageConditionNotMet(
             message=f"Retried {max_retries} times but failed to wait for the requested condition.",
             screenshot_base64=page_information.screenshot_base64,
         )
@@ -326,7 +330,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         timeout: int = 2000,
         force: bool = False,
         *args,
-        kwargs,
+        kwargs={},
     ) -> InteractionResponse:
         """
         Clicks an element on the page based on the provided prompt.
@@ -356,6 +360,13 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             max_retries=max_retries,
             timeout=timeout,
         )
+
+        if not element:
+            raise DendriteException(
+                message=f"No element found with the prompt: {prompt}",
+                screenshot_base64="",
+            )
+
         return await element.click(
             expected_outcome=expected_outcome,
             timeout=timeout,
@@ -373,7 +384,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         max_retries: int = 3,
         timeout: int = 2000,
         *args,
-        kwargs,
+        kwargs={},
     ) -> InteractionResponse:
         """
         Fills an element on the page with the provided value based on the given prompt.
@@ -403,6 +414,12 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             max_retries=max_retries,
             timeout=timeout,
         )
+
+        if not element:
+            raise DendriteException(
+                message=f"No element found with the prompt: {prompt}",
+                screenshot_base64="",
+            )
 
         return await element.fill(
             value,
@@ -473,7 +490,9 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         """
         await expand_iframes(self.playwright_page, page_source)
 
-    async def _get_all_elements_from_selector(self, selector: str):
+    async def _get_all_elements_from_selector(
+        self, selector: str
+    ) -> List[DendriteElement]:
         dendrite_elements: List[DendriteElement] = []
         soup = await self._get_soup()
         elements = soup.select(selector)
@@ -496,9 +515,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
                     self.dendrite_browser,
                 )
             )
-
-        if len(dendrite_elements) == 0:
-            raise Exception(f"No elements found for selector '{selector}'")
 
         return dendrite_elements
 

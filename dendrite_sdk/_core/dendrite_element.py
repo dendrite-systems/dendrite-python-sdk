@@ -8,15 +8,14 @@ from typing import TYPE_CHECKING, Optional
 from loguru import logger
 from playwright.async_api import Locator
 
+from dendrite_sdk._exceptions.dendrite_exception import IncorrectOutcomeError
+
 if TYPE_CHECKING:
     from dendrite_sdk._core._base_browser import BaseDendriteBrowser
 from dendrite_sdk._core.models.page_diff_information import PageDiffInformation
 from dendrite_sdk._core._type_spec import Interaction
 from dendrite_sdk._api.response.interaction_response import InteractionResponse
 from dendrite_sdk._api.dto.make_interaction_dto import MakeInteractionDTO
-from dendrite_sdk._exceptions.incorrect_outcome_exception import (
-    IncorrectOutcomeException,
-)
 
 
 def perform_action(interaction_type: Interaction):
@@ -81,7 +80,7 @@ def perform_action(interaction_type: Interaction):
             res = await self._browser_api_client.make_interaction(dto)
 
             if res.status == "failed":
-                raise IncorrectOutcomeException(
+                raise IncorrectOutcomeError(
                     message=res.message,
                     screenshot_base64=page_delta_information.page_after.screenshot_base64,
                 )
