@@ -169,7 +169,21 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
 
             last_scroll_position = current_scroll_position
 
-            await asyncio.sleep(0.1)
+        #     # Check if the timeout has been exceeded
+        #     if time.time() - start_time > timeout * 0.001:
+        #         logger.debug("Timeout exceeded. Stopping scrolling.")
+        # break
+
+        logger.debug("Done scrolling to the bottom of the page.")
+
+    async def close(self) -> None:
+        """
+        Closes the current page.
+
+        Returns:
+            None
+        """
+        await self.playwright_page.close()
 
     async def _get_page_information(self) -> PageInformation:
         """
