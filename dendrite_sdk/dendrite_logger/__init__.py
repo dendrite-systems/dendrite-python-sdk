@@ -1,9 +1,10 @@
-from .event import error,add,start,stop,update_current_observation
+from .event import error, add, start, stop, update_current_observation, log
+
 __all__ = [
     "error",
     "add",
     "start",
     "stop",
-    "update_current_observation"
+    "update_current_observation",
+    "log",
 ]
-

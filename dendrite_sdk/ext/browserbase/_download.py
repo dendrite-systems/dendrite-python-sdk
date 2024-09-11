@@ -6,6 +6,7 @@ import zipfile
 from loguru import logger
 from playwright.async_api import Download
 
+from dendrite_sdk import dendrite_logger
 from dendrite_sdk._core.models.download_interface import DownloadInterface
 from dendrite_sdk.ext.browserbase._client import BrowserbaseClient
 
@@ -62,4 +63,6 @@ class BrowserbaseDownload(DownloadInterface):
                 destination_path, "wb"
             ) as target:
                 shutil.copyfileobj(source, target)
-        logger.info(f"Latest file saved successfully to {destination_path}")
+        dendrite_logger.log(
+            f"Latest file saved successfully to {destination_path}", "INFO"
+        )

@@ -3,11 +3,13 @@ from typing import Dict, List, Literal, Optional, Union, overload
 
 from loguru import logger
 
+from dendrite_sdk import dendrite_logger
 from dendrite_sdk._api.dto.get_elements_dto import GetElementsDTO
 from dendrite_sdk._core.dendrite_element import DendriteElement
 from dendrite_sdk._core.models.response import DendriteElementsResponse
 from dendrite_sdk._core.protocol.page_protocol import DendritePageProtocol
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk.dendrite_logger.logger import DendriteQueryEvent, log_segment
 
 
 class GetElementMixin(DendritePageProtocol):
@@ -216,6 +218,7 @@ class GetElementMixin(DendritePageProtocol):
             List[DendriteElement]: A list of retrieved elements.
         """
 
+    @log_segment("Get Element")
     async def _get_element(
         self, prompt: str, only_one: bool, use_cache: bool, max_retries, timeout
     ) -> Union[Optional[DendriteElement], List[DendriteElement]]:
@@ -244,8 +247,11 @@ class GetElementMixin(DendritePageProtocol):
             is_last_attempt = attempt == max_retries - 1
             force_not_use_cache = is_last_attempt
 
-            logger.info(
-                f"Getting element for '{prompt}' | Attempt {attempt + 1}/{max_retries}"
+            dendrite_logger.add(
+                DendriteQueryEvent(
+                    message=f"Getting element for '{prompt}' | Attempt {attempt + 1}/{max_retries}",
+                    query=prompt,
+                )
             )
 
             page_information = await self._get_page_information()
@@ -270,8 +276,9 @@ class GetElementMixin(DendritePageProtocol):
 
                 dendrite_elements = await self._get_all_elements_from_selector(selector)
                 if len(dendrite_elements) > 0:
-                    logger.info(f"Got working selector: {selector}")
-                    return dendrite_elements[0] if only_one else dendrite_elements
+                    res = dendrite_elements[0] if only_one else dendrite_elements
+                    dendrite_logger.log(f"Got selector: {selector}", level="INFO")
+                    return res
 
                 if is_last_attempt:
                     logger.warning(

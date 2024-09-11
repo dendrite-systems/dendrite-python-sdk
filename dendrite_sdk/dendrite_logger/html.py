@@ -1,15 +1,17 @@
 import json
 from typing import List, Dict, Any
 
+
 def create_dashboard(input_file: str, output_file: str):
     """Create the dashboard HTML file from the input JSON file."""
-    with open(input_file, 'r') as f:
+    with open(input_file, "r") as f:
         data = json.load(f)
-    
+
     html_content = generate_html(data)
-    
-    with open(output_file, 'w') as f:
+
+    with open(output_file, "w") as f:
         f.write(html_content)
+
 
 def generate_html(data: List[Dict[str, Any]]) -> str:
     """Generate HTML content for the dashboard."""
@@ -137,6 +139,7 @@ def generate_html(data: List[Dict[str, Any]]) -> str:
     """
 
     return html_content
+
 
 if __name__ == "__main__":
     create_dashboard("dendrite_log.json", "dendrite_log.html")

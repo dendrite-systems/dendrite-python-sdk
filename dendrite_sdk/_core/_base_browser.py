@@ -114,7 +114,7 @@ class BaseDendriteBrowser(ABC):
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
 
-        dendrite_logger.start()
+        dendrite_logger.start(session_id=self._id)
 
         self._upload_handler = EventSync[FileChooser]()
         self._download_handler = EventSync[Download]()
@@ -191,12 +191,16 @@ class BaseDendriteBrowser(ABC):
         else:
             active_page = await active_page_manager.get_active_page()
         try:
-            logger.info(f"Going to {url}")
+            dendrite_logger.log(f"Going to {url}", level="INFO")
             await active_page.playwright_page.goto(url, timeout=timeout)
         except TimeoutError:
-            logger.debug("Timeout when loading page but continuing anyways.")
+            dendrite_logger.log(
+                "Timeout when loading page but continuing anyways.", "DEBUG"
+            )
         except Exception as e:
-            logger.debug(f"Exception when loading page but continuing anyways. {e}")
+            dendrite_logger.log(
+                f"Exception when loading page but continuing anyways. {e}", "DEBUG"
+            )
 
         if expected_page != "":
             try:
@@ -298,7 +302,7 @@ class BaseDendriteBrowser(ABC):
         """
 
         self.closed = True
-        logger.info("Closing browser")
+        dendrite_logger.log("Closing browser", "INFO")
         dendrite_logger.stop()
 
         if self.browser_context:

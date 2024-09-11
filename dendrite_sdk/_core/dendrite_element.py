@@ -3,7 +3,7 @@ import asyncio
 import base64
 import functools
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Awaitable, Callable, Optional
 
 from loguru import logger
 from playwright.async_api import Locator
@@ -53,17 +53,25 @@ def perform_action(interaction_type: Interaction):
                 )
             )
 
-            logger.info(
-                f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'
-            )
-
             if not expected_outcome:
-                return await func(self, *args, **kwargs)
+                await func(self, *args, **kwargs)
+                dendrite_logger.log(
+                    f"Interaction '{interaction_type}' completed", level="INFO"
+                )
+                return InteractionResponse(status="success", message="")
 
             llm_config = self._dendrite_browser.llm_config
 
             page_before = await self._dendrite_browser.get_active_page()
             page_before_info = await page_before._get_page_information()
+
+            dendrite_logger.add(
+                DendriteInteractionEvent(
+                    action=interaction_type,
+                    element=self.dendrite_id,
+                    image_base64=page_before_info.screenshot_base64,
+                )
+            )
 
             # Call the original method here
             await func(
@@ -73,11 +81,6 @@ def perform_action(interaction_type: Interaction):
                 **kwargs,
             )
 
-            dendrite_logger.add(
-                DendriteInteractionEvent(
-                    action=interaction_type, element=self.dendrite_id
-                )
-            )
             await self._wait_for_page_changes(page_before.url)
 
             page_after = await self._dendrite_browser.get_active_page()
@@ -95,6 +98,10 @@ def perform_action(interaction_type: Interaction):
                 llm_config=llm_config,
             )
             res = await self._browser_api_client.make_interaction(dto)
+
+            dendrite_logger.log(
+                f"Interaction '{interaction_type}' completed | res: {res}", level="INFO"
+            )
 
             if res.status == "failed":
                 raise IncorrectOutcomeError(

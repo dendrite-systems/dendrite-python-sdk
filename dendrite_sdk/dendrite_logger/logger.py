@@ -11,20 +11,21 @@ from pydantic import BaseModel, Field
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
 from dendrite_sdk.dendrite_logger.html import create_dashboard
 
+
 class DendriteLoggerEvent(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     type: str
     message: str
     timestamp: float = Field(default_factory=time.time)
     image_base64: Optional[str] = None
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
     def __repr__(self):
-        # Get the class name dynamically
         class_name = type(self).__name__
-        # Truncate image_base64 to 64 characters if present
         truncated_image_base64 = (
-            self.image_base64[:64] + "..." if self.image_base64 and len(self.image_base64) > 64 else self.image_base64
+            self.image_base64[:64] + "..."
+            if self.image_base64 and len(self.image_base64) > 64
+            else self.image_base64
         )
         return (
             f"{class_name}(id={self.id}, type={self.type}, message={self.message}, "
@@ -34,22 +35,36 @@ class DendriteLoggerEvent(BaseModel):
     def __str__(self):
         return self.__repr__()
 
+
 class DendriteInteractionEvent(DendriteLoggerEvent):
     type: Literal["interaction"] = "interaction"
 
-    def __init__(self, action: str, element: str, message: Optional[str] = None, image_base64: Optional[str] = None, **data):
+    def __init__(
+        self,
+        action: str,
+        element: str,
+        message: Optional[str] = None,
+        image_base64: Optional[str] = None,
+        **data,
+    ):
         super().__init__(
             type="interaction",
             message=message or f"Performing action '{action}' on element '{element}'",
             metadata={"action": action, "element": element},
             image_base64=image_base64,
-            **data
+            **data,
         )
+
 
 class DendriteExceptionEvent(DendriteLoggerEvent):
     type: Literal["exception"] = "exception"
 
-    def __init__(self, exception: Union[DendriteException, Exception], image_base64: Optional[str] = None, **data):
+    def __init__(
+        self,
+        exception: Union[DendriteException, Exception],
+        image_base64: Optional[str] = None,
+        **data,
+    ):
         if isinstance(exception, DendriteException):
             image_base64 = exception._screenshot_base64
         super().__init__(
@@ -57,18 +72,22 @@ class DendriteExceptionEvent(DendriteLoggerEvent):
             message=str(exception),
             metadata={"exception_type": type(exception).__name__},
             image_base64=image_base64,
-            **data
+            **data,
         )
+
 
 class DendriteQueryEvent(DendriteLoggerEvent):
     type: Literal["query"] = "query"
     query: str
 
+
 class DendriteQueryResponseEvent(DendriteLoggerEvent):
     type: Literal["query_response"] = "query_response"
     query_id: str
 
+
 EventType = TypeVar("EventType", bound=DendriteLoggerEvent)
+
 
 class DendriteLoggerContext(BaseModel):
     name: str
@@ -90,8 +109,9 @@ class DendriteLoggerContext(BaseModel):
             "start_time": self.start_time,
             "end_time": self.end_time,
             "elapsed_time": self.elapsed_time,
-            "events": [event.dict() for event in self.events]
+            "events": [event.dict() for event in self.events],
         }
+
 
 class DendriteLogger:
     def __init__(self, output_path: str, session_id: Optional[str] = None):
@@ -108,6 +128,10 @@ class DendriteLogger:
         event = DendriteExceptionEvent(exception)
         self.add_event(event)
 
+    def log(self, message: str, **kwargs):
+        event = DendriteLoggerEvent(type="log", message=message, metadata=kwargs)
+        self.add_event(event)
+
     def segment_start(self, name: str):
         context = DendriteLoggerContext(name=name)
         self._context_stack.append(context)
@@ -117,7 +141,6 @@ class DendriteLogger:
             context = self._context_stack.pop()
             context.end()
             self._finalized_contexts.append(context)
-            loguru_logger.debug(f"Finalized Contexts: {self._finalized_contexts}")
 
     def to_json(self):
         loguru_logger.debug("Finalizing dendrite logger")
@@ -125,7 +148,7 @@ class DendriteLogger:
         with open(self._output_path, "w") as f:
             json.dump(data, f, indent=2)
         loguru_logger.debug(f"JSON log file created: {self._output_path}")
-    
+
     def to_html(self):
         create_dashboard(self._output_path, "dendrite_log.html")
 
@@ -138,7 +161,7 @@ def log_segment(name: str):
             result = None
             if not _logger:
                 return await func(*args, **kwargs)
-            
+
             _logger.segment_start(name)
             try:
                 result = await func(*args, **kwargs)
@@ -150,8 +173,12 @@ def log_segment(name: str):
 
                 if result is not None:
                     return result
-            
+
         return wrapper
+
     return logging_segment
 
-DENDRITE_LOGGER_CONTEXTVAR: ContextVar[Union[DendriteLogger, None]] = ContextVar("dendrite_logger", default=None)
+
+DENDRITE_LOGGER_CONTEXTVAR: ContextVar[Union[DendriteLogger, None]] = ContextVar(
+    "dendrite_logger", default=None
+)

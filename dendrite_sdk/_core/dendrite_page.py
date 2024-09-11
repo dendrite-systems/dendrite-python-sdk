@@ -34,7 +34,6 @@ from dendrite_sdk._core.models.page_information import PageInformation
 from dendrite_sdk.dendrite_logger.logger import DendriteLoggerEvent, log_segment
 
 
-
 if TYPE_CHECKING:
     from dendrite_sdk._core._base_browser import BaseDendriteBrowser
 
@@ -294,6 +293,9 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             0.2
         )  # HACK: Wait for page to load slightly when running first time
         while num_attempts < max_retries:
+            logger.debug(
+                f"Attempt {num_attempts+1}/{max_retries} of waiting for page condition: {prompt}"
+            )
             num_attempts += 1
             start_time = time.time()
 
@@ -334,7 +336,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         force: bool = False,
         *args,
         kwargs={},
-    ) -> InteractionResponse:
+    ) -> Optional[InteractionResponse]:
         """
         Clicks an element on the page based on the provided prompt.
 
@@ -387,7 +389,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         timeout: int = 2000,
         *args,
         kwargs={},
-    ) -> InteractionResponse:
+    ) -> Optional[InteractionResponse]:
         """
         Fills an element on the page with the provided value based on the given prompt.
 
