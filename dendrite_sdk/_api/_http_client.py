@@ -34,7 +34,6 @@ class HTTPClient:
         if self.session_id:
             headers["X-Session-ID"] = self.session_id
 
-
         async with httpx.AsyncClient(timeout=300) as client:
             try:
                 response = await client.request(
@@ -44,7 +43,10 @@ class HTTPClient:
                 # logger.debug(
                 #     f"{method} to '{url}', that took: { time.time() - start_time }\n\nResponse: {dict_res}\n\n"
                 # )
-                dendrite_logger.update_current_observation({"request_id": response.headers.get("x-request-id")})
+                if response.headers.get("x-request-id"):
+                    dendrite_logger.update_current_observation(
+                        {"request_id": response.headers.get("x-request-id")}
+                    )
                 return response
             except httpx.HTTPStatusError as http_err:
                 logger.debug(
