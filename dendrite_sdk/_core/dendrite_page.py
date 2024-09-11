@@ -207,6 +207,17 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         """
         await self.playwright_page.close()
 
+    async def take_full_page_screenshot(self) -> str:
+        """
+        Takes a full page screenshot of the current page.
+
+        Returns:
+            str: A base64-encoded string of the full page screenshot.
+        """
+        return await self.screenshot_manager.take_full_page_screenshot(
+            self.playwright_page
+        )
+
     async def _get_page_information(self) -> PageInformation:
         """
         Retrieves information about the current page, including the URL, raw HTML, and a screenshot.
