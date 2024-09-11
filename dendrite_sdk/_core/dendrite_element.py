@@ -225,10 +225,14 @@ class DendriteElement:
         Returns:
             bool: True if the page changed, False otherwise.
         """
+        # Convert the timeout from milliseconds to seconds
+        timeout_in_seconds = timeout / 1000
         start_time = time.time()
-        while time.time() - start_time <= timeout:
+
+        while time.time() - start_time <= timeout_in_seconds:
             page = await self._dendrite_browser.get_active_page()
             if page.url != old_url:
                 return True
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)  # Wait briefly before checking again
+
         return False
