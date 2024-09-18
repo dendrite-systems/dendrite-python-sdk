@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Dict, List, Literal, Optional, Union, overload
 
 from loguru import logger
@@ -8,6 +9,10 @@ from dendrite_sdk._core.dendrite_element import DendriteElement
 from dendrite_sdk._core.models.response import DendriteElementsResponse
 from dendrite_sdk._core.protocol.page_protocol import DendritePageProtocol
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+
+
+# The timeout interval between retries in milliseconds
+TIMEOUT_INTERVAL = [150, 450, 900]
 
 
 class GetElementMixin(DendritePageProtocol):
@@ -240,7 +245,19 @@ class GetElementMixin(DendritePageProtocol):
         """
 
         llm_config = self.dendrite_browser.llm_config
+        attempt_start = time.time()
         for attempt in range(max_retries):
+            current_timeout = (
+                TIMEOUT_INTERVAL[attempt]
+                if len(TIMEOUT_INTERVAL) > attempt
+                else timeout
+            )
+            elapsed_time = time.time() - attempt_start
+            if (current_timeout * 0.001 - elapsed_time) > 0:
+                await asyncio.sleep(current_timeout * 0.001 - elapsed_time)
+
+            attempt_start = time.time()
+
             is_last_attempt = attempt == max_retries - 1
             force_not_use_cache = is_last_attempt
 
@@ -281,8 +298,5 @@ class GetElementMixin(DendritePageProtocol):
                     logger.warning(
                         f"Attempt {attempt + 1}: Failed to get elements from selector, trying again "
                     )
-
-            if not is_last_attempt:
-                await asyncio.sleep(timeout * 0.001)
 
         return None
