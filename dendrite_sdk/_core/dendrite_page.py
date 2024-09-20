@@ -5,6 +5,7 @@ import time
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     List,
     Literal,
     Optional,
@@ -320,6 +321,27 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             message=f"Retried {max_retries} times but failed to wait for the requested condition.",
             screenshot_base64=page_information.screenshot_base64,
         )
+
+    async def fill_fields(self, fields: Dict[str, Any]):
+        """
+        Fills multiple fields on the page with the provided values.
+
+        This method iterates through the given dictionary of fields and their corresponding values,
+        making a separate fill request for each key-value pair.
+
+        Args:
+            fields (Dict[str, Any]): A dictionary where each key is a field identifier (e.g., a prompt or selector)
+                                     and each value is the content to fill in that field.
+
+        Returns:
+            None
+
+        Note:
+            This method will make multiple fill requests, one for each key in the 'fields' dictionary.
+        """
+
+        for field, value in fields.items():
+            await self.fill(field, value)
 
     async def click(
         self,

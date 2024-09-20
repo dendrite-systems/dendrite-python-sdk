@@ -36,6 +36,7 @@
         return segs(element).join('/');
     }
     
+
     // Create a Map to store used hashes and their counters
     const usedHashes = new Map();
     
@@ -90,3 +91,4 @@
         }
     });   
 }
+

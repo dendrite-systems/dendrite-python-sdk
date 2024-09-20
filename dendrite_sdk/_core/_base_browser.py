@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-import sys
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 from uuid import uuid4
 import os
 from loguru import logger
@@ -14,6 +13,7 @@ from playwright.async_api import (
 
 from dendrite_sdk._api.dto.authenticate_dto import AuthenticateDTO
 from dendrite_sdk._api.dto.upload_auth_session_dto import UploadAuthSessionDTO
+from dendrite_sdk._api.response.interaction_response import InteractionResponse
 from dendrite_sdk._common.event_sync import EventSync
 from dendrite_sdk._core._managers.page_manager import (
     PageManager,
@@ -162,6 +162,7 @@ class BaseDendriteBrowser(ABC):
         url: str,
         new_page: bool = False,
         timeout: Optional[float] = 15000,
+        authenticate: bool = False,
         expected_page: str = "",
     ) -> DendritePage:
         """
@@ -171,6 +172,7 @@ class BaseDendriteBrowser(ABC):
             url (str): The URL to navigate to.
             new_page (bool, optional): Whether to open the URL in a new page. Defaults to False.
             timeout (Optional[float], optional): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
+            authenticate (bool, optional): Whether to authenticate before navigating to the URL. Defaults to False.
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
@@ -179,6 +181,9 @@ class BaseDendriteBrowser(ABC):
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
+
+        if authenticate:
+            await self.authenticate(url)
 
         active_page_manager = await self._get_active_page_manager()
 
@@ -360,3 +365,209 @@ class BaseDendriteBrowser(ABC):
             Exception: If there is an issue uploading files.
         """
         return await self._upload_handler.get_data(timeout=timeout)
+
+    async def fill_fields(self, fields: Dict[str, Any]):
+        """
+        Fills multiple fields on the active page with the provided values.
+
+        This method iterates through the given dictionary of fields and their corresponding values,
+        making a separate fill request for each key-value pair.
+
+        Args:
+            fields (Dict[str, Any]): A dictionary where each key is a field identifier (e.g., a prompt or selector)
+                                     and each value is the content to fill in that field.
+
+        Returns:
+            None
+
+        Note:
+            This method will make multiple fill requests, one for each key in the 'fields' dictionary.
+        """
+        active_page = await self.get_active_page()
+        return await active_page.fill_fields(fields)
+
+    async def click(
+        self,
+        prompt: str,
+        expected_outcome: Optional[str] = None,
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 2000,
+        force: bool = False,
+        *args,
+        **kwargs,
+    ) -> InteractionResponse:
+        """
+        Clicks an element on the active page based on the provided prompt.
+
+        Args:
+            prompt (str): The prompt describing the element to be clicked.
+            expected_outcome (Optional[str]): The expected outcome of the click action.
+            use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
+            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) for the click operation. Defaults to 2000.
+            force (bool, optional): Whether to force the click operation. Defaults to False.
+            *args: Additional positional arguments for the click operation.
+            **kwargs: Additional keyword arguments for the click operation.
+
+        Returns:
+            InteractionResponse: The response from the interaction.
+
+        Raises:
+            DendriteException: If no suitable element is found or if the click operation fails.
+        """
+        active_page = await self.get_active_page()
+        return await active_page.click(
+            prompt,
+            expected_outcome=expected_outcome,
+            use_cache=use_cache,
+            max_retries=max_retries,
+            timeout=timeout,
+            force=force,
+            *args,
+            **kwargs,
+        )
+
+    async def fill(
+        self,
+        prompt: str,
+        value: str,
+        expected_outcome: Optional[str] = None,
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 2000,
+        *args,
+        **kwargs,
+    ) -> InteractionResponse:
+        """
+        Fills an element on the active page with the provided value based on the given prompt.
+
+        Args:
+            prompt (str): The prompt describing the element to be filled.
+            value (str): The value to fill the element with.
+            expected_outcome (Optional[str]): The expected outcome of the fill action.
+            use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
+            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) for the fill operation. Defaults to 2000.
+            *args: Additional positional arguments for the fill operation.
+            **kwargs: Additional keyword arguments for the fill operation.
+
+        Returns:
+            InteractionResponse: The response from the interaction.
+
+        Raises:
+            DendriteException: If no suitable element is found or if the fill operation fails.
+        """
+        active_page = await self.get_active_page()
+        return await active_page.fill(
+            prompt,
+            value,
+            expected_outcome=expected_outcome,
+            use_cache=use_cache,
+            max_retries=max_retries,
+            timeout=timeout,
+            *args,
+            **kwargs,
+        )
+
+    async def extract(
+        self,
+        prompt: str,
+        expected_type: Any,
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 2000,
+    ) -> Any:
+        """
+        Extracts information from the active page based on the provided prompt.
+
+        Args:
+            prompt (str): The prompt describing the information to be extracted.
+            expected_type (Any): The expected type of the extracted information.
+            use_cache (bool, optional): Whether to use cached results. Defaults to True.
+            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) for the extraction operation. Defaults to 2000.
+
+        Returns:
+            Any: The extracted information of the specified type.
+
+        Raises:
+            DendriteException: If the extraction fails or the result doesn't match the expected type.
+        """
+        active_page = await self.get_active_page()
+        return await active_page.extract(
+            prompt,
+            expected_type,
+            use_cache=use_cache,
+            max_retries=max_retries,
+            timeout=timeout,
+        )
+
+    async def ask(
+        self,
+        prompt: str,
+        expected_type: Any,
+        use_cache: bool = True,
+        max_retries: int = 3,
+        timeout: int = 2000,
+    ) -> Any:
+        """
+        Asks a question about the active page based on the provided prompt.
+
+        Args:
+            prompt (str): The prompt or question to be asked about the page.
+            expected_type (Any): The expected type of the answer.
+            use_cache (bool, optional): Whether to use cached results. Defaults to True.
+            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
+            timeout (int, optional): The timeout (in milliseconds) for the ask operation. Defaults to 2000.
+
+        Returns:
+            Any: The answer to the question of the specified type.
+
+        Raises:
+            DendriteException: If the ask operation fails or the result doesn't match the expected type.
+        """
+        active_page = await self.get_active_page()
+        return await active_page.ask(
+            prompt,
+            expected_type,
+            use_cache=use_cache,
+            max_retries=max_retries,
+            timeout=timeout,
+        )
+
+    async def wait_for(self, prompt: str, timeout: float = 2000, max_retries: int = 5):
+        """
+        Waits for a condition specified by the prompt to become true on the active page.
+
+        Args:
+            prompt (str): The prompt describing the condition to wait for.
+            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2000.
+            max_retries (int, optional): The maximum number of retry attempts. Defaults to 5.
+
+        Returns:
+            Any: The result of the condition evaluation if successful.
+
+        Raises:
+            PageConditionNotMet: If the condition is not met after the maximum number of retries.
+        """
+        active_page = await self.get_active_page()
+        return await active_page.wait_for(
+            prompt, timeout=timeout, max_retries=max_retries
+        )
+
+    async def press_keyboard(self, key: Union[str, Literal["Enter"]]) -> Any:
+        """
+        Presses a keyboard key on the active page.
+
+        Args:
+            key (Union[str, Literal["Enter"]]): The key to be pressed.
+
+        Returns:
+            Any: The result of the key press operation.
+
+        Raises:
+            DendriteException: If the key press operation fails.
+        """
+        active_page = await self.get_active_page()
+        return await active_page.keyboard.press(key)
