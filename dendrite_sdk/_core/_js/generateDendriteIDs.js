@@ -52,14 +52,12 @@ document.querySelectorAll('*').forEach((element, index) => {
         }
     
         // const is_marked_hidden = element.getAttribute("data-hidden") === "true";
-        const computedStyle = window.getComputedStyle(element);
-        const isHidden = computedStyle.display === 'none' || 
-                            computedStyle.visibility === 'hidden';
+        const isHidden = !element.checkVisibility();
                             // computedStyle.width === '0px' || 
                             // computedStyle.height === '0px';
     
         if (isHidden) {
-            markHidden(element , computedStyle);
+            markHidden(element);
         }else{
             element.removeAttribute("data-hidden") // in case we hid it in a previous call
         }

@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Dict, List, Literal, Optional, Union, overload
 
 from loguru import logger
@@ -10,13 +11,16 @@ from dendrite_sdk._core.protocol.page_protocol import DendritePageProtocol
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
 
 
+# The timeout interval between retries in milliseconds
+TIMEOUT_INTERVAL = [150, 450, 100]
+
+
 class GetElementMixin(DendritePageProtocol):
     @overload
     async def get_elements(
         self,
         prompt_or_elements: str,
         use_cache: bool = True,
-        max_retries: int = 3,
         timeout: int = 3000,
         context: str = "",
     ) -> List[DendriteElement]:
@@ -26,8 +30,7 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt_or_elements (str): The prompt describing the elements to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
+            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 15000 (15 seconds).
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -39,7 +42,6 @@ class GetElementMixin(DendritePageProtocol):
         self,
         prompt_or_elements: Dict[str, str],
         use_cache: bool = True,
-        max_retries: int = 3,
         timeout: int = 3000,
         context: str = "",
     ) -> DendriteElementsResponse:
@@ -49,8 +51,7 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt_or_elements (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
+            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 3000.
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -61,7 +62,6 @@ class GetElementMixin(DendritePageProtocol):
         self,
         prompt_or_elements: Union[str, Dict[str, str]],
         use_cache: bool = True,
-        max_retries: int = 3,
         timeout: int = 3000,
         context: str = "",
     ) -> Union[List[DendriteElement], DendriteElementsResponse]:
@@ -74,8 +74,7 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt_or_elements (Union[str, Dict[str, str]]): The prompt or dictionary of prompts for element retrieval.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
+            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 3000.
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -90,12 +89,11 @@ class GetElementMixin(DendritePageProtocol):
                 prompt_or_elements,
                 only_one=False,
                 use_cache=use_cache,
-                max_retries=max_retries,
                 timeout=timeout,
             )
         if isinstance(prompt_or_elements, dict):
             return await self.get_elements_from_dict(
-                prompt_or_elements, context, use_cache, max_retries, timeout
+                prompt_or_elements, context, use_cache, timeout
             )
 
         raise ValueError("Prompt must be either a string prompt or a dictionary")
@@ -105,7 +103,6 @@ class GetElementMixin(DendritePageProtocol):
         prompt_dict: Dict[str, str],
         context: str,
         use_cache: bool,
-        max_retries: int,
         timeout: int,
     ):
         """
@@ -117,8 +114,7 @@ class GetElementMixin(DendritePageProtocol):
             prompt_dict (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
             context (str): Additional context to be added to each prompt.
             use_cache (bool): Whether to use cached results.
-            max_retries (int): The maximum number of retry attempts.
-            timeout (int): The timeout (in milliseconds) between retries.
+            timeout (int): The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
             DendriteElementsResponse: A response object containing the retrieved elements mapped to their corresponding field names.
@@ -132,7 +128,6 @@ class GetElementMixin(DendritePageProtocol):
                 full_prompt,
                 only_one=True,
                 use_cache=use_cache,
-                max_retries=max_retries,
                 timeout=timeout,
             )
             tasks.append(task)
@@ -147,8 +142,7 @@ class GetElementMixin(DendritePageProtocol):
         self,
         prompt: str,
         use_cache=True,
-        max_retries=2,
-        timeout=3000,
+        timeout=15000,
     ) -> Optional[DendriteElement]:
         """
         Retrieves a single Dendrite element based on the provided prompt.
@@ -156,8 +150,7 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt (str): The prompt describing the element to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) between retries. Defaults to 3.
+            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 15000 (15 seconds).
 
         Returns:
             DendriteElement: The retrieved element.
@@ -166,7 +159,6 @@ class GetElementMixin(DendritePageProtocol):
             prompt,
             only_one=True,
             use_cache=use_cache,
-            max_retries=max_retries,
             timeout=timeout,
         )
 
@@ -176,7 +168,6 @@ class GetElementMixin(DendritePageProtocol):
         prompt: str,
         only_one: Literal[True],
         use_cache: bool,
-        max_retries,
         timeout,
     ) -> Optional[DendriteElement]:
         """
@@ -186,8 +177,7 @@ class GetElementMixin(DendritePageProtocol):
             prompt (str): The prompt describing the element to be retrieved.
             only_one (Literal[True]): Indicates that only one element should be retrieved.
             use_cache (bool): Whether to use cached results.
-            max_retries: The maximum number of retry attempts.
-            timeout: The timeout (in milliseconds) between retries.
+            timeout: The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
             DendriteElement: The retrieved element.
@@ -199,7 +189,6 @@ class GetElementMixin(DendritePageProtocol):
         prompt: str,
         only_one: Literal[False],
         use_cache: bool,
-        max_retries,
         timeout,
     ) -> List[DendriteElement]:
         """
@@ -209,44 +198,62 @@ class GetElementMixin(DendritePageProtocol):
             prompt (str): The prompt describing the elements to be retrieved.
             only_one (Literal[False]): Indicates that multiple elements should be retrieved.
             use_cache (bool): Whether to use cached results.
-            max_retries: The maximum number of retry attempts.
-            timeout: The timeout in seconds between retries.
+            timeout: The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
             List[DendriteElement]: A list of retrieved elements.
         """
 
     async def _get_element(
-        self, prompt: str, only_one: bool, use_cache: bool, max_retries, timeout
+        self, prompt: str, only_one: bool, use_cache: bool, timeout: float
     ) -> Union[Optional[DendriteElement], List[DendriteElement]]:
         """
         Retrieves Dendrite elements based on the provided prompt, either a single element or a list of elements.
 
         This method sends a request with the prompt and retrieves the elements based on the `only_one` flag.
-        If no elements are found within the specified retries, an exception is raised.
 
         Args:
             prompt (str): The prompt describing the elements to be retrieved.
             only_one (bool): Whether to retrieve only one element or a list of elements.
             use_cache (bool): Whether to use cached results.
-            max_retries: The maximum number of retry attempts.
-            timeout: The timeout (in milliseconds) between retries.
+            timeout (float): The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
             Union[DendriteElement, List[DendriteElement]]: The retrieved element or list of elements.
-
-        Raises:
-            DendriteException: If no suitable elements are found within the specified retries.
         """
 
         llm_config = self.dendrite_browser.llm_config
-        for attempt in range(max_retries):
-            is_last_attempt = attempt == max_retries - 1
-            force_not_use_cache = is_last_attempt
-
-            logger.info(
-                f"Getting element for '{prompt}' | Attempt {attempt + 1}/{max_retries}"
+        start_time = time.time()
+        attempt_start = start_time
+        attempt = -1
+        force_not_use_cache = False
+        while True:
+            attempt += 1
+            current_timeout = (
+                TIMEOUT_INTERVAL[attempt]
+                if len(TIMEOUT_INTERVAL) > attempt
+                else current_timeout * 1.75  # Default to 1 second if not specified
             )
+
+            elapsed_time = time.time() - start_time
+            remaining_time = timeout*0.001 - elapsed_time
+
+            if remaining_time <= 10 or attempt > 2:
+                force_not_use_cache = True
+
+            if remaining_time <= 0:
+                break
+
+            prev_attempt_time = time.time() - attempt_start
+
+            sleep_time = min(
+                max(current_timeout * 0.001 - prev_attempt_time, 0), remaining_time
+            )
+            logger.debug(f"Waiting for {sleep_time} seconds before retrying")
+            await asyncio.sleep(sleep_time)
+            attempt_start = time.time()
+
+            logger.info(f"Getting element for '{prompt}' | Attempt {attempt + 1}")
 
             page_information = await self._get_page_information()
 
@@ -258,31 +265,26 @@ class GetElementMixin(DendritePageProtocol):
                 only_one=only_one,
             )
             res = await self.browser_api_client.get_interactions_selector(dto)
-            logger.debug(f"Got selectors: {res}")
+            logger.debug(
+                f"Got selectors: {res} in {time.time() - attempt_start} seconds"
+            )
+
             if not res.selectors:
                 continue
-                # raise DendriteException(
-                #     message="Could not find suitable elements on the page.",
-                #     screenshot_base64=page_information.screenshot_base64,
-                # )
 
             for selector in reversed(res.selectors):
-
                 dendrite_elements = await self._get_all_elements_from_selector(selector)
                 if len(dendrite_elements) > 0:
                     logger.info(f"Got working selector: {selector}")
                     return dendrite_elements[0] if only_one else dendrite_elements
 
-                if is_last_attempt:
-                    logger.warning(
-                        f"Last attempt: Failed to get elements from selector with cache disabled"
-                    )
-                else:
-                    logger.warning(
-                        f"Attempt {attempt + 1}: Failed to get elements from selector, trying again "
-                    )
-
-            if not is_last_attempt:
-                await asyncio.sleep(timeout * 0.001)
+                # if is_last_attempt:
+                #     logger.warning(
+                #         f"Last attempt: Failed to get elements from selector with cache disabled"
+                #     )
+                # else:
+                #     logger.warning(
+                #         f"Attempt {attempt + 1}: Failed to get elements from selector, trying again"
+                #     )
 
         return None

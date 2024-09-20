@@ -215,11 +215,11 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         Returns:
             PageInformation: An object containing the page's URL, raw HTML, and a screenshot in base64 format.
         """
-        soup = await self._get_soup()
 
         base64 = await self.screenshot_manager.take_full_page_screenshot(
             self.playwright_page
         )
+        soup = await self._get_soup()
 
         return PageInformation(
             url=self.playwright_page.url,
