@@ -1,4 +1,8 @@
+import asyncio
+import time
 from typing import Optional, Type, overload
+
+from loguru import logger
 
 from dendrite_sdk._api.dto.ask_page_dto import AskPageDTO
 from dendrite_sdk._core._type_spec import (
@@ -10,6 +14,9 @@ from dendrite_sdk._core._type_spec import (
 )
 from dendrite_sdk._core.protocol.page_protocol import DendritePageProtocol
 from dendrite_sdk._exceptions.dendrite_exception import DendriteException
+
+# The timeout interval between retries in milliseconds
+TIMEOUT_INTERVAL = [150, 450, 1000]
 
 
 class AskMixin(DendritePageProtocol):
@@ -109,6 +116,7 @@ class AskMixin(DendritePageProtocol):
         self,
         prompt: str,
         type_spec: Optional[TypeSpec] = None,
+        timeout: int = 15000,
     ) -> TypeSpec:
         """
         Asks a question and processes the response based on the specified type.
@@ -128,32 +136,78 @@ class AskMixin(DendritePageProtocol):
             DendriteException: If the request fails, the exception includes the failure message and a screenshot.
         """
         llm_config = self.dendrite_browser.llm_config
-        page_information = await self._get_page_information()
+        start_time = time.time()
+        attempt_start = start_time
+        attempt = -1
 
-        schema = None
-        if type_spec:
-            schema = to_json_schema(type_spec)
-
-        dto = AskPageDTO(
-            page_information=page_information,
-            llm_config=llm_config,
-            prompt=prompt,
-            return_schema=schema,
-        )
-        res = await self.browser_api_client.ask_page(dto)
-        if res.status == "error":
-            raise DendriteException(
-                message=res.return_data,
-                screenshot_base64=page_information.screenshot_base64,
+        while True:
+            attempt += 1
+            current_timeout = (
+                TIMEOUT_INTERVAL[attempt]
+                if len(TIMEOUT_INTERVAL) > attempt
+                else TIMEOUT_INTERVAL[-1] * 1.75
             )
 
-            # raise DendriteException(
-            #     message=res.,
-            #     screenshot_base64=page_information.screenshot_base64,
-            # )
+            elapsed_time = time.time() - start_time
+            remaining_time = timeout * 0.001 - elapsed_time
 
-        converted_res = res.return_data
-        if type_spec is not None:
-            converted_res = convert_to_type_spec(type_spec, res.return_data)
+            if remaining_time <= 0:
+                logger.warning(
+                    f"Timeout reached for '{prompt}' after {attempt + 1} attempts"
+                )
+                break
 
-        return converted_res
+            prev_attempt_time = time.time() - attempt_start
+
+            sleep_time = min(
+                max(current_timeout * 0.001 - prev_attempt_time, 0), remaining_time
+            )
+            logger.debug(f"Waiting for {sleep_time} seconds before retrying")
+            await asyncio.sleep(sleep_time)
+            attempt_start = time.time()
+
+            logger.info(f"Asking '{prompt}' | Attempt {attempt + 1}")
+
+            page_information = await self._get_page_information()
+
+            schema = to_json_schema(type_spec) if type_spec else None
+
+            if elapsed_time < 5:
+                time_prompt = f"This page was loaded {elapsed_time} seconds ago, so it might still be loading. If the page is still loading, return failed status."
+            else:
+                time_prompt = ""
+
+            entire_prompt = prompt + time_prompt
+
+            dto = AskPageDTO(
+                page_information=page_information,
+                llm_config=llm_config,
+                prompt=entire_prompt,
+                return_schema=schema,
+            )
+
+            try:
+                res = await self.browser_api_client.ask_page(dto)
+                logger.debug(f"Got response in {time.time() - attempt_start} seconds")
+
+                if res.status == "error":
+                    logger.warning(
+                        f"Error response on attempt {attempt + 1}: {res.return_data}"
+                    )
+                    continue
+
+                converted_res = res.return_data
+                if type_spec is not None:
+                    converted_res = convert_to_type_spec(type_spec, res.return_data)
+
+                return converted_res
+
+            except Exception as e:
+                logger.error(f"Exception occurred on attempt {attempt + 1}: {str(e)}")
+                if attempt == len(TIMEOUT_INTERVAL) - 1:
+                    raise
+
+        raise DendriteException(
+            message=f"Failed to get response for '{prompt}' after {attempt + 1} attempts",
+            screenshot_base64=page_information.screenshot_base64,
+        )

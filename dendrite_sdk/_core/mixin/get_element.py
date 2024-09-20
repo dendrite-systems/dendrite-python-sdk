@@ -12,7 +12,7 @@ from dendrite_sdk._exceptions.dendrite_exception import DendriteException
 
 
 # The timeout interval between retries in milliseconds
-TIMEOUT_INTERVAL = [150, 450, 100]
+TIMEOUT_INTERVAL = [150, 450, 1000]
 
 
 class GetElementMixin(DendritePageProtocol):
@@ -236,12 +236,15 @@ class GetElementMixin(DendritePageProtocol):
             )
 
             elapsed_time = time.time() - start_time
-            remaining_time = timeout*0.001 - elapsed_time
+            remaining_time = timeout * 0.001 - elapsed_time
 
             if remaining_time <= 10 or attempt > 2:
                 force_not_use_cache = True
 
             if remaining_time <= 0:
+                logger.warning(
+                    f"Timeout reached for '{prompt}' after {attempt + 1} attempts"
+                )
                 break
 
             prev_attempt_time = time.time() - attempt_start
@@ -270,6 +273,9 @@ class GetElementMixin(DendritePageProtocol):
             )
 
             if not res.selectors:
+                logger.warning(
+                    f"No selectors returned for '{prompt}' on attempt {attempt + 1}"
+                )
                 continue
 
             for selector in reversed(res.selectors):
@@ -277,14 +283,16 @@ class GetElementMixin(DendritePageProtocol):
                 if len(dendrite_elements) > 0:
                     logger.info(f"Got working selector: {selector}")
                     return dendrite_elements[0] if only_one else dendrite_elements
+                else:
+                    logger.warning(
+                        f"No elements found for selector: {selector} on attempt {attempt + 1}"
+                    )
 
-                # if is_last_attempt:
-                #     logger.warning(
-                #         f"Last attempt: Failed to get elements from selector with cache disabled"
-                #     )
-                # else:
-                #     logger.warning(
-                #         f"Attempt {attempt + 1}: Failed to get elements from selector, trying again"
-                #     )
+            logger.warning(
+                f"All selectors failed for '{prompt}' on attempt {attempt + 1}"
+            )
 
+        logger.error(
+            f"Failed to get elements for '{prompt}' after {attempt + 1} attempts"
+        )
         return None

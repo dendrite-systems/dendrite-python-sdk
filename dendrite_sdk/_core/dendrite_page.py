@@ -1,3 +1,4 @@
+import re
 import asyncio
 import pathlib
 import time
@@ -95,11 +96,14 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         Navigate to a URL.
 
         Args:
-            url (str): The URL to navigate to.
+            url (str): The URL to navigate to. If no protocol is specified, 'https://' will be added.
             timeout (Optional[float]): Maximum navigation time in milliseconds.
             wait_until (Optional[Literal["commit", "domcontentloaded", "load", "networkidle"]]):
                 When to consider navigation succeeded.
         """
+        # Check if the URL has a protocol
+        if not re.match(r"^\w+://", url):
+            url = f"https://{url}"
 
         await self.playwright_page.goto(url, timeout=timeout, wait_until=wait_until)
 
@@ -265,7 +269,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
     async def wait_for(
         self,
         prompt: str,
-        timeout: float = 2000,
+        timeout: float = 15000,
         max_retries: int = 5,
     ):
         """
@@ -277,7 +281,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
 
         Args:
             prompt (str): The prompt to determine the condition to wait for on the page.
-            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2000.
+            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 15000.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 5.
 
         Returns:
@@ -341,15 +345,16 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         """
 
         for field, value in fields.items():
-            await self.fill(field, value)
+            prompt = f"I'll be filling in several values from a object with these keys: {fields.keys()} in this page. Get the field best described as '{field}'. I want to fill it with a '{type(value)}' type value."
+            await self.fill(prompt, value)
+            await asyncio.sleep(0.5)
 
     async def click(
         self,
         prompt: str,
         expected_outcome: Optional[str] = None,
         use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 2000,
+        timeout: int = 15000,
         force: bool = False,
         *args,
         kwargs={},
@@ -365,7 +370,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             expected_outcome (Optional[str]): The expected outcome of the click action.
             use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
             max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the click operation. Defaults to 2000.
+            timeout (int, optional): The timeout (in milliseconds) for the click operation. Defaults to 15000.
             force (bool, optional): Whether to force the click operation. Defaults to False.
             *args: Additional positional arguments for the click operation.
             kwargs: Additional keyword arguments for the click operation.
@@ -379,7 +384,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         element = await self.get_element(
             prompt,
             use_cache=use_cache,
-            max_retries=max_retries,
             timeout=timeout,
         )
 
@@ -403,8 +407,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         value: str,
         expected_outcome: Optional[str] = None,
         use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 2000,
+        timeout: int = 15000,
         *args,
         kwargs={},
     ) -> InteractionResponse:
@@ -420,7 +423,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
             expected_outcome (Optional[str]): The expected outcome of the fill action.
             use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
             max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the fill operation. Defaults to 2000.
+            timeout (int, optional): The timeout (in milliseconds) for the fill operation. Defaults to 15000.
             *args: Additional positional arguments for the fill operation.
             kwargs: Additional keyword arguments for the fill operation.
 
@@ -433,7 +436,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         element = await self.get_element(
             prompt,
             use_cache=use_cache,
-            max_retries=max_retries,
             timeout=timeout,
         )
 

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import re
 from typing import Any, Dict, List, Literal, Optional, Union
 from uuid import uuid4
 import os
@@ -181,6 +182,9 @@ class BaseDendriteBrowser(ABC):
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
+        # Check if the URL has a protocol
+        if not re.match(r"^\w+://", url):
+            url = f"https://{url}"
 
         if authenticate:
             await self.authenticate(url)
@@ -255,6 +259,7 @@ class BaseDendriteBrowser(ABC):
         dto = AuthenticateDTO(domains=domains)
         auth_session: AuthSession = await self._browser_api_client.authenticate(dto)
         self._auth_data = auth_session
+        print("self._auth_data: ", self._auth_data)
 
     async def new_page(self) -> DendritePage:
         """
@@ -391,8 +396,7 @@ class BaseDendriteBrowser(ABC):
         prompt: str,
         expected_outcome: Optional[str] = None,
         use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 2000,
+        timeout: int = 15000,
         force: bool = False,
         *args,
         **kwargs,
@@ -404,8 +408,7 @@ class BaseDendriteBrowser(ABC):
             prompt (str): The prompt describing the element to be clicked.
             expected_outcome (Optional[str]): The expected outcome of the click action.
             use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the click operation. Defaults to 2000.
+            timeout (int, optional): The timeout (in milliseconds) for the click operation. Defaults to 15000.
             force (bool, optional): Whether to force the click operation. Defaults to False.
             *args: Additional positional arguments for the click operation.
             **kwargs: Additional keyword arguments for the click operation.
@@ -421,7 +424,6 @@ class BaseDendriteBrowser(ABC):
             prompt,
             expected_outcome=expected_outcome,
             use_cache=use_cache,
-            max_retries=max_retries,
             timeout=timeout,
             force=force,
             *args,
@@ -434,8 +436,7 @@ class BaseDendriteBrowser(ABC):
         value: str,
         expected_outcome: Optional[str] = None,
         use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 2000,
+        timeout: int = 15000,
         *args,
         **kwargs,
     ) -> InteractionResponse:
@@ -447,8 +448,7 @@ class BaseDendriteBrowser(ABC):
             value (str): The value to fill the element with.
             expected_outcome (Optional[str]): The expected outcome of the fill action.
             use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the fill operation. Defaults to 2000.
+            timeout (int, optional): The timeout (in milliseconds) for the fill operation. Defaults to 15000.
             *args: Additional positional arguments for the fill operation.
             **kwargs: Additional keyword arguments for the fill operation.
 
@@ -464,7 +464,6 @@ class BaseDendriteBrowser(ABC):
             value,
             expected_outcome=expected_outcome,
             use_cache=use_cache,
-            max_retries=max_retries,
             timeout=timeout,
             *args,
             **kwargs,
@@ -473,10 +472,8 @@ class BaseDendriteBrowser(ABC):
     async def extract(
         self,
         prompt: str,
-        expected_type: Any,
+        expected_type: Optional[Any] = None,
         use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 2000,
     ) -> Any:
         """
         Extracts information from the active page based on the provided prompt.
@@ -485,8 +482,6 @@ class BaseDendriteBrowser(ABC):
             prompt (str): The prompt describing the information to be extracted.
             expected_type (Any): The expected type of the extracted information.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the extraction operation. Defaults to 2000.
 
         Returns:
             Any: The extracted information of the specified type.
@@ -499,17 +494,12 @@ class BaseDendriteBrowser(ABC):
             prompt,
             expected_type,
             use_cache=use_cache,
-            max_retries=max_retries,
-            timeout=timeout,
         )
 
     async def ask(
         self,
         prompt: str,
-        expected_type: Any,
-        use_cache: bool = True,
-        max_retries: int = 3,
-        timeout: int = 2000,
+        expected_type: Optional[Any] = None,
     ) -> Any:
         """
         Asks a question about the active page based on the provided prompt.
@@ -517,9 +507,6 @@ class BaseDendriteBrowser(ABC):
         Args:
             prompt (str): The prompt or question to be asked about the page.
             expected_type (Any): The expected type of the answer.
-            use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the ask operation. Defaults to 2000.
 
         Returns:
             Any: The answer to the question of the specified type.
@@ -531,18 +518,15 @@ class BaseDendriteBrowser(ABC):
         return await active_page.ask(
             prompt,
             expected_type,
-            use_cache=use_cache,
-            max_retries=max_retries,
-            timeout=timeout,
         )
 
-    async def wait_for(self, prompt: str, timeout: float = 2000, max_retries: int = 5):
+    async def wait_for(self, prompt: str, timeout: float = 15000, max_retries: int = 5):
         """
         Waits for a condition specified by the prompt to become true on the active page.
 
         Args:
             prompt (str): The prompt describing the condition to wait for.
-            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 2000.
+            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 15000.
             max_retries (int, optional): The maximum number of retry attempts. Defaults to 5.
 
         Returns:
