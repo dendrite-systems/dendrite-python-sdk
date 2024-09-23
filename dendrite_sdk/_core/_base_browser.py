@@ -37,30 +37,25 @@ from dendrite_sdk._exceptions.dendrite_exception import (
 
 class BaseDendriteBrowser(ABC):
     """
-    DendriteBrowser is a class that manages a browser instance using Playwright, allowing
+    DendriteBrowser is an abstract base class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
     This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
     contexts, and provides methods for navigation, authentication, and other browser-related tasks.
 
     Attributes:
-        id (UUID): The unique identifier for the DendriteBrowser instance.
-        auth_data (Optional[AuthSession]): The authentication session data for the browser.
-        dendrite_api_key (str): The API key for Dendrite, used for interactions with the Dendrite API.
-        playwright_options (dict): Options for configuring the Playwright browser instance.
         playwright (Optional[Playwright]): The Playwright instance managing the browser.
         browser_context (Optional[BrowserContext]): The current browser context, which may include cookies and other session data.
-        active_page_manager (Optional[PageManager]): The manager responsible for handling active pages within the browser context.
-        user_id (Optional[str]): The user ID associated with the browser session.
-        browser_api_client (BrowserAPIClient): The API client used for communicating with the Dendrite API.
+        closed (bool): Indicates whether the browser instance is closed.
         llm_config (LLMConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
 
     Raises:
-        Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
+        MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
     """
 
     def __init__(
         self,
+        authenticated_on: Optional[Union[str, List[str]]] = None,
         openai_api_key: Optional[str] = None,
         dendrite_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
@@ -70,17 +65,17 @@ class BaseDendriteBrowser(ABC):
         },
     ):
         """
-        Initializes the DendriteBrowser with API keys and Playwright options.
+        Initializes the BaseDendriteBrowser with API keys and Playwright options.
 
         Args:
-            id (Optional[str]): An optional ID for the browser instance. If not provided, a UUID is generated.
+            authenticated_on (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate on.
             openai_api_key (Optional[str], optional): The OpenAI API key. If not provided, it's fetched from the environment variables.
             dendrite_api_key (Optional[str], optional): The Dendrite API key. If not provided, it's fetched from the environment variables.
             anthropic_api_key (Optional[str], optional): The Anthropic API key. If not provided, it's fetched from the environment variables.
             playwright_options (Any, optional): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
 
         Raises:
-            Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
+            MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
         """
 
         if not dendrite_api_key or dendrite_api_key == "":
@@ -105,7 +100,6 @@ class BaseDendriteBrowser(ABC):
                 )
 
         self._id = uuid4().hex
-        self._auth_data: Optional[AuthSession] = None
         self._dendrite_api_key = dendrite_api_key
         self._playwright_options = playwright_options
         self._active_page_manager: Optional[PageManager] = None
@@ -115,7 +109,9 @@ class BaseDendriteBrowser(ABC):
         self.browser_context: Optional[BrowserContext] = None
         self._upload_handler = EventSync[FileChooser]()
         self._download_handler = EventSync[Download]()
+        self._user_dir = "tmp/playwright"
         self.closed = False
+        self._authenticated_on = authenticated_on
 
         llm_config = LLMConfig(
             openai_api_key=openai_api_key, anthropic_api_key=anthropic_api_key
@@ -144,6 +140,24 @@ class BaseDendriteBrowser(ABC):
         # Ensure cleanup is handled
         await self.close()
 
+    async def _get_auth_session(self, domains: Union[str, list[str]]):
+        dto = AuthenticateDTO(domains=domains)
+        auth_session: AuthSession = await self._browser_api_client.authenticate(dto)
+        return auth_session
+
+    async def new_page(self) -> DendritePage:
+        """
+        Opens a new page in the browser.
+
+        Returns:
+            DendritePage: The newly opened page.
+
+        Raises:
+            Exception: If there is an issue opening a new page.
+        """
+        active_page_manager = await self._get_active_page_manager()
+        return await active_page_manager.new_page()
+
     async def get_active_page(self) -> DendritePage:
         """
         Retrieves the currently active page managed by the PageManager.
@@ -163,7 +177,6 @@ class BaseDendriteBrowser(ABC):
         url: str,
         new_page: bool = False,
         timeout: Optional[float] = 15000,
-        authenticate: bool = False,
         expected_page: str = "",
     ) -> DendritePage:
         """
@@ -173,7 +186,6 @@ class BaseDendriteBrowser(ABC):
             url (str): The URL to navigate to.
             new_page (bool, optional): Whether to open the URL in a new page. Defaults to False.
             timeout (Optional[float], optional): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
-            authenticate (bool, optional): Whether to authenticate before navigating to the URL. Defaults to False.
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
@@ -185,9 +197,6 @@ class BaseDendriteBrowser(ABC):
         # Check if the URL has a protocol
         if not re.match(r"^\w+://", url):
             url = f"https://{url}"
-
-        if authenticate:
-            await self.authenticate(url)
 
         active_page_manager = await self._get_active_page_manager()
 
@@ -225,14 +234,25 @@ class BaseDendriteBrowser(ABC):
         Raises:
             Exception: If there is an issue launching the browser or setting up the context.
         """
+        user_dir = "tmp/playwright"
+        user_dir = os.path.join(os.getcwd(), user_dir)
+
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self._playwright = await async_playwright().start()
+        # self.browser_context = (
+        #     await self._playwright.chromium.launch_persistent_context(
+        #         headless=False,
+        #         user_data_dir=user_dir,
+        #     )
+        # )
+
         browser = await self._playwright.chromium.launch(**self._playwright_options)
 
-        if self._auth_data:
+        if self._authenticated_on:
+            auth_session = await self._get_auth_session(self._authenticated_on)
             self.browser_context = await browser.new_context(
-                storage_state=self._auth_data.to_storage_state(),
-                user_agent=self._auth_data.user_agent,
+                storage_state=auth_session.to_storage_state(),
+                user_agent=auth_session.user_agent,
             )
         else:
             self.browser_context = await browser.new_context()
@@ -241,38 +261,8 @@ class BaseDendriteBrowser(ABC):
             screenshots=True, snapshots=True, sources=True
         )
         self._active_page_manager = PageManager(self, self.browser_context)
-        return browser, self.browser_context, self._active_page_manager
 
-    async def authenticate(self, domains: Union[str, list[str]]):
-        """
-        Authenticates the browser for the specified domains.
-
-        Args:
-            domains (Union[str, list[str]]): A domain or list of domains to authenticate.
-
-        Returns:
-            None
-
-        Raises:
-            Exception: If authentication fails.
-        """
-        dto = AuthenticateDTO(domains=domains)
-        auth_session: AuthSession = await self._browser_api_client.authenticate(dto)
-        self._auth_data = auth_session
-        print("self._auth_data: ", self._auth_data)
-
-    async def new_page(self) -> DendritePage:
-        """
-        Opens a new page in the browser.
-
-        Returns:
-            DendritePage: The newly opened page.
-
-        Raises:
-            Exception: If there is an issue opening a new page.
-        """
-        active_page_manager = await self._get_active_page_manager()
-        return await active_page_manager.new_page()
+        return self._active_page_manager
 
     async def add_cookies(self, cookies):
         """
@@ -305,10 +295,11 @@ class BaseDendriteBrowser(ABC):
 
         self.closed = True
         if self.browser_context:
-            if self._auth_data:
+            if self._authenticated_on:
+                auth_session = await self._get_auth_session(self._authenticated_on)
                 storage_state = await self.browser_context.storage_state()
                 dto = UploadAuthSessionDTO(
-                    auth_data=self._auth_data, storage_state=storage_state
+                    auth_data=auth_session, storage_state=storage_state
                 )
                 await self._browser_api_client.upload_auth_session(dto)
             await self.browser_context.close()
@@ -338,7 +329,7 @@ class BaseDendriteBrowser(ABC):
             Exception: If there is an issue launching the browser or retrieving the PageManager.
         """
         if not self._active_page_manager:
-            _, _, active_page_manager = await self._launch()
+            active_page_manager = await self._launch()
             return active_page_manager
 
         return self._active_page_manager
