@@ -81,7 +81,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             elif alias.name == "asyncio":
                 alias = ast.alias(name="time", asname=alias.asname)
             elif alias.name.startswith("dendrite_sdk"):
-                new_name = alias.name.replace("dendrite_sdk", "sync_dendrite_sdk", 1)
+                new_name = alias.name.replace("dendrite_sdk", "dendrite_sync_sdk", 1)
                 alias = ast.alias(name=new_name, asname=alias.asname)
             new_names.append(alias)
         node.names = new_names
@@ -101,7 +101,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         elif node.module == "asyncio":
             node.module = "time"
         elif node.module and node.module.startswith("dendrite_sdk"):
-            node.module = node.module.replace("dendrite_sdk", "sync_dendrite_sdk", 1)
+            node.module = node.module.replace("dendrite_sdk", "dendrite_sdk_sync", 1)
         return node
 
     def visit_Call(self, node):
