@@ -40,14 +40,10 @@ class BrowserbaseDownload(DownloadInterface):
             file_list = zip_ref.namelist()
 
             # Filter and sort files based on timestamp
-            timestamp_pattern = re.compile(r"-(\d+)\.")
+
             sorted_files = sorted(
                 file_list,
-                key=lambda x: int(
-                    timestamp_pattern.search(x).group(1)  # type: ignore
-                    if timestamp_pattern.search(x)
-                    else 0
-                ),
+                key=extract_timestamp,
                 reverse=True,
             )
 
@@ -63,3 +59,9 @@ class BrowserbaseDownload(DownloadInterface):
             ) as target:
                 shutil.copyfileobj(source, target)
         logger.info(f"Latest file saved successfully to {destination_path}")
+
+
+def extract_timestamp(filename):
+    timestamp_pattern = re.compile(r"-(\d+)\.")
+    match = timestamp_pattern.search(filename)
+    return int(match.group(1)) if match else 0

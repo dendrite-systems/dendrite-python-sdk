@@ -1,6 +1,6 @@
 from abc import ABC
 import inspect
-from typing import Any, Dict, Literal, TypeVar, Union
+from typing import Any, Dict, Literal, Type, TypeVar, Union
 from pydantic import BaseModel
 
 from playwright.async_api import Download
@@ -11,9 +11,9 @@ Interaction = Literal["click", "fill", "hover"]
 
 T = TypeVar("T")
 PydanticModel = TypeVar("PydanticModel", bound=BaseModel)
-PrimitiveType = Union[str, float, bool, int]
+PrimitiveTypes = PrimitiveTypes = Union[Type[bool], Type[int], Type[float], Type[str]]
 JsonSchema = Dict[str, Any]
-TypeSpec = Union[PrimitiveType, PydanticModel, JsonSchema]
+TypeSpec = Union[PrimitiveTypes, PydanticModel, JsonSchema]
 
 
 def to_json_schema(type_spec: TypeSpec) -> Dict[str, Any]:
@@ -26,7 +26,7 @@ def to_json_schema(type_spec: TypeSpec) -> Dict[str, Any]:
     if type_spec in (bool, int, float, str):
         # Convert basic Python types to JSON schema
         type_map = {bool: "boolean", int: "integer", float: "number", str: "string"}
-        return {"type": type_map[type_spec]}  # type: ignore
+        return {"type": type_map[type_spec]}
 
     raise ValueError(f"Unsupported type specification: {type_spec}")
 

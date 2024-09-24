@@ -133,7 +133,8 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         if isinstance(element, Tag):
             full_path = element.get("iframe-path")
             if full_path:
-                for path in full_path.split("|"):  # type: ignore
+                full_path = full_path[0] if isinstance(full_path, list) else full_path
+                for path in full_path.split("|"):
                     context = context.frame_locator(f"xpath=//iframe[@d-id='{path}']")
 
         return context

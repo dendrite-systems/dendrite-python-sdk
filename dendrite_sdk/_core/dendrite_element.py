@@ -46,7 +46,8 @@ def perform_action(interaction_type: Interaction):
             )
 
             if not expected_outcome:
-                return await func(self, *args, **kwargs)
+                await func(self, *args, **kwargs)
+                return InteractionResponse(status="success", message="")
 
             llm_config = self._dendrite_browser.llm_config
 
@@ -137,7 +138,7 @@ class DendriteElement:
     @perform_action("click")
     async def click(
         self, expected_outcome: Optional[str] = None, *args, **kwargs
-    ) -> InteractionResponse:  # type: ignore
+    ) -> InteractionResponse:
         """
         Click the element.
 
@@ -161,10 +162,12 @@ class DendriteElement:
             except Exception as e:
                 await self.locator.dispatch_event("click", timeout=2000)
 
+        return InteractionResponse(status="success", message="")
+
     @perform_action("fill")
     async def fill(
         self, value: str, expected_outcome: Optional[str] = None, *args, **kwargs
-    ) -> InteractionResponse:  # type: ignore
+    ) -> InteractionResponse:
         """
         Fill the element with a value. If an expected outcome is provided, the LLM will be used to verify the outcome and raise an exception if the outcome is not as expected.
         All additional arguments are passed to the Playwright fill method.
@@ -182,10 +185,12 @@ class DendriteElement:
         timeout = kwargs.pop("timeout", 2000)
         await self.locator.fill(value, timeout=timeout, *args, **kwargs)
 
+        return InteractionResponse(status="success", message="")
+
     @perform_action("hover")
     async def hover(
         self, expected_outcome: Optional[str] = None, *args, **kwargs
-    ) -> InteractionResponse:  # type: ignore
+    ) -> InteractionResponse:
         """
         Hover over the element.
         All additional arguments are passed to the Playwright fill method.
@@ -201,6 +206,8 @@ class DendriteElement:
 
         timeout = kwargs.pop("timeout", 2000)
         await self.locator.hover(timeout=timeout, *args, **kwargs)
+
+        return InteractionResponse(status="success", message="")
 
     async def focus(self):
         """

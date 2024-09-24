@@ -3,6 +3,7 @@ from typing import Optional
 from loguru import logger
 from playwright.async_api import Playwright, Page
 from dendrite_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
+from dendrite_sdk._exceptions.dendrite_exception import BrowserNotLaunchedError
 from dendrite_sdk.ext._remote_provider import RemoteProvider
 from dendrite_sdk.ext.browserbase._download import BrowserbaseDownload
 from ._client import BrowserbaseClient
@@ -55,7 +56,11 @@ class BrowserbaseProvider(RemoteProvider):
 
         page = await browser.get_active_page()
         pw_page = page.playwright_page
-        client = await browser.browser_context.new_cdp_session(pw_page)  # type: ignore
+
+        if browser.browser_context is None:
+            raise BrowserNotLaunchedError()
+
+        client = await browser.browser_context.new_cdp_session(pw_page)
         await client.send(
             "Browser.setDownloadBehavior",
             {
