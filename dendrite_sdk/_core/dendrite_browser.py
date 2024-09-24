@@ -1,4 +1,4 @@
-from playwright.async_api import FileChooser, Download
+from playwright.async_api import FileChooser, Download, Page
 from dendrite_sdk._core._base_browser import BaseDendriteBrowser
 
 
@@ -26,7 +26,7 @@ class DendriteBrowser(BaseDendriteBrowser):
         Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
     """
 
-    async def _get_download(self, timeout: float = 30000) -> Download:
+    async def _get_download(self, pw_page: Page, timeout: float = 30000) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -38,9 +38,11 @@ class DendriteBrowser(BaseDendriteBrowser):
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        return await self._download_handler.get_data(timeout)
+        return await self._download_handler.get_data(pw_page, timeout)
 
-    async def _get_filechooser(self, timeout: float = 30000) -> FileChooser:
+    async def _get_filechooser(
+        self, pw_page: Page, timeout: float = 30000
+    ) -> FileChooser:
         """
         Uploads files to the browser.
 
@@ -52,4 +54,4 @@ class DendriteBrowser(BaseDendriteBrowser):
         Raises:
             Exception: If there is an issue uploading files.
         """
-        return await self._upload_handler.get_data(timeout)
+        return await self._upload_handler.get_data(pw_page, timeout)

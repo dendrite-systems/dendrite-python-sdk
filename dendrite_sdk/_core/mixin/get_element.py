@@ -236,7 +236,7 @@ class GetElementMixin(DendritePageProtocol):
             )
 
             elapsed_time = time.time() - start_time
-            remaining_time = timeout*0.001 - elapsed_time
+            remaining_time = timeout * 0.001 - elapsed_time
 
             if remaining_time <= 10 or attempt > 2:
                 force_not_use_cache = True

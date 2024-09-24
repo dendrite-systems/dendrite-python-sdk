@@ -10,6 +10,7 @@ from playwright.async_api import (
     BrowserContext,
     FileChooser,
     Download,
+    Page,
 )
 
 from dendrite_sdk._api.dto.authenticate_dto import AuthenticateDTO
@@ -112,8 +113,8 @@ class BaseDendriteBrowser(ABC):
         self._browser_api_client = BrowserAPIClient(dendrite_api_key, self._id)
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
-        self._upload_handler = EventSync[FileChooser]()
-        self._download_handler = EventSync[Download]()
+        self._upload_handler = EventSync(event_type=FileChooser)
+        self._download_handler = EventSync(event_type=Download)
         self.closed = False
 
         llm_config = LLMConfig(
@@ -358,7 +359,7 @@ class BaseDendriteBrowser(ABC):
         return self._active_page_manager
 
     @abstractmethod
-    async def _get_download(self, timeout: float) -> Download:
+    async def _get_download(self, pw_page: Page, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -370,7 +371,9 @@ class BaseDendriteBrowser(ABC):
         """
         pass
 
-    async def _get_filechooser(self, timeout: float = 30000) -> FileChooser:
+    async def _get_filechooser(
+        self, pw_page: Page, timeout: float = 30000
+    ) -> FileChooser:
         """
         Uploads files to the browser.
 
@@ -383,4 +386,4 @@ class BaseDendriteBrowser(ABC):
         Raises:
             Exception: If there is an issue uploading files.
         """
-        return await self._upload_handler.get_data(timeout=timeout)
+        return await self._upload_handler.get_data(pw_page, timeout=timeout)

@@ -1,7 +1,7 @@
 import os
 from typing import Any, Generic, Optional, TypeVar
 
-from playwright.async_api import async_playwright, Download
+from playwright.async_api import async_playwright, Download, Page
 
 from dendrite_sdk._common.constants import STEALTH_ARGS
 from dendrite_sdk._core._managers.page_manager import PageManager
@@ -55,5 +55,5 @@ class DendriteRemoteBrowser(BaseDendriteBrowser, Generic[T]):
         await self._provider._close(self)
         await super().close()
 
-    async def _get_download(self, timeout: float) -> Download:
-        return await self._provider.get_download(self, timeout)
+    async def _get_download(self, pw_page: Page, timeout: float) -> Download:
+        return await self._provider.get_download(self, pw_page, timeout)
