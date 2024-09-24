@@ -8,3 +8,4 @@ test_screenshots/*
 .vscode/
 dist/
 examples/
+tmp/
