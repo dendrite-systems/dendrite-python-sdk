@@ -157,6 +157,30 @@ class BaseDendriteBrowser(ABC):
         active_page_manager = await self._get_active_page_manager()
         return await active_page_manager.get_active_page()
 
+    async def new_tab(
+        self,
+        url: str,
+        timeout: Optional[float] = 15000,
+        expected_page: str = "",
+    ) -> DendritePage:
+        """
+        Opens a new tab and navigates to the specified URL.
+
+        Args:
+            url (str): The URL to navigate to.
+            timeout (Optional[float], optional): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
+            expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
+
+        Returns:
+            DendritePage: The page object after navigation.
+
+        Raises:
+            Exception: If there is an error during navigation or if the expected page type is not found.
+        """
+        return await self.goto(
+            url, new_page=True, timeout=timeout, expected_page=expected_page
+        )
+
     async def goto(
         self,
         url: str,
