@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 from loguru import logger
-from playwright.async_api import Playwright, Locator
+from playwright.async_api import Playwright, Page
 from dendrite_sdk._core.dendrite_remote_browser import DendriteRemoteBrowser
 from dendrite_sdk.ext._remote_provider import RemoteProvider
 from dendrite_sdk.ext.browserbase._download import BrowserbaseDownload
@@ -66,13 +66,13 @@ class BrowserbaseProvider(RemoteProvider):
         )
 
     async def get_download(
-        self, dendrite_browser: DendriteRemoteBrowser, timeout
+        self, dendrite_browser: DendriteRemoteBrowser, pw_page: Page, timeout: float
     ) -> BrowserbaseDownload:
         if not self._session_id:
             raise ValueError(
                 "Downloads are not enabled for this provider. Specify enable_downloads=True in the constructor"
             )
-        download = await dendrite_browser._download_handler.get_data(timeout)
+        download = await dendrite_browser._download_handler.get_data(pw_page, timeout)
         await self._client.save_downloads_on_disk(
             self._session_id, await download.path(), 30
         )

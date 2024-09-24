@@ -112,7 +112,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         Returns:
             The downloaded file data.
         """
-        return await self.dendrite_browser._get_download(timeout)
+        return await self.dendrite_browser._get_download(self.playwright_page, timeout)
 
     def _get_context(self, element: Any) -> Union[Page, FrameLocator]:
         """
@@ -357,7 +357,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         element = await self.get_element(
             prompt,
             use_cache=use_cache,
-            max_retries=max_retries,
             timeout=timeout,
         )
 
@@ -381,7 +380,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         value: str,
         expected_outcome: Optional[str] = None,
         use_cache: bool = True,
-        max_retries: int = 3,
         timeout: int = 2000,
         *args,
         kwargs={},
@@ -411,7 +409,6 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         element = await self.get_element(
             prompt,
             use_cache=use_cache,
-            max_retries=max_retries,
             timeout=timeout,
         )
 
@@ -451,7 +448,9 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         Returns:
             None
         """
-        file_chooser = await self.dendrite_browser._get_filechooser(timeout)
+        file_chooser = await self.dendrite_browser._get_filechooser(
+            self.playwright_page, timeout
+        )
         await file_chooser.set_files(files)
 
     async def get_content(self):

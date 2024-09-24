@@ -1,5 +1,4 @@
-from asyncio import Protocol
-from typing import Any, List, TYPE_CHECKING
+from typing import Any, List, TYPE_CHECKING, Protocol
 
 from dendrite_sdk._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk._core.models.page_information import PageInformation

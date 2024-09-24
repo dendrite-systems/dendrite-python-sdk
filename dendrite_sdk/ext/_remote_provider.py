@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from playwright.async_api import Browser, Playwright, Download
+from playwright.async_api import Browser, Playwright, Download, Page
 
 from abc import ABC, abstractmethod
 
@@ -22,6 +22,6 @@ class RemoteProvider(ABC):
 
     @abstractmethod
     async def get_download(
-        self, DendriteRemoteBrowser, timeout: float = 30000
+        self, DendriteRemoteBrowser, pw_page: Page, timeout: float = 30000
     ) -> Download:
         pass
