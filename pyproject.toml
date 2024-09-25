@@ -39,6 +39,8 @@ autopep8 = "^2.0.4"
 pylint = "^3.2.6"
 black = "^24.8.0"
 
+[tool.poetry.scripts]
+dendrite = "dendrite_sdk._cli.main:main"
 
 [build-system]
 requires = ["poetry-core", "requests", "python-dotenv", "pydantic"]
