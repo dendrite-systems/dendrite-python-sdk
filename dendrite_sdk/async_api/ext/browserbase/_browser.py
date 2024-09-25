@@ -1,11 +1,13 @@
 from typing import Any, Optional
 
-from dendrite_sdk.async_api._core.dendrite_remote_browser import DendriteRemoteBrowser
+from dendrite_sdk.async_api._core.dendrite_remote_browser import (
+    AsyncDendriteRemoteBrowser,
+)
 from dendrite_sdk.async_api.ext.browserbase._provider import BrowserbaseProvider
-from dendrite_sdk.async_api.ext.browserbase._download import BrowserbaseDownload
+from dendrite_sdk.async_api.ext.browserbase._download import AsyncBrowserbaseDownload
 
 
-class BrowserbaseBrowser(DendriteRemoteBrowser[BrowserbaseProvider]):
+class AsyncBrowserbaseBrowser(AsyncDendriteRemoteBrowser[BrowserbaseProvider]):
     def __init__(
         self,
         enable_proxy: bool = False,

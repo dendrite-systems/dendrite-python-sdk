@@ -16,11 +16,11 @@
 With Dendrite, you can code a **email sending tool** like this:
 
 ```python
-from dendrite import DendriteBrowser
+from dendrite import AsyncDendriteBrowser
 
 # Provide this tool to an agent by using e.g crewAI, llamaIndex, langchain or your own framework
 async def send_email(to: str, subject: str, body: str):
-  async with DendriteBrowser() as dendrite:
+  async with AsyncDendriteBrowser() as dendrite:
 
     # Your agent will be able to access your outlook account now. You can mirror your browser's auth sessions to your agent with our Chrome Extension "Dendrite Vault".
     await dendrite.authenticate("outlook.live.com") 
@@ -44,7 +44,7 @@ Sending emails is cool, but if that's all our agent can do it kind of sucks. So,
 
 ```python
 async def get_and_analyze_transactions(prompt: str) -> str:
-    async with DendriteBrowser() as dendrite:
+    async with AsyncDendriteBrowser() as dendrite:
         await dendrite.authenticate("mercury.com")
         page = await dendrite.goto("https://app.mercury.com/transactions", expected_outcome="We should arrive at the dashboard") # Raise an exception if we aren't logged in. 
         await page.wait_for("The transactions page to have loaded")
@@ -64,7 +64,7 @@ Finally, it would be cool if we could add the amount of monthly visitors from Go
 
 ```python
 async def get_visitor_stats() -> int:
-    async with DendriteBrowser() as dendrite:
+    async with AsyncDendriteBrowser() as dendrite:
         await dendrite.authenticate("analytics.google.com")
         page = await dendrite.goto("https://analytics.google.com/analytics/web")
         await page.wait_for("The analytics page to have loaded")
@@ -111,11 +111,11 @@ poetry add dendrite-sdk && poetry run playwright install
 
 ## Hello World Example
 
-For our first Dendrite script, let's start the `DendriteBrowser`, go to google.com and enter "hello world" into the search field:
+For our first Dendrite script, let's start the `AsyncDendriteBrowser`, go to google.com and enter "hello world" into the search field:
 
 ```python main.py
 import asyncio
-from dendrite_sdk import DendriteBrowser
+from dendrite_sdk import AsyncDendriteBrowser
 
 
 async def hello_world():
@@ -127,13 +127,13 @@ async def hello_world():
     dendrite_api_key = "..."
 
     # Initate the Dendrite Browser
-    browser = DendriteBrowser(
+    browser = AsyncDendriteBrowser(
         openai_api_key=openai_api_key,
         anthropic_api_key=anthropic_api_key,
         dendrite_api_key=dendrite_api_key,
     )
 
-    # Navigate with `goto`, which returns a 'DendritePage' that controls the current page.
+    # Navigate with `goto`, which returns a 'AsyncDendritePage' that controls the current page.
     page = await browser.goto("https://google.com")
 
     # Get elements from the current page with `get_element`.
@@ -156,7 +156,7 @@ For more examples
 
 When you want to scale up your AI agents, we support using browsers hosted by Browserbase. This way you can run many agents in parallel without having to worry about the infrastructure. 
 
-To start using Browserbase just swap out the `DendriteBrowser` with `BrowserbaseBrowser` and add your Browserbase API key and project id, either in the code or in a `.env` file like this:
+To start using Browserbase just swap out the `AsyncDendriteBrowser` with `AsyncBrowserbaseBrowser` and add your Browserbase API key and project id, either in the code or in a `.env` file like this:
 
 ```bash
 # ... previous keys 
@@ -167,14 +167,14 @@ BROWSERBASE_PROJECT_ID=
 
 
 ```python
-# from dendrite_python_sdk import DendriteBrowser
-from dendrite_sdk.async_api.ext.browserbase import BrowserbaseBrowser
+# from dendrite_python_sdk import AsyncDendriteBrowser
+from dendrite_sdk.async_api.ext.browserbase import AsyncBrowserbaseBrowser
 
 ... 
 
-# browser = DendriteBrowser(...)
-browser = BrowserbaseBrowser(
-    # Include the previous arguments from DendriteBrowser
+# browser = AsyncDendriteBrowser(...)
+browser = AsyncBrowserbaseBrowser(
+    # Include the previous arguments from AsyncDendriteBrowser
     browserbase_api_key="...", # or specify the browsebase keys in the .env file
     browserbase_project_id="..." 
 )

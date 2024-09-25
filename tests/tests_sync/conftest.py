@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from dendrite_sdk.sync_api import DendriteBrowser
 
 

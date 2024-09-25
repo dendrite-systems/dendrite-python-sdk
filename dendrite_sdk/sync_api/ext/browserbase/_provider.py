@@ -37,7 +37,7 @@ class BrowserbaseProvider(RemoteProvider):
         self._managed_session = enable_downloads
         self._session_id: Optional[str] = None
 
-    def _close(self, DendriteRemoteBrowser):
+    def _close(self, AsyncDendriteRemoteBrowser):
         if self._session_id:
             self._client.stop_session(self._session_id)
 

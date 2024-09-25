@@ -10,7 +10,7 @@ from dendrite_sdk.async_api._core.models.download_interface import DownloadInter
 from dendrite_sdk.async_api.ext.browserbase._client import BrowserbaseClient
 
 
-class BrowserbaseDownload(DownloadInterface):
+class AsyncBrowserbaseDownload(DownloadInterface):
     def __init__(
         self, session_id: str, download: Download, client: BrowserbaseClient
     ) -> None:

@@ -5,13 +5,13 @@ from playwright.async_api import async_playwright, Download, Page
 
 from dendrite_sdk.async_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.async_api._core._managers.page_manager import PageManager
-from dendrite_sdk.async_api._core._base_browser import BaseDendriteBrowser
+from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendriteBrowser
 from dendrite_sdk.async_api.ext._remote_provider import RemoteProvider
 
 T = TypeVar("T", bound=RemoteProvider)
 
 
-class DendriteRemoteBrowser(BaseDendriteBrowser, Generic[T]):
+class AsyncDendriteRemoteBrowser(BaseAsyncDendriteBrowser, Generic[T]):
     def __init__(
         self,
         provider: T,
@@ -37,10 +37,11 @@ class DendriteRemoteBrowser(BaseDendriteBrowser, Generic[T]):
         self._playwright = await async_playwright().start()
         browser = await self._provider._start_browser(self._playwright)
 
-        if self._auth_data:
+        if self._auth:
+            auth_session = await self._get_auth_session(self._auth)
             self.browser_context = await browser.new_context(
-                storage_state=self._auth_data.to_storage_state(),
-                user_agent=self._auth_data.user_agent,
+                storage_state=auth_session.to_storage_state(),
+                user_agent=auth_session.user_agent,
             )
         else:
             self.browser_context = browser.contexts[0]

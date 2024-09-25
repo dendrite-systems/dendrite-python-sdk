@@ -5,13 +5,13 @@ from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
     from dendrite_sdk.async_api._core.dendrite_remote_browser import (
-        DendriteRemoteBrowser,
+        AsyncDendriteRemoteBrowser,
     )
 
 
 class RemoteProvider(ABC):
     @abstractmethod
-    async def _close(self, DendriteRemoteBrowser):
+    async def _close(self, AsyncDendriteRemoteBrowser):
         pass
 
     @abstractmethod
@@ -19,11 +19,11 @@ class RemoteProvider(ABC):
         pass
 
     @abstractmethod
-    async def configure_context(self, browser: "DendriteRemoteBrowser"):
+    async def configure_context(self, browser: "AsyncDendriteRemoteBrowser"):
         pass
 
     @abstractmethod
     async def get_download(
-        self, DendriteRemoteBrowser, pw_page: Page, timeout: float = 30000
+        self, AsyncDendriteRemoteBrowser, pw_page: Page, timeout: float = 30000
     ) -> Download:
         pass

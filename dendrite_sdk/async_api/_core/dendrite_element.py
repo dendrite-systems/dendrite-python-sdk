@@ -11,7 +11,7 @@ from playwright.async_api import Locator
 from dendrite_sdk.async_api._exceptions.dendrite_exception import IncorrectOutcomeError
 
 if TYPE_CHECKING:
-    from dendrite_sdk.async_api._core._base_browser import BaseDendriteBrowser
+    from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendriteBrowser
 from dendrite_sdk.async_api._core.models.page_diff_information import (
     PageDiffInformation,
 )
@@ -26,7 +26,7 @@ def perform_action(interaction_type: Interaction):
     """
     Decorator for performing actions on DendriteElements.
 
-    This decorator wraps methods of DendriteElement to handle interactions,
+    This decorator wraps methods of AsyncDendriteElement to handle interactions,
     expected outcomes, and error handling.
 
     Args:
@@ -39,7 +39,7 @@ def perform_action(interaction_type: Interaction):
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(
-            self: DendriteElement,
+            self: AsyncDendriteElement,
             *args,
             **kwargs,
         ) -> InteractionResponse:
@@ -97,7 +97,7 @@ def perform_action(interaction_type: Interaction):
     return decorator
 
 
-class DendriteElement:
+class AsyncDendriteElement:
     """
     Represents an element in the Dendrite browser environment. Wraps a Playwright Locator.
 
@@ -106,15 +106,18 @@ class DendriteElement:
     """
 
     def __init__(
-        self, dendrite_id: str, locator: Locator, dendrite_browser: BaseDendriteBrowser
+        self,
+        dendrite_id: str,
+        locator: Locator,
+        dendrite_browser: BaseAsyncDendriteBrowser,
     ):
         """
-        Initialize a DendriteElement.
+        Initialize a AsyncDendriteElement.
 
         Args:
             dendrite_id (str): The dendrite_id identifier for this element.
             locator (Locator): The Playwright locator for this element.
-            dendrite_browser (DendriteBrowser): The browser instance.
+            dendrite_browser (AsyncDendriteBrowser): The browser instance.
         """
         self.dendrite_id = dendrite_id
         self.locator = locator

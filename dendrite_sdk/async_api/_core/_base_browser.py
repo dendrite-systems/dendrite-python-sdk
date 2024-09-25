@@ -20,7 +20,7 @@ from dendrite_sdk.async_api._core._managers.page_manager import (
     PageManager,
 )
 
-from dendrite_sdk.async_api._core.dendrite_page import DendritePage
+from dendrite_sdk.async_api._core.dendrite_page import AsyncDendritePage
 from dendrite_sdk.async_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.async_api._core.models.authentication import (
     AuthSession,
@@ -35,9 +35,9 @@ from dendrite_sdk.async_api._exceptions.dendrite_exception import (
 )
 
 
-class BaseDendriteBrowser(ABC):
+class BaseAsyncDendriteBrowser(ABC):
     """
-    DendriteBrowser is an abstract base class that manages a browser instance using Playwright, allowing
+    AsyncDendriteBrowser is an abstract base class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
     This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
@@ -65,7 +65,7 @@ class BaseDendriteBrowser(ABC):
         },
     ):
         """
-        Initializes the BaseDendriteBrowser with API keys and Playwright options.
+        Initializes the BaseAsyncDendriteBrowser with API keys and Playwright options.
 
         Args:
             auth (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate on.
@@ -82,21 +82,21 @@ class BaseDendriteBrowser(ABC):
             dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
             if not dendrite_api_key or dendrite_api_key == "":
                 raise MissingApiKeyError(
-                    "Dendrite API key is required to use DendriteBrowser"
+                    "Dendrite API key is required to use AsyncDendriteBrowser"
                 )
 
         if not anthropic_api_key or anthropic_api_key == "":
             anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
             if anthropic_api_key == "":
                 raise MissingApiKeyError(
-                    "Anthropic API key is required to use DendriteBrowser"
+                    "Anthropic API key is required to use AsyncDendriteBrowser"
                 )
 
         if not openai_api_key or openai_api_key == "":
             openai_api_key = os.environ.get("OPENAI_API_KEY", "")
             if not openai_api_key or openai_api_key == "":
                 raise MissingApiKeyError(
-                    "OpenAI API key is required to use DendriteBrowser"
+                    "OpenAI API key is required to use AsyncDendriteBrowser"
                 )
 
         self._id = uuid4().hex
@@ -118,12 +118,12 @@ class BaseDendriteBrowser(ABC):
         self.llm_config = llm_config
 
     @property
-    def pages(self) -> List[DendritePage]:
+    def pages(self) -> List[AsyncDendritePage]:
         """
         Retrieves the list of active pages managed by the PageManager.
 
         Returns:
-            List[DendritePage]: The list of active pages.
+            List[AsyncDendritePage]: The list of active pages.
         """
         if self._active_page_manager:
             return self._active_page_manager.pages
@@ -144,12 +144,12 @@ class BaseDendriteBrowser(ABC):
         auth_session: AuthSession = await self._browser_api_client.authenticate(dto)
         return auth_session
 
-    async def new_page(self) -> DendritePage:
+    async def new_page(self) -> AsyncDendritePage:
         """
         Opens a new page in the browser.
 
         Returns:
-            DendritePage: The newly opened page.
+            AsyncDendritePage: The newly opened page.
 
         Raises:
             Exception: If there is an issue opening a new page.
@@ -157,12 +157,12 @@ class BaseDendriteBrowser(ABC):
         active_page_manager = await self._get_active_page_manager()
         return await active_page_manager.new_page()
 
-    async def get_active_page(self) -> DendritePage:
+    async def get_active_page(self) -> AsyncDendritePage:
         """
         Retrieves the currently active page managed by the PageManager.
 
         Returns:
-            DendritePage: The active page object.
+            AsyncDendritePage: The active page object.
 
         Raises:
             Exception: If there is an issue retrieving the active page.
@@ -176,7 +176,7 @@ class BaseDendriteBrowser(ABC):
         url: str,
         timeout: Optional[float] = 15000,
         expected_page: str = "",
-    ) -> DendritePage:
+    ) -> AsyncDendritePage:
         """
         Opens a new tab and navigates to the specified URL.
 
@@ -186,7 +186,7 @@ class BaseDendriteBrowser(ABC):
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
-            DendritePage: The page object after navigation.
+            AsyncDendritePage: The page object after navigation.
 
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
@@ -201,7 +201,7 @@ class BaseDendriteBrowser(ABC):
         new_page: bool = False,
         timeout: Optional[float] = 15000,
         expected_page: str = "",
-    ) -> DendritePage:
+    ) -> AsyncDendritePage:
         """
         Navigates to the specified URL, optionally in a new tab
 
@@ -212,7 +212,7 @@ class BaseDendriteBrowser(ABC):
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
-            DendritePage: The page object after navigation.
+            AsyncDendritePage: The page object after navigation.
 
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.

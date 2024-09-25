@@ -18,7 +18,7 @@ class GetElementMixin(DendritePageProtocol):
         self,
         prompt_or_elements: str,
         use_cache: bool = True,
-        timeout: int = 3000,
+        timeout: int = 15000,
         context: str = "",
     ) -> List[DendriteElement]:
         """
@@ -39,7 +39,7 @@ class GetElementMixin(DendritePageProtocol):
         self,
         prompt_or_elements: Dict[str, str],
         use_cache: bool = True,
-        timeout: int = 3000,
+        timeout: int = 15000,
         context: str = "",
     ) -> DendriteElementsResponse:
         """
@@ -59,7 +59,7 @@ class GetElementMixin(DendritePageProtocol):
         self,
         prompt_or_elements: Union[str, Dict[str, str]],
         use_cache: bool = True,
-        timeout: int = 3000,
+        timeout: int = 15000,
         context: str = "",
     ) -> Union[List[DendriteElement], DendriteElementsResponse]:
         """
@@ -80,47 +80,10 @@ class GetElementMixin(DendritePageProtocol):
         Raises:
             ValueError: If the input is neither a string nor a dictionary.
         """
-        if isinstance(prompt_or_elements, str):
-            return self._get_element(
-                prompt_or_elements, only_one=False, use_cache=use_cache, timeout=timeout
-            )
-        if isinstance(prompt_or_elements, dict):
-            return self.get_elements_from_dict(
-                prompt_or_elements, context, use_cache, timeout
-            )
+        return self._get_element(
+            prompt_or_elements, only_one=False, use_cache=use_cache, timeout=timeout
+        )
         raise ValueError("Prompt must be either a string prompt or a dictionary")
-
-    def get_elements_from_dict(
-        self, prompt_dict: Dict[str, str], context: str, use_cache: bool, timeout: int
-    ):
-        """
-        Retrieves Dendrite elements based on a dictionary of prompts, each associated with a context.
-
-        This method sends a request for each prompt in the dictionary, adding context to each prompt, and retrieves the corresponding elements.
-
-        Args:
-            prompt_dict (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
-            context (str): Additional context to be added to each prompt.
-            use_cache (bool): Whether to use cached results.
-            timeout (int): The total timeout (in milliseconds) until the last request is sent to the API.
-
-        Returns:
-            DendriteElementsResponse: A response object containing the retrieved elements mapped to their corresponding field names.
-        """
-        tasks = []
-        for field_name, prompt in prompt_dict.items():
-            full_prompt = prompt
-            if context != "":
-                full_prompt += f"\n\nHere is some extra context: {context}"
-            task = self._get_element(
-                full_prompt, only_one=True, use_cache=use_cache, timeout=timeout
-            )
-            tasks.append(task)
-        results = asyncio.gather(*tasks)
-        elements_dict: Dict[str, DendriteElement] = {}
-        for element, field_name in zip(results, prompt_dict.keys()):
-            elements_dict[field_name] = element
-        return DendriteElementsResponse(elements_dict)
 
     def get_element(
         self, prompt: str, use_cache=True, timeout=15000
@@ -142,13 +105,13 @@ class GetElementMixin(DendritePageProtocol):
 
     @overload
     def _get_element(
-        self, prompt: str, only_one: Literal[True], use_cache: bool, timeout
+        self, prompt_or_elements: str, only_one: Literal[True], use_cache: bool, timeout
     ) -> Optional[DendriteElement]:
         """
         Retrieves a single Dendrite element based on the provided prompt.
 
         Args:
-            prompt (str): The prompt describing the element to be retrieved.
+            prompt (Union[str, Dict[str, str]]): The prompt describing the element to be retrieved.
             only_one (Literal[True]): Indicates that only one element should be retrieved.
             use_cache (bool): Whether to use cached results.
             timeout: The total timeout (in milliseconds) until the last request is sent to the API.
@@ -159,8 +122,12 @@ class GetElementMixin(DendritePageProtocol):
 
     @overload
     def _get_element(
-        self, prompt: str, only_one: Literal[False], use_cache: bool, timeout
-    ) -> List[DendriteElement]:
+        self,
+        prompt_or_elements: Union[str, Dict[str, str]],
+        only_one: Literal[False],
+        use_cache: bool,
+        timeout,
+    ) -> Union[List[DendriteElement], DendriteElementsResponse]:
         """
         Retrieves a list of Dendrite elements based on the provided prompt.
 
@@ -175,21 +142,27 @@ class GetElementMixin(DendritePageProtocol):
         """
 
     def _get_element(
-        self, prompt: str, only_one: bool, use_cache: bool, timeout: float
-    ) -> Union[Optional[DendriteElement], List[DendriteElement]]:
+        self,
+        prompt_or_elements: Union[str, Dict[str, str]],
+        only_one: bool,
+        use_cache: bool,
+        timeout: float,
+    ) -> Union[
+        Optional[DendriteElement], List[DendriteElement], DendriteElementsResponse
+    ]:
         """
         Retrieves Dendrite elements based on the provided prompt, either a single element or a list of elements.
 
         This method sends a request with the prompt and retrieves the elements based on the `only_one` flag.
 
         Args:
-            prompt (str): The prompt describing the elements to be retrieved.
+            prompt_or_elements (Union[str, Dict[str, str]]): The prompt or dictionary of prompts for element retrieval.
             only_one (bool): Whether to retrieve only one element or a list of elements.
             use_cache (bool): Whether to use cached results.
             timeout (float): The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
-            Union[DendriteElement, List[DendriteElement]]: The retrieved element or list of elements.
+            Union[DendriteElement, List[DendriteElement], DendriteElementsResponse]: The retrieved element, list of elements, or response object.
         """
         llm_config = self.dendrite_browser.llm_config
         start_time = time.time()
@@ -205,11 +178,14 @@ class GetElementMixin(DendritePageProtocol):
             )
             elapsed_time = time.time() - start_time
             remaining_time = timeout * 0.001 - elapsed_time
-            if remaining_time <= 10 or attempt > 2:
+            if remaining_time <= 8 or attempt > 2:
+                logger.debug(
+                    f"Forcing cache bypass: remaining_time={remaining_time}, attempt={attempt}"
+                )
                 force_not_use_cache = True
             if remaining_time <= 0:
                 logger.warning(
-                    f"Timeout reached for '{prompt}' after {attempt + 1} attempts"
+                    f"Timeout reached for '{prompt_or_elements}' after {attempt + 1} attempts"
                 )
                 break
             prev_attempt_time = time.time() - attempt_start
@@ -219,12 +195,14 @@ class GetElementMixin(DendritePageProtocol):
             logger.debug(f"Waiting for {sleep_time} seconds before retrying")
             time.sleep(sleep_time)
             attempt_start = time.time()
-            logger.info(f"Getting element for '{prompt}' | Attempt {attempt + 1}")
+            logger.info(
+                f"Getting element for '{prompt_or_elements}' | Attempt {attempt + 1}"
+            )
             page_information = self._get_page_information()
             dto = GetElementsDTO(
                 page_information=page_information,
                 llm_config=llm_config,
-                prompt=prompt,
+                prompt=prompt_or_elements,
                 use_cache=use_cache and (not force_not_use_cache),
                 only_one=only_one,
             )
@@ -232,24 +210,36 @@ class GetElementMixin(DendritePageProtocol):
             logger.debug(
                 f"Got selectors: {res} in {time.time() - attempt_start} seconds"
             )
-            if not res.selectors:
-                logger.warning(
-                    f"No selectors returned for '{prompt}' on attempt {attempt + 1}"
-                )
-                continue
-            for selector in reversed(res.selectors):
-                dendrite_elements = self._get_all_elements_from_selector(selector)
-                if len(dendrite_elements) > 0:
-                    logger.info(f"Got working selector: {selector}")
-                    return dendrite_elements[0] if only_one else dendrite_elements
-                else:
-                    logger.warning(
-                        f"No elements found for selector: {selector} on attempt {attempt + 1}"
-                    )
+            if isinstance(res.selectors, dict):
+                result = {}
+                for key, selectors in res.selectors.items():
+                    for selector in reversed(selectors):
+                        dendrite_elements = self._get_all_elements_from_selector(
+                            selector
+                        )
+                        if len(dendrite_elements) > 0:
+                            logger.info(f"Got working selector for '{key}': {selector}")
+                            result[key] = dendrite_elements[0]
+                            break
+                    else:
+                        logger.warning(
+                            f"No elements found for '{key}' on attempt {attempt + 1}"
+                        )
+                return DendriteElementsResponse(result)
+            elif isinstance(res.selectors, list):
+                for selector in reversed(res.selectors):
+                    dendrite_elements = self._get_all_elements_from_selector(selector)
+                    if len(dendrite_elements) > 0:
+                        logger.info(f"Got working selector: {selector}")
+                        return dendrite_elements[0] if only_one else dendrite_elements
+                    else:
+                        logger.warning(
+                            f"No elements found for selector: {selector} on attempt {attempt + 1}"
+                        )
             logger.warning(
-                f"All selectors failed for '{prompt}' on attempt {attempt + 1}"
+                f"All selectors failed for '{prompt_or_elements}' on attempt {attempt + 1}"
             )
         logger.error(
-            f"Failed to get elements for '{prompt}' after {attempt + 1} attempts"
+            f"Failed to get elements for '{prompt_or_elements}' after {attempt + 1} attempts"
         )
         return None

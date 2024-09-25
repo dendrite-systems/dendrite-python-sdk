@@ -29,7 +29,7 @@ from dendrite_sdk.async_api._api.response.interaction_response import (
     InteractionResponse,
 )
 from dendrite_sdk.async_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
-from dendrite_sdk.async_api._core.dendrite_element import DendriteElement
+from dendrite_sdk.async_api._core.dendrite_element import AsyncDendriteElement
 from dendrite_sdk.async_api._core.mixin.ask import AskMixin
 from dendrite_sdk.async_api._core.mixin.extract import ExtractionMixin
 from dendrite_sdk.async_api._core.mixin.get_element import GetElementMixin
@@ -37,7 +37,7 @@ from dendrite_sdk.async_api._core.models.page_information import PageInformation
 
 
 if TYPE_CHECKING:
-    from dendrite_sdk.async_api._core._base_browser import BaseDendriteBrowser
+    from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendriteBrowser
 
 
 from dendrite_sdk.async_api._core._managers.screenshot_manager import ScreenshotManager
@@ -52,7 +52,7 @@ from dendrite_sdk.async_api._core._utils import (
 )
 
 
-class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
+class AsyncDendritePage(ExtractionMixin, AskMixin, GetElementMixin):
     """
     Represents a page in the Dendrite browser environment.
 
@@ -60,7 +60,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
     pages in the browser.
     """
 
-    def __init__(self, page: Page, dendrite_browser: "BaseDendriteBrowser"):
+    def __init__(self, page: Page, dendrite_browser: "BaseAsyncDendriteBrowser"):
         self.playwright_page = page
         self.screenshot_manager = ScreenshotManager()
         self.dendrite_browser = dendrite_browser
@@ -521,8 +521,8 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
 
     async def _get_all_elements_from_selector(
         self, selector: str
-    ) -> List[DendriteElement]:
-        dendrite_elements: List[DendriteElement] = []
+    ) -> List[AsyncDendriteElement]:
+        dendrite_elements: List[AsyncDendriteElement] = []
         soup = await self._get_soup()
         elements = soup.select(selector)
 
@@ -538,7 +538,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
                 d_id = d_id[0]
 
             dendrite_elements.append(
-                DendriteElement(
+                AsyncDendriteElement(
                     d_id,
                     locator,
                     self.dendrite_browser,

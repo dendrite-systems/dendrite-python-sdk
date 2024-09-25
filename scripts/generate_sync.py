@@ -2,24 +2,69 @@ import os
 import ast
 import shutil
 import logging
+from typing import Dict, Any
 
 logging.basicConfig(level=logging.WARNING)
 
-import ast
-import logging
-from typing import cast
+
+class RenameTransformer(ast.NodeTransformer):
+    def __init__(self, renames: Dict[str, str]):
+        super().__init__()
+        self.renames = renames
+
+    def visit_Name(self, node: ast.Name) -> Any:
+        if node.id in self.renames:
+            node.id = self.renames[node.id]
+        return node
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> Any:
+        if node.name in self.renames:
+            node.name = self.renames[node.name]
+        return self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
+        if node.name in self.renames:
+            node.name = self.renames[node.name]
+        return self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> Any:
+        if node.attr in self.renames:
+            node.attr = self.renames[node.attr]
+        return self.generic_visit(node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
+        for alias in node.names:
+            if alias.name in self.renames:
+                alias.name = self.renames[alias.name]
+            if alias.asname in self.renames:
+                alias.asname = self.renames[alias.asname]
+        return node
+
+    def visit_Import(self, node: ast.Import) -> Any:
+        for alias in node.names:
+            if alias.name in self.renames:
+                alias.name = self.renames[alias.name]
+            if alias.asname in self.renames:
+                alias.asname = self.renames[alias.asname]
+        return node
+
+    def visit_Str(self, node: ast.Str) -> Any:
+        for old, new in self.renames.items():
+            node.s = node.s.replace(old, new)
+        return node
 
 
 class AsyncToSyncTransformer(ast.NodeTransformer):
-    def __init__(self):
+    def __init__(self, renames: Dict[str, str]):
         super().__init__()
         self.unconverted_nodes = []
+        self.renames = renames
 
     def visit_AsyncFunctionDef(self, node):
         # Remove 'async' from function definitions
         self.generic_visit(node)  # Mutate in place
         new_node = ast.FunctionDef(
-            name=node.name,
+            name=self.renames.get(node.name, node.name),
             args=node.args,
             body=node.body,
             decorator_list=node.decorator_list,
@@ -152,8 +197,12 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         self.unconverted_nodes.append(node)
         return node
 
+    def visit_ClassDef(self, node):
+        node.name = self.renames.get(node.name, node.name)
+        return self.generic_visit(node)
 
-def process_file(source_path, target_path):
+
+def process_file(source_path, target_path, renames):
     with open(source_path, "r", encoding="utf-8") as f:
         source_code = f.read()
 
@@ -163,13 +212,16 @@ def process_file(source_path, target_path):
         logging.error(f"Syntax error in file {source_path}: {e}")
         return
 
-    transformer = AsyncToSyncTransformer()
-    transformer.visit(tree)
+    # Apply AsyncToSyncTransformer
+    async_to_sync = AsyncToSyncTransformer(renames)
+    tree = async_to_sync.visit(tree)
 
-    if transformer.unconverted_nodes:
+    # Apply RenameTransformer
+    rename_transformer = RenameTransformer(renames)
+    tree = rename_transformer.visit(tree)
+
+    if async_to_sync.unconverted_nodes:
         logging.warning(f"Some nodes could not be converted in {source_path}")
-
-    # ast.unparse is available in Python 3.9+
 
     new_code = ast.unparse(tree)
     # Write the transformed code to target path
@@ -178,7 +230,7 @@ def process_file(source_path, target_path):
         f.write(new_code)
 
 
-def process_directory(source_dir, target_dir):
+def process_directory(source_dir, target_dir, renames):
     for dirpath, dirnames, filenames in os.walk(source_dir):
         for filename in filenames:
             source_path = os.path.join(dirpath, filename)
@@ -186,7 +238,7 @@ def process_directory(source_dir, target_dir):
             target_path = os.path.join(target_dir, relative_path)
 
             if filename.endswith(".py"):
-                process_file(source_path, target_path)
+                process_file(source_path, target_path, renames)
             else:
                 # Copy non-Python files directly
                 os.makedirs(os.path.dirname(target_path), exist_ok=True)
@@ -194,14 +246,16 @@ def process_directory(source_dir, target_dir):
 
 
 if __name__ == "__main__":
-    import sys
-
-    # if len(sys.argv) != 3:
-    #     print("Usage: python async_to_sync.py <source_dir> <target_dir>")
-    #     sys.exit(1)
-    # source_dir = sys.argv[1]
-    # target_dir = sys.argv[2]
-
     source_dir = "dendrite_sdk/async_api"
     target_dir = "dendrite_sdk/sync_api"
-    process_directory(source_dir, target_dir)
+    renames = {
+        "AsyncBrowserbaseDownload": "BrowserbaseDownload",
+        "AsyncBrowserbaseBrowser": "BrowserbaseBrowser",
+        "AsyncDendriteBrowser": "DendriteBrowser",
+        "BaseAsyncDendriteBrowser": "BaseDendriteBrowser",
+        "AsyncDendriteElement": "DendriteElement",
+        "AsyncDendritePage": "DendritePage",
+        "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",
+        "AsyncDendriteElementsResponse": "DendriteElementsResponse",
+    }
+    process_directory(source_dir, target_dir, renames)

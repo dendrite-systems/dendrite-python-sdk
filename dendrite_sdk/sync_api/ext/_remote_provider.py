@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class RemoteProvider(ABC):
 
     @abstractmethod
-    def _close(self, DendriteRemoteBrowser):
+    def _close(self, AsyncDendriteRemoteBrowser):
         pass
 
     @abstractmethod
@@ -24,6 +24,6 @@ class RemoteProvider(ABC):
 
     @abstractmethod
     def get_download(
-        self, DendriteRemoteBrowser, pw_page: Page, timeout: float = 30000
+        self, AsyncDendriteRemoteBrowser, pw_page: Page, timeout: float = 30000
     ) -> Download:
         pass

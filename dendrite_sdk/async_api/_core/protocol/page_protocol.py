@@ -4,8 +4,8 @@ from dendrite_sdk.async_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.async_api._core.models.page_information import PageInformation
 
 if TYPE_CHECKING:
-    from dendrite_sdk.async_api._core._base_browser import BaseDendriteBrowser
-from dendrite_sdk.async_api._core.dendrite_element import DendriteElement
+    from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendriteBrowser
+from dendrite_sdk.async_api._core.dendrite_element import AsyncDendriteElement
 
 
 class DendritePageProtocol(Protocol):
@@ -14,11 +14,11 @@ class DendritePageProtocol(Protocol):
     for the `ExtractionMixin` to work.
     """
 
-    dendrite_browser: "BaseDendriteBrowser"
+    dendrite_browser: "BaseAsyncDendriteBrowser"
     browser_api_client: BrowserAPIClient
 
     async def _get_page_information(self) -> PageInformation: ...
 
     async def _get_all_elements_from_selector(
         self, selector: str
-    ) -> List[DendriteElement]: ...
+    ) -> List[AsyncDendriteElement]: ...

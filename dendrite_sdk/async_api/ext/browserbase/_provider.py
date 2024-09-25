@@ -2,12 +2,14 @@ import os
 from typing import Optional
 from loguru import logger
 from playwright.async_api import Playwright, Page
-from dendrite_sdk.async_api._core.dendrite_remote_browser import DendriteRemoteBrowser
+from dendrite_sdk.async_api._core.dendrite_remote_browser import (
+    AsyncDendriteRemoteBrowser,
+)
 from dendrite_sdk.async_api._exceptions.dendrite_exception import (
     BrowserNotLaunchedError,
 )
 from dendrite_sdk.async_api.ext._remote_provider import RemoteProvider
-from dendrite_sdk.async_api.ext.browserbase._download import BrowserbaseDownload
+from dendrite_sdk.async_api.ext.browserbase._download import AsyncBrowserbaseDownload
 from ._client import BrowserbaseClient
 
 
@@ -41,7 +43,7 @@ class BrowserbaseProvider(RemoteProvider):
         self._managed_session = enable_downloads  # This is a flag to determine if the session is managed by us or not
         self._session_id: Optional[str] = None
 
-    async def _close(self, DendriteRemoteBrowser):
+    async def _close(self, AsyncDendriteRemoteBrowser):
         if self._session_id:
             await self._client.stop_session(self._session_id)
 
@@ -53,7 +55,7 @@ class BrowserbaseProvider(RemoteProvider):
         logger.debug(f"Connecting to browser at {url}")
         return await playwright.chromium.connect_over_cdp(url)
 
-    async def configure_context(self, browser: DendriteRemoteBrowser):
+    async def configure_context(self, browser: AsyncDendriteRemoteBrowser):
         logger.debug("Configuring browser context")
 
         page = await browser.get_active_page()
@@ -73,8 +75,11 @@ class BrowserbaseProvider(RemoteProvider):
         )
 
     async def get_download(
-        self, dendrite_browser: DendriteRemoteBrowser, pw_page: Page, timeout: float
-    ) -> BrowserbaseDownload:
+        self,
+        dendrite_browser: AsyncDendriteRemoteBrowser,
+        pw_page: Page,
+        timeout: float,
+    ) -> AsyncBrowserbaseDownload:
         if not self._session_id:
             raise ValueError(
                 "Downloads are not enabled for this provider. Specify enable_downloads=True in the constructor"
@@ -83,4 +88,4 @@ class BrowserbaseProvider(RemoteProvider):
         await self._client.save_downloads_on_disk(
             self._session_id, await download.path(), 30
         )
-        return BrowserbaseDownload(self._session_id, download, self._client)
+        return AsyncBrowserbaseDownload(self._session_id, download, self._client)

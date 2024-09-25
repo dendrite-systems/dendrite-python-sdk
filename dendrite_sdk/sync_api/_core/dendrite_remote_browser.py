@@ -31,10 +31,11 @@ class DendriteRemoteBrowser(BaseDendriteBrowser, Generic[T]):
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self._playwright = sync_playwright().start()
         browser = self._provider._start_browser(self._playwright)
-        if self._auth_data:
+        if self._auth:
+            auth_session = self._get_auth_session(self._auth)
             self.browser_context = browser.new_context(
-                storage_state=self._auth_data.to_storage_state(),
-                user_agent=self._auth_data.user_agent,
+                storage_state=auth_session.to_storage_state(),
+                user_agent=auth_session.user_agent,
             )
         else:
             self.browser_context = browser.contexts[0]
