@@ -81,7 +81,9 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             elif alias.name == "asyncio":
                 alias = ast.alias(name="time", asname=alias.asname)
             elif alias.name.startswith("dendrite_sdk"):
-                new_name = alias.name.replace("dendrite_sdk", "dendrite_sync_sdk", 1)
+                new_name = alias.name.replace(
+                    "dendrite_sdk.async_api", "dendrite_sdk.sync_api", 1
+                )
                 alias = ast.alias(name=new_name, asname=alias.asname)
             new_names.append(alias)
         node.names = new_names
@@ -101,7 +103,9 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         elif node.module == "asyncio":
             node.module = "time"
         elif node.module and node.module.startswith("dendrite_sdk"):
-            node.module = node.module.replace("dendrite_sdk", "dendrite_sdk_sync", 1)
+            node.module = node.module.replace(
+                "dendrite_sdk.async_api", "dendrite_sdk.sync_api", 1
+            )
         return node
 
     def visit_Call(self, node):
@@ -192,9 +196,12 @@ def process_directory(source_dir, target_dir):
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) != 3:
-        print("Usage: python async_to_sync.py <source_dir> <target_dir>")
-        sys.exit(1)
-    source_dir = sys.argv[1]
-    target_dir = sys.argv[2]
+    # if len(sys.argv) != 3:
+    #     print("Usage: python async_to_sync.py <source_dir> <target_dir>")
+    #     sys.exit(1)
+    # source_dir = sys.argv[1]
+    # target_dir = sys.argv[2]
+
+    source_dir = "dendrite_sdk/async_api"
+    target_dir = "dendrite_sdk/sync_api"
     process_directory(source_dir, target_dir)
