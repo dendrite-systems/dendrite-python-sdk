@@ -55,7 +55,7 @@ class BaseDendriteBrowser(ABC):
 
     def __init__(
         self,
-        authenticated_on: Optional[Union[str, List[str]]] = None,
+        auth: Optional[Union[str, List[str]]] = None,
         openai_api_key: Optional[str] = None,
         dendrite_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
@@ -68,7 +68,7 @@ class BaseDendriteBrowser(ABC):
         Initializes the BaseDendriteBrowser with API keys and Playwright options.
 
         Args:
-            authenticated_on (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate on.
+            auth (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate on.
             openai_api_key (Optional[str], optional): The OpenAI API key. If not provided, it's fetched from the environment variables.
             dendrite_api_key (Optional[str], optional): The Dendrite API key. If not provided, it's fetched from the environment variables.
             anthropic_api_key (Optional[str], optional): The Anthropic API key. If not provided, it's fetched from the environment variables.
@@ -110,7 +110,7 @@ class BaseDendriteBrowser(ABC):
         self._upload_handler = EventSync(event_type=FileChooser)
         self._download_handler = EventSync(event_type=Download)
         self.closed = False
-        self._authenticated_on = authenticated_on
+        self._auth = auth
 
         llm_config = LLMConfig(
             openai_api_key=openai_api_key, anthropic_api_key=anthropic_api_key
@@ -271,8 +271,8 @@ class BaseDendriteBrowser(ABC):
 
         browser = await self._playwright.chromium.launch(**self._playwright_options)
 
-        if self._authenticated_on:
-            auth_session = await self._get_auth_session(self._authenticated_on)
+        if self._auth:
+            auth_session = await self._get_auth_session(self._auth)
             self.browser_context = await browser.new_context(
                 storage_state=auth_session.to_storage_state(),
                 user_agent=auth_session.user_agent,
@@ -318,8 +318,8 @@ class BaseDendriteBrowser(ABC):
 
         self.closed = True
         if self.browser_context:
-            if self._authenticated_on:
-                auth_session = await self._get_auth_session(self._authenticated_on)
+            if self._auth:
+                auth_session = await self._get_auth_session(self._auth)
                 storage_state = await self.browser_context.storage_state()
                 dto = UploadAuthSessionDTO(
                     auth_data=auth_session, storage_state=storage_state
