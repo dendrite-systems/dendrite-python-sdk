@@ -45,9 +45,6 @@ class BaseDendrite(ABC):
         user_id (Optional[str]): The user ID associated with the browser session.
         browser_api_client (BrowserAPIClient): The API client used for communicating with the Dendrite API.
         api_config (APIConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
-
-    Raises:
-        MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
     """
 
     def __init__(
@@ -67,9 +64,6 @@ class BaseDendrite(ABC):
             dendrite_api_key (Optional[str], optional): The Dendrite API key. If not provided, it's fetched from the environment variables.
             anthropic_api_key (Optional[str], optional): The Anthropic API key. If not provided, it's fetched from the environment variables.
             playwright_options (Any, optional): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
-
-        Raises:
-            MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
         """
         api_config = APIConfig(
             dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
