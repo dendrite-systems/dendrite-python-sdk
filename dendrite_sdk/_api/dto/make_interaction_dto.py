@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 from pydantic import BaseModel
-from dendrite_sdk._core.models.llm_config import LLMConfig
+from dendrite_sdk._core.models.api_config import APIConfig
 from dendrite_sdk._core.models.page_diff_information import PageDiffInformation
 
 
@@ -14,4 +14,4 @@ class MakeInteractionDTO(BaseModel):
     value: Optional[str] = None
     expected_outcome: Optional[str]
     page_delta_information: PageDiffInformation
-    llm_config: LLMConfig
+    api_config: APIConfig

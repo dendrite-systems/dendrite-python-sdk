@@ -127,7 +127,7 @@ class AskMixin(DendritePageProtocol):
         Raises:
             DendriteException: If the request fails, the exception includes the failure message and a screenshot.
         """
-        llm_config = self.dendrite_browser.llm_config
+        api_config = self.dendrite_browser.api_config
         page_information = await self._get_page_information()
 
         schema = None
@@ -136,7 +136,7 @@ class AskMixin(DendritePageProtocol):
 
         dto = AskPageDTO(
             page_information=page_information,
-            llm_config=llm_config,
+            api_config=api_config,
             prompt=prompt,
             return_schema=schema,
         )

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import sys
 from typing import Any, List, Optional, Union
 from uuid import uuid4
 import os
@@ -24,13 +23,12 @@ from dendrite_sdk._common.constants import STEALTH_ARGS
 from dendrite_sdk._core.models.authentication import (
     AuthSession,
 )
-from dendrite_sdk._core.models.llm_config import LLMConfig
+from dendrite_sdk._core.models.api_config import APIConfig
 from dendrite_sdk._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk._exceptions.dendrite_exception import (
     BrowserNotLaunchedError,
     DendriteException,
     IncorrectOutcomeError,
-    MissingApiKeyError,
 )
 
 
@@ -52,7 +50,7 @@ class BaseDendriteBrowser(ABC):
         active_page_manager (Optional[PageManager]): The manager responsible for handling active pages within the browser context.
         user_id (Optional[str]): The user ID associated with the browser session.
         browser_api_client (BrowserAPIClient): The API client used for communicating with the Dendrite API.
-        llm_config (LLMConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
+        api_config (APIConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
 
     Raises:
         Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
@@ -60,8 +58,8 @@ class BaseDendriteBrowser(ABC):
 
     def __init__(
         self,
-        openai_api_key: Optional[str] = None,
         dendrite_api_key: Optional[str] = None,
+        openai_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
         playwright_options: Any = {
             "headless": False,
@@ -82,44 +80,24 @@ class BaseDendriteBrowser(ABC):
             Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
         """
 
-        if not dendrite_api_key or dendrite_api_key == "":
-            dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
-            if not dendrite_api_key or dendrite_api_key == "":
-                raise MissingApiKeyError(
-                    "Dendrite API key is required to use DendriteBrowser"
-                )
+        api_config = APIConfig(
+            dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
+            openai_api_key=openai_api_key or os.environ.get("OPENAI_API_KEY"),
+            anthropic_api_key=anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY"),
+        )
 
-        if not anthropic_api_key or anthropic_api_key == "":
-            anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-            if anthropic_api_key == "":
-                raise MissingApiKeyError(
-                    "Anthropic API key is required to use DendriteBrowser"
-                )
-
-        if not openai_api_key or openai_api_key == "":
-            openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-            if not openai_api_key or openai_api_key == "":
-                raise MissingApiKeyError(
-                    "OpenAI API key is required to use DendriteBrowser"
-                )
-
+        self.api_config = api_config
         self._id = uuid4().hex
         self._auth_data: Optional[AuthSession] = None
-        self._dendrite_api_key = dendrite_api_key
         self._playwright_options = playwright_options
         self._active_page_manager: Optional[PageManager] = None
         self._user_id: Optional[str] = None
-        self._browser_api_client = BrowserAPIClient(dendrite_api_key, self._id)
+        self._browser_api_client = BrowserAPIClient(api_config, self._id)
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
         self._upload_handler = EventSync[FileChooser]()
         self._download_handler = EventSync[Download]()
         self.closed = False
-
-        llm_config = LLMConfig(
-            openai_api_key=openai_api_key, anthropic_api_key=anthropic_api_key
-        )
-        self.llm_config = llm_config
 
     @property
     def pages(self) -> List[DendritePage]:

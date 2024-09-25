@@ -48,7 +48,7 @@ def perform_action(interaction_type: Interaction):
             if not expected_outcome:
                 return await func(self, *args, **kwargs)
 
-            llm_config = self._dendrite_browser.llm_config
+            api_config = self._dendrite_browser.api_config
 
             page_before = await self._dendrite_browser.get_active_page()
             page_before_info = await page_before._get_page_information()
@@ -75,7 +75,7 @@ def perform_action(interaction_type: Interaction):
                 interaction_type=interaction_type,
                 expected_outcome=expected_outcome,
                 page_delta_information=page_delta_information,
-                llm_config=llm_config,
+                api_config=api_config,
             )
             res = await self._browser_api_client.make_interaction(dto)
 

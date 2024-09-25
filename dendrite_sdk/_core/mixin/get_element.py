@@ -222,7 +222,7 @@ class GetElementMixin(DendritePageProtocol):
             Union[DendriteElement, List[DendriteElement]]: The retrieved element or list of elements.
         """
 
-        llm_config = self.dendrite_browser.llm_config
+        api_config = self.dendrite_browser.api_config
         start_time = time.time()
         attempt_start = start_time
         attempt = -1
@@ -236,7 +236,7 @@ class GetElementMixin(DendritePageProtocol):
             )
 
             elapsed_time = time.time() - start_time
-            remaining_time = timeout*0.001 - elapsed_time
+            remaining_time = timeout * 0.001 - elapsed_time
 
             if remaining_time <= 10 or attempt > 2:
                 force_not_use_cache = True
@@ -259,7 +259,7 @@ class GetElementMixin(DendritePageProtocol):
 
             dto = GetElementsDTO(
                 page_information=page_information,
-                llm_config=llm_config,
+                api_config=api_config,
                 prompt=prompt,
                 use_cache=use_cache and not force_not_use_cache,
                 only_one=only_one,

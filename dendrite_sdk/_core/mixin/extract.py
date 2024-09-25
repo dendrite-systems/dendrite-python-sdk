@@ -102,7 +102,7 @@ class ExtractionMixin(DendritePageProtocol):
         page_information = await self._get_page_information()
         scrape_dto = ScrapePageDTO(
             page_information=page_information,
-            llm_config=self.dendrite_browser.llm_config,
+            api_config=self.dendrite_browser.api_config,
             prompt=prompt,
             return_data_json_schema=json_schema,
             use_screenshot=True,
