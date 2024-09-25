@@ -84,43 +84,43 @@ class GetElementMixin(DendritePageProtocol):
             return self._get_element(
                 prompt_or_elements, only_one=False, use_cache=use_cache, timeout=timeout
             )
-        # if isinstance(prompt_or_elements, dict):
-        #     return self.get_elements_from_dict(
-        #         prompt_or_elements, context, use_cache, timeout
-        #     )
+        if isinstance(prompt_or_elements, dict):
+            return self.get_elements_from_dict(
+                prompt_or_elements, context, use_cache, timeout
+            )
         raise ValueError("Prompt must be either a string prompt or a dictionary")
 
-    # def get_elements_from_dict(
-    #     self, prompt_dict: Dict[str, str], context: str, use_cache: bool, timeout: int
-    # ):
-    #     """
-    #     Retrieves Dendrite elements based on a dictionary of prompts, each associated with a context.
+    def get_elements_from_dict(
+        self, prompt_dict: Dict[str, str], context: str, use_cache: bool, timeout: int
+    ):
+        """
+        Retrieves Dendrite elements based on a dictionary of prompts, each associated with a context.
 
-    #     This method sends a request for each prompt in the dictionary, adding context to each prompt, and retrieves the corresponding elements.
+        This method sends a request for each prompt in the dictionary, adding context to each prompt, and retrieves the corresponding elements.
 
-    #     Args:
-    #         prompt_dict (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
-    #         context (str): Additional context to be added to each prompt.
-    #         use_cache (bool): Whether to use cached results.
-    #         timeout (int): The total timeout (in milliseconds) until the last request is sent to the API.
+        Args:
+            prompt_dict (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
+            context (str): Additional context to be added to each prompt.
+            use_cache (bool): Whether to use cached results.
+            timeout (int): The total timeout (in milliseconds) until the last request is sent to the API.
 
-    #     Returns:
-    #         DendriteElementsResponse: A response object containing the retrieved elements mapped to their corresponding field names.
-    #     """
-    #     tasks = []
-    #     for field_name, prompt in prompt_dict.items():
-    #         full_prompt = prompt
-    #         if context != "":
-    #             full_prompt += f"\n\nHere is some extra context: {context}"
-    #         task = self._get_element(
-    #             full_prompt, only_one=True, use_cache=use_cache, timeout=timeout
-    #         )
-    #         tasks.append(task)
-    #     results = asyncio.gather(*tasks)
-    #     elements_dict: Dict[str, DendriteElement] = {}
-    #     for element, field_name in zip(results, prompt_dict.keys()):
-    #         elements_dict[field_name] = element
-    #     return DendriteElementsResponse(elements_dict)
+        Returns:
+            DendriteElementsResponse: A response object containing the retrieved elements mapped to their corresponding field names.
+        """
+        tasks = []
+        for field_name, prompt in prompt_dict.items():
+            full_prompt = prompt
+            if context != "":
+                full_prompt += f"\n\nHere is some extra context: {context}"
+            task = self._get_element(
+                full_prompt, only_one=True, use_cache=use_cache, timeout=timeout
+            )
+            tasks.append(task)
+        results = asyncio.gather(*tasks)
+        elements_dict: Dict[str, DendriteElement] = {}
+        for element, field_name in zip(results, prompt_dict.keys()):
+            elements_dict[field_name] = element
+        return DendriteElementsResponse(elements_dict)
 
     def get_element(
         self, prompt: str, use_cache=True, timeout=15000
@@ -208,6 +208,9 @@ class GetElementMixin(DendritePageProtocol):
             if remaining_time <= 10 or attempt > 2:
                 force_not_use_cache = True
             if remaining_time <= 0:
+                logger.warning(
+                    f"Timeout reached for '{prompt}' after {attempt + 1} attempts"
+                )
                 break
             prev_attempt_time = time.time() - attempt_start
             sleep_time = min(
@@ -230,10 +233,23 @@ class GetElementMixin(DendritePageProtocol):
                 f"Got selectors: {res} in {time.time() - attempt_start} seconds"
             )
             if not res.selectors:
+                logger.warning(
+                    f"No selectors returned for '{prompt}' on attempt {attempt + 1}"
+                )
                 continue
             for selector in reversed(res.selectors):
                 dendrite_elements = self._get_all_elements_from_selector(selector)
                 if len(dendrite_elements) > 0:
                     logger.info(f"Got working selector: {selector}")
                     return dendrite_elements[0] if only_one else dendrite_elements
+                else:
+                    logger.warning(
+                        f"No elements found for selector: {selector} on attempt {attempt + 1}"
+                    )
+            logger.warning(
+                f"All selectors failed for '{prompt}' on attempt {attempt + 1}"
+            )
+        logger.error(
+            f"Failed to get elements for '{prompt}' after {attempt + 1} attempts"
+        )
         return None
