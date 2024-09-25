@@ -1,15 +1,15 @@
-from typing import Any, Optional
-
+from typing import Optional
 import httpx
 from loguru import logger
 
 
+from dendrite_sdk.async_api._core.models.api_config import APIConfig
 from dendrite_sdk.async_api._common.constants import DENDRITE_API_BASE_URL
 
 
 class HTTPClient:
-    def __init__(self, api_key: Optional[str] = None, session_id: Optional[str] = None):
-        self.api_key = api_key
+    def __init__(self, api_config: APIConfig, session_id: Optional[str] = None):
+        self.api_key = api_config.dendrite_api_key
         self.session_id = session_id
         self.base_url = self.resolve_base_url()
 

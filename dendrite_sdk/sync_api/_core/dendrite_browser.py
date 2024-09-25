@@ -20,7 +20,7 @@ class Dendrite(BaseDendrite):
         active_page_manager (Optional[PageManager]): The manager responsible for handling active pages within the browser context.
         user_id (Optional[str]): The user ID associated with the browser session.
         browser_api_client (BrowserAPIClient): The API client used for communicating with the Dendrite API.
-        llm_config (LLMConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
+        api_config (APIConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
 
     Raises:
         Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.

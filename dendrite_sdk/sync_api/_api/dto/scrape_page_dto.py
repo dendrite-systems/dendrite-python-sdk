@@ -1,13 +1,13 @@
 import json
 from typing import Any
 from pydantic import BaseModel
-from dendrite_sdk.sync_api._core.models.llm_config import LLMConfig
+from dendrite_sdk.sync_api._core.models.api_config import APIConfig
 from dendrite_sdk.sync_api._core.models.page_information import PageInformation
 
 
 class ScrapePageDTO(BaseModel):
     page_information: PageInformation
-    llm_config: LLMConfig
+    api_config: APIConfig
     prompt: str
     return_data_json_schema: Any
     use_screenshot: bool = False
