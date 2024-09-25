@@ -1,24 +1,24 @@
 from dendrite_sdk.async_api import (
-    AsyncDendriteBrowser,
-    AsyncDendriteElement,
-    AsyncDendritePage,
-    AsyncDendriteElementsResponse,
+    AsyncDendrite,
+    AsyncElement,
+    AsyncPage,
+    AsyncElementsResponse,
 )
 
 from dendrite_sdk.sync_api import (
-    DendriteBrowser,
-    DendriteElement,
-    DendritePage,
-    DendriteElementsResponse,
+    Dendrite,
+    Element,
+    Page,
+    ElementsResponse,
 )
 
 __all__ = [
-    "AsyncDendriteBrowser",
-    "AsyncDendriteElement",
-    "AsyncDendritePage",
-    "AsyncDendriteElementsResponse",
-    "DendriteBrowser",
-    "DendriteElement",
-    "DendritePage",
-    "DendriteElementsResponse",
+    "AsyncDendrite",
+    "AsyncElement",
+    "AsyncPage",
+    "AsyncElementsResponse",
+    "Dendrite",
+    "Element",
+    "Page",
+    "ElementsResponse",
 ]

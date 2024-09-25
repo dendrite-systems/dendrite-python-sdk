@@ -3,10 +3,10 @@ from playwright.async_api import Page, FrameLocator, ElementHandle
 from bs4 import BeautifulSoup
 from loguru import logger
 
-from dendrite_sdk.async_api._core.dendrite_element import AsyncDendriteElement
+from dendrite_sdk.async_api._core.dendrite_element import AsyncElement
 
 if TYPE_CHECKING:
-    from dendrite_sdk.async_api._core.dendrite_page import AsyncDendritePage
+    from dendrite_sdk.async_api._core.dendrite_page import AsyncPage
 
 from dendrite_sdk.async_api._core._js import (
     GENERATE_DENDRITE_IDS_IFRAME_SCRIPT,

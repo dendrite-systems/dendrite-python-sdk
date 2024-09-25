@@ -1,9 +1,9 @@
 # content of test_tmp_path.py
 import os
-from dendrite_sdk.sync_api import DendriteBrowser
+from dendrite_sdk.sync_api import Dendrite
 
 
-def test_download(dendrite_browser: DendriteBrowser, tmp_path):
+def test_download(dendrite_browser: Dendrite, tmp_path):
     page = dendrite_browser.goto(
         "https://browser-tests-alpha.vercel.app/api/download-test"
     )

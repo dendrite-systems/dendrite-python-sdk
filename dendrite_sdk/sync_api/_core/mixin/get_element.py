@@ -3,8 +3,8 @@ import time
 from typing import Dict, List, Literal, Optional, Union, overload
 from loguru import logger
 from dendrite_sdk.sync_api._api.dto.get_elements_dto import GetElementsDTO
-from dendrite_sdk.sync_api._core.dendrite_element import DendriteElement
-from dendrite_sdk.sync_api._core.models.response import DendriteElementsResponse
+from dendrite_sdk.sync_api._core.dendrite_element import Element
+from dendrite_sdk.sync_api._core.models.response import ElementsResponse
 from dendrite_sdk.sync_api._core.protocol.page_protocol import DendritePageProtocol
 from dendrite_sdk.sync_api._exceptions.dendrite_exception import DendriteException
 
@@ -20,7 +20,7 @@ class GetElementMixin(DendritePageProtocol):
         use_cache: bool = True,
         timeout: int = 15000,
         context: str = "",
-    ) -> List[DendriteElement]:
+    ) -> List[Element]:
         """
         Retrieves a list of Dendrite elements based on a string prompt.
 
@@ -31,7 +31,7 @@ class GetElementMixin(DendritePageProtocol):
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
-            List[DendriteElement]: A list of Dendrite elements found on the page.
+            List[Element]: A list of Dendrite elements found on the page.
         """
 
     @overload
@@ -41,7 +41,7 @@ class GetElementMixin(DendritePageProtocol):
         use_cache: bool = True,
         timeout: int = 15000,
         context: str = "",
-    ) -> DendriteElementsResponse:
+    ) -> ElementsResponse:
         """
         Retrieves Dendrite elements based on a dictionary.
 
@@ -52,7 +52,7 @@ class GetElementMixin(DendritePageProtocol):
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
-            DendriteElementsResponse: A response object containing the retrieved elements with attributes matching the keys in the dict.
+            ElementsResponse: A response object containing the retrieved elements with attributes matching the keys in the dict.
         """
 
     def get_elements(
@@ -61,7 +61,7 @@ class GetElementMixin(DendritePageProtocol):
         use_cache: bool = True,
         timeout: int = 15000,
         context: str = "",
-    ) -> Union[List[DendriteElement], DendriteElementsResponse]:
+    ) -> Union[List[Element], ElementsResponse]:
         """
         Retrieves Dendrite elements based on either a string prompt or a dictionary of prompts.
 
@@ -75,7 +75,7 @@ class GetElementMixin(DendritePageProtocol):
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
-            Union[List[DendriteElement], DendriteElementsResponse]: A list of elements or a response object containing the retrieved elements.
+            Union[List[Element], ElementsResponse]: A list of elements or a response object containing the retrieved elements.
 
         Raises:
             ValueError: If the input is neither a string nor a dictionary.
@@ -87,7 +87,7 @@ class GetElementMixin(DendritePageProtocol):
 
     def get_element(
         self, prompt: str, use_cache=True, timeout=15000
-    ) -> Optional[DendriteElement]:
+    ) -> Optional[Element]:
         """
         Retrieves a single Dendrite element based on the provided prompt.
 
@@ -97,7 +97,7 @@ class GetElementMixin(DendritePageProtocol):
             timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 15000 (15 seconds).
 
         Returns:
-            DendriteElement: The retrieved element.
+            Element: The retrieved element.
         """
         return self._get_element(
             prompt, only_one=True, use_cache=use_cache, timeout=timeout
@@ -106,7 +106,7 @@ class GetElementMixin(DendritePageProtocol):
     @overload
     def _get_element(
         self, prompt_or_elements: str, only_one: Literal[True], use_cache: bool, timeout
-    ) -> Optional[DendriteElement]:
+    ) -> Optional[Element]:
         """
         Retrieves a single Dendrite element based on the provided prompt.
 
@@ -117,7 +117,7 @@ class GetElementMixin(DendritePageProtocol):
             timeout: The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
-            DendriteElement: The retrieved element.
+            Element: The retrieved element.
         """
 
     @overload
@@ -127,7 +127,7 @@ class GetElementMixin(DendritePageProtocol):
         only_one: Literal[False],
         use_cache: bool,
         timeout,
-    ) -> Union[List[DendriteElement], DendriteElementsResponse]:
+    ) -> Union[List[Element], ElementsResponse]:
         """
         Retrieves a list of Dendrite elements based on the provided prompt.
 
@@ -138,7 +138,7 @@ class GetElementMixin(DendritePageProtocol):
             timeout: The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
-            List[DendriteElement]: A list of retrieved elements.
+            List[Element]: A list of retrieved elements.
         """
 
     def _get_element(
@@ -147,9 +147,7 @@ class GetElementMixin(DendritePageProtocol):
         only_one: bool,
         use_cache: bool,
         timeout: float,
-    ) -> Union[
-        Optional[DendriteElement], List[DendriteElement], DendriteElementsResponse
-    ]:
+    ) -> Union[Optional[Element], List[Element], ElementsResponse]:
         """
         Retrieves Dendrite elements based on the provided prompt, either a single element or a list of elements.
 
@@ -162,7 +160,7 @@ class GetElementMixin(DendritePageProtocol):
             timeout (float): The total timeout (in milliseconds) until the last request is sent to the API.
 
         Returns:
-            Union[DendriteElement, List[DendriteElement], DendriteElementsResponse]: The retrieved element, list of elements, or response object.
+            Union[Element, List[Element], ElementsResponse]: The retrieved element, list of elements, or response object.
         """
         llm_config = self.dendrite_browser.llm_config
         start_time = time.time()
@@ -225,7 +223,7 @@ class GetElementMixin(DendritePageProtocol):
                         logger.warning(
                             f"No elements found for '{key}' on attempt {attempt + 1}"
                         )
-                return DendriteElementsResponse(result)
+                return ElementsResponse(result)
             elif isinstance(res.selectors, list):
                 for selector in reversed(res.selectors):
                     dendrite_elements = self._get_all_elements_from_selector(selector)

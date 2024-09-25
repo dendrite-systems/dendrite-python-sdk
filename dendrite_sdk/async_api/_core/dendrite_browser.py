@@ -1,17 +1,17 @@
 from playwright.async_api import FileChooser, Download, Page
-from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendriteBrowser
+from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendrite
 
 
-class AsyncDendriteBrowser(BaseAsyncDendriteBrowser):
+class AsyncDendrite(BaseAsyncDendrite):
     """
-    AsyncDendriteBrowser is a class that manages a browser instance using Playwright, allowing
+    AsyncDendrite is a class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
     This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
     contexts, and provides methods for navigation, authentication, and other browser-related tasks.
 
     Attributes:
-        id (UUID): The unique identifier for the AsyncDendriteBrowser instance.
+        id (UUID): The unique identifier for the AsyncDendrite instance.
         auth_data (Optional[AuthSession]): The authentication session data for the browser.
         dendrite_api_key (str): The API key for Dendrite, used for interactions with the Dendrite API.
         playwright_options (dict): Options for configuring the Playwright browser instance.

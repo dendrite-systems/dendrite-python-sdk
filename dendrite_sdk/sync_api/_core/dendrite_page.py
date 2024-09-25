@@ -8,14 +8,14 @@ from loguru import logger
 from playwright.sync_api import Page, FrameLocator, Keyboard, Download, FilePayload
 from dendrite_sdk.sync_api._api.response.interaction_response import InteractionResponse
 from dendrite_sdk.sync_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
-from dendrite_sdk.sync_api._core.dendrite_element import DendriteElement
+from dendrite_sdk.sync_api._core.dendrite_element import Element
 from dendrite_sdk.sync_api._core.mixin.ask import AskMixin
 from dendrite_sdk.sync_api._core.mixin.extract import ExtractionMixin
 from dendrite_sdk.sync_api._core.mixin.get_element import GetElementMixin
 from dendrite_sdk.sync_api._core.models.page_information import PageInformation
 
 if TYPE_CHECKING:
-    from dendrite_sdk.sync_api._core._base_browser import BaseDendriteBrowser
+    from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
 from dendrite_sdk.sync_api._core._managers.screenshot_manager import ScreenshotManager
 from dendrite_sdk.sync_api._exceptions.dendrite_exception import (
     DendriteException,
@@ -24,7 +24,7 @@ from dendrite_sdk.sync_api._exceptions.dendrite_exception import (
 from dendrite_sdk.sync_api._core._utils import expand_iframes
 
 
-class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
+class Page(ExtractionMixin, AskMixin, GetElementMixin):
     """
     Represents a page in the Dendrite browser environment.
 
@@ -32,7 +32,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
     pages in the browser.
     """
 
-    def __init__(self, page: Page, dendrite_browser: "BaseDendriteBrowser"):
+    def __init__(self, page: Page, dendrite_browser: "BaseDendrite"):
         self.playwright_page = page
         self.screenshot_manager = ScreenshotManager()
         self.dendrite_browser = dendrite_browser
@@ -428,8 +428,8 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
         """
         expand_iframes(self.playwright_page, page_source)
 
-    def _get_all_elements_from_selector(self, selector: str) -> List[DendriteElement]:
-        dendrite_elements: List[DendriteElement] = []
+    def _get_all_elements_from_selector(self, selector: str) -> List[Element]:
+        dendrite_elements: List[Element] = []
         soup = self._get_soup()
         elements = soup.select(selector)
         for element in elements:
@@ -440,9 +440,7 @@ class DendritePage(ExtractionMixin, AskMixin, GetElementMixin):
                 continue
             if isinstance(d_id, list):
                 d_id = d_id[0]
-            dendrite_elements.append(
-                DendriteElement(d_id, locator, self.dendrite_browser)
-            )
+            dendrite_elements.append(Element(d_id, locator, self.dendrite_browser))
         return dendrite_elements
 
     def _dump_html(self, path: str) -> None:

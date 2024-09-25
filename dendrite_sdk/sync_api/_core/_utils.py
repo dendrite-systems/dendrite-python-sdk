@@ -2,10 +2,10 @@ from typing import Union, List, TYPE_CHECKING
 from playwright.sync_api import Page, FrameLocator, ElementHandle
 from bs4 import BeautifulSoup
 from loguru import logger
-from dendrite_sdk.sync_api._core.dendrite_element import DendriteElement
+from dendrite_sdk.sync_api._core.dendrite_element import Element
 
 if TYPE_CHECKING:
-    from dendrite_sdk.sync_api._core.dendrite_page import DendritePage
+    from dendrite_sdk.sync_api._core.dendrite_page import Page
 from dendrite_sdk.sync_api._core._js import GENERATE_DENDRITE_IDS_IFRAME_SCRIPT
 from dendrite_sdk.sync_api._dom.util.mild_strip import mild_strip_in_place
 

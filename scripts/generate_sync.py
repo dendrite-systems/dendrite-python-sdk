@@ -251,11 +251,11 @@ if __name__ == "__main__":
     renames = {
         "AsyncBrowserbaseDownload": "BrowserbaseDownload",
         "AsyncBrowserbaseBrowser": "BrowserbaseBrowser",
-        "AsyncDendriteBrowser": "DendriteBrowser",
-        "BaseAsyncDendriteBrowser": "BaseDendriteBrowser",
-        "AsyncDendriteElement": "DendriteElement",
-        "AsyncDendritePage": "DendritePage",
+        "AsyncDendrite": "Dendrite",
+        "BaseAsyncDendrite": "BaseDendrite",
+        "AsyncElement": "Element",
+        "AsyncPage": "Page",
         "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",
-        "AsyncDendriteElementsResponse": "DendriteElementsResponse",
+        "AsyncElementsResponse": "ElementsResponse",
     }
     process_directory(source_dir, target_dir, renames)

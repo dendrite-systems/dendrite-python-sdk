@@ -51,7 +51,7 @@ class BrowserNotLaunchedError(BaseDendriteException):
 
     def __init__(
         self,
-        message: str = "The browser should have been automatically launched by the DendriteBrowser object.. Please reach out to us on GitHub or Discord if you are facing this issue.",
+        message: str = "The browser should have been automatically launched by the Dendrite object.. Please reach out to us on GitHub or Discord if you are facing this issue.",
     ) -> None:
         super().__init__(message)
 

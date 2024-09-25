@@ -2,14 +2,14 @@ import asyncio
 import os
 import pytest
 
-from dendrite_sdk.async_api._core.dendrite_browser import AsyncDendriteBrowser
+from dendrite_sdk.async_api._core.dendrite_browser import AsyncDendrite
 
 pytest_plugins = ("pytest_asyncio",)
 
 
 # content of test_tmp_path.py
 @pytest.mark.asyncio(loop_scope="session")
-async def test_download(dendrite_browser: AsyncDendriteBrowser, tmp_path):
+async def test_download(dendrite_browser: AsyncDendrite, tmp_path):
     page = await dendrite_browser.goto(
         "https://browser-tests-alpha.vercel.app/api/download-test"
     )

@@ -1,28 +1,28 @@
 from typing import Dict, Iterator
 
-from dendrite_sdk.async_api._core.dendrite_element import AsyncDendriteElement
+from dendrite_sdk.async_api._core.dendrite_element import AsyncElement
 
 
-class AsyncDendriteElementsResponse:
+class AsyncElementsResponse:
     """
-    AsyncDendriteElementsResponse is a class that encapsulates a dictionary of Dendrite elements,
+    AsyncElementsResponse is a class that encapsulates a dictionary of Dendrite elements,
     allowing for attribute-style access and other convenient interactions.
 
     This class is used to store and access the elements retrieved by the `get_elements` function.
     The attributes of this class dynamically match the keys of the dictionary passed to the `get_elements` function,
-    allowing for direct attribute-style access to the corresponding `AsyncDendriteElement` objects.
+    allowing for direct attribute-style access to the corresponding `AsyncElement` objects.
 
     Attributes:
-        _data (Dict[str, AsyncDendriteElement]): A dictionary where keys are the names of elements and values are the corresponding `AsyncDendriteElement` objects.
+        _data (Dict[str, AsyncElement]): A dictionary where keys are the names of elements and values are the corresponding `AsyncElement` objects.
 
     Args:
-        data (Dict[str, AsyncDendriteElement]): The dictionary of elements to be encapsulated by the class.
+        data (Dict[str, AsyncElement]): The dictionary of elements to be encapsulated by the class.
 
     Methods:
-        __getattr__(name: str) -> AsyncDendriteElement:
+        __getattr__(name: str) -> AsyncElement:
             Allows attribute-style access to the elements in the dictionary.
 
-        __getitem__(key: str) -> AsyncDendriteElement:
+        __getitem__(key: str) -> AsyncElement:
             Enables dictionary-style access to the elements.
 
         __iter__() -> Iterator[str]:
@@ -32,12 +32,12 @@ class AsyncDendriteElementsResponse:
             Returns a string representation of the class instance.
     """
 
-    _data: Dict[str, AsyncDendriteElement]
+    _data: Dict[str, AsyncElement]
 
-    def __init__(self, data: Dict[str, AsyncDendriteElement]):
+    def __init__(self, data: Dict[str, AsyncElement]):
         self._data = data
 
-    def __getattr__(self, name: str) -> AsyncDendriteElement:
+    def __getattr__(self, name: str) -> AsyncElement:
         try:
             return self._data[name]
         except KeyError:
@@ -45,7 +45,7 @@ class AsyncDendriteElementsResponse:
                 f"'{self.__class__.__name__}' object has no attribute '{name}'"
             )
 
-    def __getitem__(self, key: str) -> AsyncDendriteElement:
+    def __getitem__(self, key: str) -> AsyncElement:
         return self._data[key]
 
     def __iter__(self) -> Iterator[str]:

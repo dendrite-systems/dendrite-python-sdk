@@ -1,27 +1,27 @@
 from typing import Dict, Iterator
-from dendrite_sdk.sync_api._core.dendrite_element import DendriteElement
+from dendrite_sdk.sync_api._core.dendrite_element import Element
 
 
-class DendriteElementsResponse:
+class ElementsResponse:
     """
-    DendriteElementsResponse is a class that encapsulates a dictionary of Dendrite elements,
+    ElementsResponse is a class that encapsulates a dictionary of Dendrite elements,
     allowing for attribute-style access and other convenient interactions.
 
     This class is used to store and access the elements retrieved by the `get_elements` function.
     The attributes of this class dynamically match the keys of the dictionary passed to the `get_elements` function,
-    allowing for direct attribute-style access to the corresponding `DendriteElement` objects.
+    allowing for direct attribute-style access to the corresponding `Element` objects.
 
     Attributes:
-        _data (Dict[str, DendriteElement]): A dictionary where keys are the names of elements and values are the corresponding `DendriteElement` objects.
+        _data (Dict[str, Element]): A dictionary where keys are the names of elements and values are the corresponding `Element` objects.
 
     Args:
-        data (Dict[str, DendriteElement]): The dictionary of elements to be encapsulated by the class.
+        data (Dict[str, Element]): The dictionary of elements to be encapsulated by the class.
 
     Methods:
-        __getattr__(name: str) -> DendriteElement:
+        __getattr__(name: str) -> Element:
             Allows attribute-style access to the elements in the dictionary.
 
-        __getitem__(key: str) -> DendriteElement:
+        __getitem__(key: str) -> Element:
             Enables dictionary-style access to the elements.
 
         __iter__() -> Iterator[str]:
@@ -31,12 +31,12 @@ class DendriteElementsResponse:
             Returns a string representation of the class instance.
     """
 
-    _data: Dict[str, DendriteElement]
+    _data: Dict[str, Element]
 
-    def __init__(self, data: Dict[str, DendriteElement]):
+    def __init__(self, data: Dict[str, Element]):
         self._data = data
 
-    def __getattr__(self, name: str) -> DendriteElement:
+    def __getattr__(self, name: str) -> Element:
         try:
             return self._data[name]
         except KeyError:
@@ -44,7 +44,7 @@ class DendriteElementsResponse:
                 f"'{self.__class__.__name__}' object has no attribute '{name}'"
             )
 
-    def __getitem__(self, key: str) -> DendriteElement:
+    def __getitem__(self, key: str) -> Element:
         return self._data[key]
 
     def __iter__(self) -> Iterator[str]:

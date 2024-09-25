@@ -1,13 +1,13 @@
 from loguru import logger
-from ._core.dendrite_browser import DendriteBrowser
-from ._core.dendrite_element import DendriteElement
-from ._core.dendrite_page import DendritePage
-from ._core.models.response import DendriteElementsResponse
+from ._core.dendrite_browser import Dendrite
+from ._core.dendrite_element import Element
+from ._core.dendrite_page import Page
+from ._core.models.response import ElementsResponse
 
 logger.disable("dendrite_python_sdk")
 __all__ = [
-    "DendriteBrowser",
-    "DendriteElement",
-    "DendritePage",
-    "DendriteElementsResponse",
+    "Dendrite",
+    "Element",
+    "Page",
+    "ElementsResponse",
 ]

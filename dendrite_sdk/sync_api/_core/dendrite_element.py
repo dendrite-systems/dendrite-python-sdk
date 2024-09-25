@@ -9,7 +9,7 @@ from playwright.sync_api import Locator
 from dendrite_sdk.sync_api._exceptions.dendrite_exception import IncorrectOutcomeError
 
 if TYPE_CHECKING:
-    from dendrite_sdk.sync_api._core._base_browser import BaseDendriteBrowser
+    from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
 from dendrite_sdk.sync_api._core.models.page_diff_information import PageDiffInformation
 from dendrite_sdk.sync_api._core._type_spec import Interaction
 from dendrite_sdk.sync_api._api.response.interaction_response import InteractionResponse
@@ -20,7 +20,7 @@ def perform_action(interaction_type: Interaction):
     """
     Decorator for performing actions on DendriteElements.
 
-    This decorator wraps methods of DendriteElement to handle interactions,
+    This decorator wraps methods of Element to handle interactions,
     expected outcomes, and error handling.
 
     Args:
@@ -33,7 +33,7 @@ def perform_action(interaction_type: Interaction):
     def decorator(func):
 
         @functools.wraps(func)
-        def wrapper(self: DendriteElement, *args, **kwargs) -> InteractionResponse:
+        def wrapper(self: Element, *args, **kwargs) -> InteractionResponse:
             expected_outcome: Optional[str] = kwargs.pop("expected_outcome", None)
             logger.info(
                 f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'
@@ -72,7 +72,7 @@ def perform_action(interaction_type: Interaction):
     return decorator
 
 
-class DendriteElement:
+class Element:
     """
     Represents an element in the Dendrite browser environment. Wraps a Playwright Locator.
 
@@ -81,15 +81,15 @@ class DendriteElement:
     """
 
     def __init__(
-        self, dendrite_id: str, locator: Locator, dendrite_browser: BaseDendriteBrowser
+        self, dendrite_id: str, locator: Locator, dendrite_browser: BaseDendrite
     ):
         """
-        Initialize a DendriteElement.
+        Initialize a Element.
 
         Args:
             dendrite_id (str): The dendrite_id identifier for this element.
             locator (Locator): The Playwright locator for this element.
-            dendrite_browser (DendriteBrowser): The browser instance.
+            dendrite_browser (Dendrite): The browser instance.
         """
         self.dendrite_id = dendrite_id
         self.locator = locator

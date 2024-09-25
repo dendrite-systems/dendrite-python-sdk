@@ -8,8 +8,8 @@ class APIConfig(BaseModel):
 
     Attributes:
         dendrite_api_key (Optional[str]): The API key for Dendrite services.
-        openai_api_key (Optional[str]): The API key for OpenAI services. If you wish to use your own API key, you can do so by passing it to the DendriteBrowser.
-        anthropic_api_key (Optional[str]): The API key for Anthropic services. If you wish to use your own API key, you can do so by passing it to the DendriteBrowser.
+        openai_api_key (Optional[str]): The API key for OpenAI services. If you wish to use your own API key, you can do so by passing it to the Dendrite.
+        anthropic_api_key (Optional[str]): The API key for Anthropic services. If you wish to use your own API key, you can do so by passing it to the Dendrite.
 
     Raises:
         ValueError: If a valid dendrite_api_key is not provided.
@@ -24,6 +24,6 @@ class APIConfig(BaseModel):
         dendrite_api_key = values.get("dendrite_api_key")
         if not dendrite_api_key:
             raise ValueError(
-                "A valid dendrite_api_key must be provided. Make sure you have set the DENDRITE_API_KEY environment variable or passed it to the DendriteBrowser."
+                "A valid dendrite_api_key must be provided. Make sure you have set the DENDRITE_API_KEY environment variable or passed it to the Dendrite."
             )
         return values

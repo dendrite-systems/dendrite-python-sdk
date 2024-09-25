@@ -3,13 +3,13 @@ from typing import Any, Generic, Optional, TypeVar
 from playwright.sync_api import sync_playwright, Download, Page
 from dendrite_sdk.sync_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.sync_api._core._managers.page_manager import PageManager
-from dendrite_sdk.sync_api._core._base_browser import BaseDendriteBrowser
+from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
 from dendrite_sdk.sync_api.ext._remote_provider import RemoteProvider
 
 T = TypeVar("T", bound=RemoteProvider)
 
 
-class DendriteRemoteBrowser(BaseDendriteBrowser, Generic[T]):
+class DendriteRemoteBrowser(BaseDendrite, Generic[T]):
 
     def __init__(
         self,

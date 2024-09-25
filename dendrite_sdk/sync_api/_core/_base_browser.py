@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import re
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, List, Optional, Union
 from uuid import uuid4
 import os
 from loguru import logger
@@ -10,13 +10,13 @@ from playwright.sync_api import (
     BrowserContext,
     FileChooser,
     Download,
-    Page,
+    Page as PlaywrightPage,
 )
 from dendrite_sdk.sync_api._api.dto.authenticate_dto import AuthenticateDTO
 from dendrite_sdk.sync_api._api.dto.upload_auth_session_dto import UploadAuthSessionDTO
 from dendrite_sdk.sync_api._common.event_sync import EventSync
 from dendrite_sdk.sync_api._core._managers.page_manager import PageManager
-from dendrite_sdk.sync_api._core.dendrite_page import DendritePage
+from dendrite_sdk.sync_api._core.dendrite_page import Page
 from dendrite_sdk.sync_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.sync_api._core.models.authentication import AuthSession
 from dendrite_sdk.sync_api._core.models.llm_config import LLMConfig
@@ -29,9 +29,9 @@ from dendrite_sdk.sync_api._exceptions.dendrite_exception import (
 )
 
 
-class BaseDendriteBrowser(ABC):
+class BaseDendrite(ABC):
     """
-    DendriteBrowser is an abstract base class that manages a browser instance using Playwright, allowing
+    Dendrite is an abstract base class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
     This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
@@ -56,7 +56,7 @@ class BaseDendriteBrowser(ABC):
         playwright_options: Any = {"headless": False, "args": STEALTH_ARGS},
     ):
         """
-        Initializes the BaseDendriteBrowser with API keys and Playwright options.
+        Initializes the BaseDendrite with API keys and Playwright options.
 
         Args:
             auth (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate on.
@@ -71,21 +71,17 @@ class BaseDendriteBrowser(ABC):
         if not dendrite_api_key or dendrite_api_key == "":
             dendrite_api_key = os.environ.get("DENDRITE_API_KEY", "")
             if not dendrite_api_key or dendrite_api_key == "":
-                raise MissingApiKeyError(
-                    "Dendrite API key is required to use DendriteBrowser"
-                )
+                raise MissingApiKeyError("Dendrite API key is required to use Dendrite")
         if not anthropic_api_key or anthropic_api_key == "":
             anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
             if anthropic_api_key == "":
                 raise MissingApiKeyError(
-                    "Anthropic API key is required to use DendriteBrowser"
+                    "Anthropic API key is required to use Dendrite"
                 )
         if not openai_api_key or openai_api_key == "":
             openai_api_key = os.environ.get("OPENAI_API_KEY", "")
             if not openai_api_key or openai_api_key == "":
-                raise MissingApiKeyError(
-                    "OpenAI API key is required to use DendriteBrowser"
-                )
+                raise MissingApiKeyError("OpenAI API key is required to use Dendrite")
         self._id = uuid4().hex
         self._dendrite_api_key = dendrite_api_key
         self._playwright_options = playwright_options
@@ -104,12 +100,12 @@ class BaseDendriteBrowser(ABC):
         self.llm_config = llm_config
 
     @property
-    def pages(self) -> List[DendritePage]:
+    def pages(self) -> List[Page]:
         """
         Retrieves the list of active pages managed by the PageManager.
 
         Returns:
-            List[DendritePage]: The list of active pages.
+            List[Page]: The list of active pages.
         """
         if self._active_page_manager:
             return self._active_page_manager.pages
@@ -128,12 +124,12 @@ class BaseDendriteBrowser(ABC):
         auth_session: AuthSession = self._browser_api_client.authenticate(dto)
         return auth_session
 
-    def new_page(self) -> DendritePage:
+    def new_page(self) -> Page:
         """
         Opens a new page in the browser.
 
         Returns:
-            DendritePage: The newly opened page.
+            Page: The newly opened page.
 
         Raises:
             Exception: If there is an issue opening a new page.
@@ -141,12 +137,12 @@ class BaseDendriteBrowser(ABC):
         active_page_manager = self._get_active_page_manager()
         return active_page_manager.new_page()
 
-    def get_active_page(self) -> DendritePage:
+    def get_active_page(self) -> Page:
         """
         Retrieves the currently active page managed by the PageManager.
 
         Returns:
-            DendritePage: The active page object.
+            Page: The active page object.
 
         Raises:
             Exception: If there is an issue retrieving the active page.
@@ -156,7 +152,7 @@ class BaseDendriteBrowser(ABC):
 
     def new_tab(
         self, url: str, timeout: Optional[float] = 15000, expected_page: str = ""
-    ) -> DendritePage:
+    ) -> Page:
         """
         Opens a new tab and navigates to the specified URL.
 
@@ -166,7 +162,7 @@ class BaseDendriteBrowser(ABC):
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
-            DendritePage: The page object after navigation.
+            Page: The page object after navigation.
 
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
@@ -181,7 +177,7 @@ class BaseDendriteBrowser(ABC):
         new_page: bool = False,
         timeout: Optional[float] = 15000,
         expected_page: str = "",
-    ) -> DendritePage:
+    ) -> Page:
         """
         Navigates to the specified URL, optionally in a new tab
 
@@ -192,7 +188,7 @@ class BaseDendriteBrowser(ABC):
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
-            DendritePage: The page object after navigation.
+            Page: The page object after navigation.
 
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
@@ -319,7 +315,7 @@ class BaseDendriteBrowser(ABC):
         return self._active_page_manager
 
     @abstractmethod
-    def _get_download(self, pw_page: Page, timeout: float) -> Download:
+    def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -331,7 +327,9 @@ class BaseDendriteBrowser(ABC):
         """
         pass
 
-    def _get_filechooser(self, pw_page: Page, timeout: float = 30000) -> FileChooser:
+    def _get_filechooser(
+        self, pw_page: PlaywrightPage, timeout: float = 30000
+    ) -> FileChooser:
         """
         Uploads files to the browser.
 
