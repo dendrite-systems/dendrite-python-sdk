@@ -5,7 +5,7 @@ import sys
 
 def run_playwright_install():
     try:
-        subprocess.run(["playwright", "install"], check=True)
+        subprocess.run(["playwright", "install", "chromium"], check=True)
         print("Playwright browser installation completed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"Error during Playwright browser installation: {e}")
