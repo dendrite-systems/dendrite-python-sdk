@@ -168,7 +168,7 @@ BROWSERBASE_PROJECT_ID=
 
 ```python
 # from dendrite_python_sdk import DendriteBrowser
-from dendrite_sdk.ext.browserbase import BrowserbaseBrowser
+from dendrite_sdk.async_api.ext.browserbase import BrowserbaseBrowser
 
 ... 
 

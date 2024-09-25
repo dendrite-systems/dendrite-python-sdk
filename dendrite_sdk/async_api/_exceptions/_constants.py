@@ -1,0 +1,1 @@
+INVALID_AUTH_SESSION_MSG = "Missing auth session for any of: {domain}. Make sure that you have used the Dendrite Vault extension to extract your authenticated session(s) for the domain(s) you are trying to access."
