@@ -1,15 +1,24 @@
-from loguru import logger
-from ._core.dendrite_browser import DendriteBrowser
-from ._core.dendrite_element import DendriteElement
-from ._core.dendrite_page import DendritePage
-from ._core.models.response import DendriteElementsResponse
+from dendrite_sdk.async_api import (
+    AsyncDendrite,
+    AsyncElement,
+    AsyncPage,
+    AsyncElementsResponse,
+)
 
-
-logger.disable("dendrite_python_sdk")
+from dendrite_sdk.sync_api import (
+    Dendrite,
+    Element,
+    Page,
+    ElementsResponse,
+)
 
 __all__ = [
-    "DendriteBrowser",
-    "DendriteElement",
-    "DendritePage",
-    "DendriteElementsResponse",
+    "AsyncDendrite",
+    "AsyncElement",
+    "AsyncPage",
+    "AsyncElementsResponse",
+    "Dendrite",
+    "Element",
+    "Page",
+    "ElementsResponse",
 ]

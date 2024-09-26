@@ -34,10 +34,18 @@ typing-extensions = "^4.12.0"
 loguru = "^0.7.2"
 httpx = "^0.27.2"
 
+
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.4"
 pylint = "^3.2.6"
 black = "^24.8.0"
+poethepoet = "^0.29.0"
+
+[tool.poe.tasks]
+generate_sync = "python scripts/generate_sync.py"
+format_sync = "python -m black ./dendrite_sdk/sync_api/"
+build_sync = ["generate_sync", "format_sync"]
+test_sync = "pytest tests/tests_sync"
 
 [tool.poetry.scripts]
 dendrite = "dendrite_sdk._cli.main:main"
