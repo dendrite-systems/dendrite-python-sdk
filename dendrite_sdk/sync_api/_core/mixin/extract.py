@@ -79,16 +79,17 @@ class ExtractionMixin(DendritePageProtocol):
             json_schema = to_json_schema(type_spec)
         if prompt is None:
             prompt = ""
-        page_information = self._get_page_information()
+        page = self._get_page()
+        page_information = page.get_page_information()
         scrape_dto = ScrapePageDTO(
             page_information=page_information,
-            api_config=self.dendrite_browser.api_config,
+            api_config=self._get_dendrite_browser().api_config,
             prompt=prompt,
             return_data_json_schema=json_schema,
             use_screenshot=True,
             use_cache=use_cache,
         )
-        res = self.browser_api_client.scrape_page(scrape_dto)
+        res = self._get_browser_api_client().scrape_page(scrape_dto)
         converted_res = res.return_data
         if type_spec is not None:
             converted_res = convert_to_type_spec(type_spec, res.return_data)

@@ -162,7 +162,7 @@ class GetElementMixin(DendritePageProtocol):
         Returns:
             Union[Element, List[Element], ElementsResponse]: The retrieved element, list of elements, or response object.
         """
-        api_config = self.dendrite_browser.api_config
+        api_config = self._get_dendrite_browser().api_config
         start_time = time.time()
         attempt_start = start_time
         attempt = -1
@@ -196,7 +196,8 @@ class GetElementMixin(DendritePageProtocol):
             logger.info(
                 f"Getting element for '{prompt_or_elements}' | Attempt {attempt + 1}"
             )
-            page_information = self._get_page_information()
+            page = self._get_page()
+            page_information = page.get_page_information()
             dto = GetElementsDTO(
                 page_information=page_information,
                 prompt=prompt_or_elements,
@@ -204,7 +205,7 @@ class GetElementMixin(DendritePageProtocol):
                 use_cache=use_cache and (not force_not_use_cache),
                 only_one=only_one,
             )
-            res = self.browser_api_client.get_interactions_selector(dto)
+            res = self._get_browser_api_client().get_interactions_selector(dto)
             logger.debug(
                 f"Got selectors: {res} in {time.time() - attempt_start} seconds"
             )
@@ -212,7 +213,8 @@ class GetElementMixin(DendritePageProtocol):
                 result = {}
                 for key, selectors in res.selectors.items():
                     for selector in reversed(selectors):
-                        dendrite_elements = self._get_all_elements_from_selector(
+                        page = self._get_page()
+                        dendrite_elements = page._get_all_elements_from_selector(
                             selector
                         )
                         if len(dendrite_elements) > 0:
@@ -226,7 +228,8 @@ class GetElementMixin(DendritePageProtocol):
                 return ElementsResponse(result)
             elif isinstance(res.selectors, list):
                 for selector in reversed(res.selectors):
-                    dendrite_elements = self._get_all_elements_from_selector(selector)
+                    page = self._get_page()
+                    dendrite_elements = page._get_all_elements_from_selector(selector)
                     if len(dendrite_elements) > 0:
                         logger.info(f"Got working selector: {selector}")
                         return dendrite_elements[0] if only_one else dendrite_elements

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import re
-from typing import Any, Dict, List, Literal, Optional, Union
-from typing import Any, List, Optional, Union
+from typing import Any, List, Literal, Optional, Union
 from uuid import uuid4
 import os
 from loguru import logger
@@ -19,6 +18,13 @@ from dendrite_sdk.sync_api._common.event_sync import EventSync
 from dendrite_sdk.sync_api._core._managers.page_manager import PageManager
 from dendrite_sdk.sync_api._core.dendrite_page import Page
 from dendrite_sdk.sync_api._common.constants import STEALTH_ARGS
+from dendrite_sdk.sync_api._core.mixin.ask import AskMixin
+from dendrite_sdk.sync_api._core.mixin.click import ClickMixin
+from dendrite_sdk.sync_api._core.mixin.extract import ExtractionMixin
+from dendrite_sdk.sync_api._core.mixin.fill_fields import FillFieldsMixin
+from dendrite_sdk.sync_api._core.mixin.get_element import GetElementMixin
+from dendrite_sdk.sync_api._core.mixin.keyboard import KeyboardMixin
+from dendrite_sdk.sync_api._core.mixin.wait_for import WaitForMixin
 from dendrite_sdk.sync_api._core.models.authentication import AuthSession
 from dendrite_sdk.sync_api._core.models.api_config import APIConfig
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
@@ -29,9 +35,18 @@ from dendrite_sdk.sync_api._exceptions.dendrite_exception import (
 )
 
 
-class BaseDendrite(ABC):
+class BaseDendrite(
+    ExtractionMixin,
+    WaitForMixin,
+    AskMixin,
+    FillFieldsMixin,
+    ClickMixin,
+    KeyboardMixin,
+    GetElementMixin,
+    ABC,
+):
     """
-    Dendrite is an abstract base class that manages a browser instance using Playwright, allowing
+    BaseDendrite is an abstract base class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
     This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
@@ -45,6 +60,9 @@ class BaseDendrite(ABC):
         user_id (Optional[str]): The user ID associated with the browser session.
         browser_api_client (BrowserAPIClient): The API client used for communicating with the Dendrite API.
         api_config (APIConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
+
+    Raises:
+        MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
     """
 
     def __init__(
@@ -64,6 +82,9 @@ class BaseDendrite(ABC):
             dendrite_api_key (Optional[str], optional): The Dendrite API key. If not provided, it's fetched from the environment variables.
             anthropic_api_key (Optional[str], optional): The Anthropic API key. If not provided, it's fetched from the environment variables.
             playwright_options (Any, optional): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
+
+        Raises:
+            MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
         """
         api_config = APIConfig(
             dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
@@ -71,17 +92,17 @@ class BaseDendrite(ABC):
             anthropic_api_key=anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY"),
         )
         self.api_config = api_config
+        self.playwright: Optional[Playwright] = None
+        self.browser_context: Optional[BrowserContext] = None
         self._id = uuid4().hex
         self._playwright_options = playwright_options
         self._active_page_manager: Optional[PageManager] = None
         self._user_id: Optional[str] = None
-        self._browser_api_client = BrowserAPIClient(api_config, self._id)
-        self.playwright: Optional[Playwright] = None
-        self.browser_context: Optional[BrowserContext] = None
         self._upload_handler = EventSync(event_type=FileChooser)
         self._download_handler = EventSync(event_type=Download)
         self.closed = False
         self._auth = auth
+        self._browser_api_client = BrowserAPIClient(api_config, self._id)
 
     @property
     def pages(self) -> List[Page]:
@@ -96,6 +117,16 @@ class BaseDendrite(ABC):
         else:
             raise BrowserNotLaunchedError()
 
+    def _get_page(self) -> Page:
+        active_page = self.get_active_page()
+        return active_page
+
+    def _get_browser_api_client(self) -> BrowserAPIClient:
+        return self._browser_api_client
+
+    def _get_dendrite_browser(self) -> "BaseDendrite":
+        return self
+
     def __aenter__(self):
         self._launch()
         return self
@@ -107,19 +138,6 @@ class BaseDendrite(ABC):
         dto = AuthenticateDTO(domains=domains)
         auth_session: AuthSession = self._browser_api_client.authenticate(dto)
         return auth_session
-
-    def new_page(self) -> Page:
-        """
-        Opens a new page in the browser.
-
-        Returns:
-            Page: The newly opened page.
-
-        Raises:
-            Exception: If there is an issue opening a new page.
-        """
-        active_page_manager = self._get_active_page_manager()
-        return active_page_manager.new_page()
 
     def get_active_page(self) -> Page:
         """
@@ -133,6 +151,19 @@ class BaseDendrite(ABC):
         """
         active_page_manager = self._get_active_page_manager()
         return active_page_manager.get_active_page()
+
+    def new_page(self) -> Page:
+        """
+        Opens a new page in the browser.
+
+        Returns:
+            Page: The newly opened page.
+
+        Raises:
+            Exception: If there is an issue opening a new page.
+        """
+        active_page_manager = self._get_active_page_manager()
+        return active_page_manager.new_page()
 
     def new_tab(
         self, url: str, timeout: Optional[float] = 15000, expected_page: str = ""

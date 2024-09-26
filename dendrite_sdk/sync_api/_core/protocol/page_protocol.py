@@ -1,10 +1,9 @@
-from typing import Any, List, TYPE_CHECKING, Protocol
+from typing import List, TYPE_CHECKING, Protocol
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
-from dendrite_sdk.sync_api._core.models.page_information import PageInformation
 
 if TYPE_CHECKING:
+    from dendrite_sdk.sync_api._core.dendrite_page import Page
     from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
-from dendrite_sdk.sync_api._core.dendrite_element import Element
 
 
 class DendritePageProtocol(Protocol):
@@ -13,9 +12,8 @@ class DendritePageProtocol(Protocol):
     for the `ExtractionMixin` to work.
     """
 
-    dendrite_browser: "BaseDendrite"
-    browser_api_client: BrowserAPIClient
+    def _get_dendrite_browser(self) -> "BaseDendrite": ...
 
-    def _get_page_information(self) -> PageInformation: ...
+    def _get_browser_api_client(self) -> BrowserAPIClient: ...
 
-    def _get_all_elements_from_selector(self, selector: str) -> List[Element]: ...
+    def _get_page(self) -> "Page": ...

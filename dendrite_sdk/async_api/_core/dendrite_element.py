@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Optional
 from loguru import logger
 from playwright.async_api import Locator
 
+from dendrite_sdk.async_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.async_api._exceptions.dendrite_exception import IncorrectOutcomeError
 
 if TYPE_CHECKING:
@@ -56,7 +57,7 @@ def perform_action(interaction_type: Interaction):
             api_config = self._dendrite_browser.api_config
 
             page_before = await self._dendrite_browser.get_active_page()
-            page_before_info = await page_before._get_page_information()
+            page_before_info = await page_before.get_page_information()
 
             # Call the original method here
             await func(
@@ -69,7 +70,7 @@ def perform_action(interaction_type: Interaction):
             await self._wait_for_page_changes(page_before.url)
 
             page_after = await self._dendrite_browser.get_active_page()
-            page_after_info = await page_after._get_page_information()
+            page_after_info = await page_after.get_page_information()
             page_delta_information = PageDiffInformation(
                 page_before=page_before_info, page_after=page_after_info
             )
@@ -110,6 +111,7 @@ class AsyncElement:
         dendrite_id: str,
         locator: Locator,
         dendrite_browser: BaseAsyncDendrite,
+        browser_api_client: BrowserAPIClient,
     ):
         """
         Initialize a AsyncElement.
@@ -122,7 +124,7 @@ class AsyncElement:
         self.dendrite_id = dendrite_id
         self.locator = locator
         self._dendrite_browser = dendrite_browser
-        self._browser_api_client = dendrite_browser._browser_api_client
+        self._browser_api_client = browser_api_client
 
     async def outer_html(self):
         return await self.locator.evaluate("(element) => element.outerHTML")

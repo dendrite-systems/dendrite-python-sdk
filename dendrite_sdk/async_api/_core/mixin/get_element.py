@@ -185,7 +185,7 @@ class GetElementMixin(DendritePageProtocol):
             Union[AsyncElement, List[AsyncElement], AsyncElementsResponse]: The retrieved element, list of elements, or response object.
         """
 
-        api_config = self.dendrite_browser.api_config
+        api_config = self._get_dendrite_browser().api_config
         start_time = time.time()
         attempt_start = start_time
         attempt = -1
@@ -226,7 +226,8 @@ class GetElementMixin(DendritePageProtocol):
                 f"Getting element for '{prompt_or_elements}' | Attempt {attempt + 1}"
             )
 
-            page_information = await self._get_page_information()
+            page = await self._get_page()
+            page_information = await page.get_page_information()
 
             dto = GetElementsDTO(
                 page_information=page_information,
@@ -235,7 +236,7 @@ class GetElementMixin(DendritePageProtocol):
                 use_cache=use_cache and not force_not_use_cache,
                 only_one=only_one,
             )
-            res = await self.browser_api_client.get_interactions_selector(dto)
+            res = await self._get_browser_api_client().get_interactions_selector(dto)
 
             logger.debug(
                 f"Got selectors: {res} in {time.time() - attempt_start} seconds"
@@ -245,7 +246,8 @@ class GetElementMixin(DendritePageProtocol):
                 result = {}
                 for key, selectors in res.selectors.items():
                     for selector in reversed(selectors):
-                        dendrite_elements = await self._get_all_elements_from_selector(
+                        page = await self._get_page()
+                        dendrite_elements = await page._get_all_elements_from_selector(
                             selector
                         )
                         if len(dendrite_elements) > 0:
@@ -259,7 +261,8 @@ class GetElementMixin(DendritePageProtocol):
                 return AsyncElementsResponse(result)
             elif isinstance(res.selectors, list):
                 for selector in reversed(res.selectors):
-                    dendrite_elements = await self._get_all_elements_from_selector(
+                    page = await self._get_page()
+                    dendrite_elements = await page._get_all_elements_from_selector(
                         selector
                     )
                     if len(dendrite_elements) > 0:

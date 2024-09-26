@@ -2,29 +2,38 @@ import re
 import time
 import pathlib
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Sequence, Union
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
 from playwright.sync_api import Page, FrameLocator, Keyboard, Download, FilePayload
-from dendrite_sdk.sync_api._api.response.interaction_response import InteractionResponse
+from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.sync_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_sdk.sync_api._core.dendrite_element import Element
 from dendrite_sdk.sync_api._core.mixin.ask import AskMixin
+from dendrite_sdk.sync_api._core.mixin.click import ClickMixin
 from dendrite_sdk.sync_api._core.mixin.extract import ExtractionMixin
+from dendrite_sdk.sync_api._core.mixin.fill_fields import FillFieldsMixin
 from dendrite_sdk.sync_api._core.mixin.get_element import GetElementMixin
+from dendrite_sdk.sync_api._core.mixin.keyboard import KeyboardMixin
+from dendrite_sdk.sync_api._core.mixin.wait_for import WaitForMixin
 from dendrite_sdk.sync_api._core.models.page_information import PageInformation
 
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
 from dendrite_sdk.sync_api._core._managers.screenshot_manager import ScreenshotManager
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import (
-    DendriteException,
-    PageConditionNotMet,
-)
+from dendrite_sdk.sync_api._exceptions.dendrite_exception import DendriteException
 from dendrite_sdk.sync_api._core._utils import expand_iframes
 
 
-class Page(ExtractionMixin, AskMixin, GetElementMixin):
+class Page(
+    ExtractionMixin,
+    WaitForMixin,
+    AskMixin,
+    FillFieldsMixin,
+    ClickMixin,
+    KeyboardMixin,
+    GetElementMixin,
+):
     """
     Represents a page in the Dendrite browser environment.
 
@@ -32,11 +41,16 @@ class Page(ExtractionMixin, AskMixin, GetElementMixin):
     pages in the browser.
     """
 
-    def __init__(self, page: Page, dendrite_browser: "BaseDendrite"):
+    def __init__(
+        self,
+        page: Page,
+        dendrite_browser: "BaseDendrite",
+        browser_api_client: "BrowserAPIClient",
+    ):
         self.playwright_page = page
         self.screenshot_manager = ScreenshotManager()
         self.dendrite_browser = dendrite_browser
-        self.browser_api_client = dendrite_browser._browser_api_client
+        self._browser_api_client = browser_api_client
 
     @property
     def url(self):
@@ -57,6 +71,15 @@ class Page(ExtractionMixin, AskMixin, GetElementMixin):
             Keyboard: The Playwright Keyboard object.
         """
         return self.playwright_page.keyboard
+
+    def _get_page(self) -> "Page":
+        return self
+
+    def _get_dendrite_browser(self) -> "BaseDendrite":
+        return self.dendrite_browser
+
+    def _get_browser_api_client(self) -> BrowserAPIClient:
+        return self._browser_api_client
 
     def goto(
         self,
@@ -166,7 +189,7 @@ class Page(ExtractionMixin, AskMixin, GetElementMixin):
         """
         self.playwright_page.close()
 
-    def _get_page_information(self) -> PageInformation:
+    def get_page_information(self) -> PageInformation:
         """
         Retrieves information about the current page, including the URL, raw HTML, and a screenshot.
 
@@ -210,161 +233,6 @@ class Page(ExtractionMixin, AskMixin, GetElementMixin):
             None
         """
         self.scroll_to_bottom()
-
-    def wait_for(self, prompt: str, timeout: float = 15000, max_retries: int = 5):
-        """
-        Waits for the condition specified in the prompt to become true by periodically checking the page content.
-
-        This method attempts to retrieve the page information and evaluate whether the specified
-        condition (provided in the prompt) is met. If the condition is not met after the specified
-        number of retries, an exception is raised.
-
-        Args:
-            prompt (str): The prompt to determine the condition to wait for on the page.
-            timeout (float, optional): The time (in milliseconds) to wait between each retry. Defaults to 15000.
-            max_retries (int, optional): The maximum number of retry attempts. Defaults to 5.
-
-        Returns:
-            Any: The result of the condition evaluation if successful.
-
-        Raises:
-            DendriteException: If the condition is not met after the maximum number of retries.
-        """
-        num_attempts = 0
-        time.sleep(0.2)
-        while num_attempts < max_retries:
-            num_attempts += 1
-            start_time = time.time()
-            page_information = self._get_page_information()
-            prompt = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
-            try:
-                res = self.ask(prompt, bool)
-            except DendriteException as e:
-                logger.debug(
-                    f"Attempt {num_attempts}/{max_retries} failed: {e.message}"
-                )
-            elapsed_time = (time.time() - start_time) * 1000
-            if res:
-                return res
-            if elapsed_time >= timeout:
-                continue
-            else:
-                time.sleep((timeout - elapsed_time) * 0.001)
-        page_information = self._get_page_information()
-        raise PageConditionNotMet(
-            message=f"Retried {max_retries} times but failed to wait for the requested condition.",
-            screenshot_base64=page_information.screenshot_base64,
-        )
-
-    def fill_fields(self, fields: Dict[str, Any]):
-        """
-        Fills multiple fields on the page with the provided values.
-
-        This method iterates through the given dictionary of fields and their corresponding values,
-        making a separate fill request for each key-value pair.
-
-        Args:
-            fields (Dict[str, Any]): A dictionary where each key is a field identifier (e.g., a prompt or selector)
-                                     and each value is the content to fill in that field.
-
-        Returns:
-            None
-
-        Note:
-            This method will make multiple fill requests, one for each key in the 'fields' dictionary.
-        """
-        for field, value in fields.items():
-            prompt = f"I'll be filling in several values from a object with these keys: {fields.keys()} in this page. Get the field best described as '{field}'. I want to fill it with a '{type(value)}' type value."
-            self.fill(prompt, value)
-            time.sleep(0.5)
-
-    def click(
-        self,
-        prompt: str,
-        expected_outcome: Optional[str] = None,
-        use_cache: bool = True,
-        timeout: int = 15000,
-        force: bool = False,
-        *args,
-        kwargs={},
-    ) -> InteractionResponse:
-        """
-        Clicks an element on the page based on the provided prompt.
-
-        This method combines the functionality of get_element and click,
-        allowing for a more concise way to interact with elements on the page.
-
-        Args:
-            prompt (str): The prompt describing the element to be clicked.
-            expected_outcome (Optional[str]): The expected outcome of the click action.
-            use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the click operation. Defaults to 15000.
-            force (bool, optional): Whether to force the click operation. Defaults to False.
-            *args: Additional positional arguments for the click operation.
-            kwargs: Additional keyword arguments for the click operation.
-
-        Returns:
-            InteractionResponse: The response from the interaction.
-
-        Raises:
-            DendriteException: If no suitable element is found or if the click operation fails.
-        """
-        element = self.get_element(prompt, use_cache=use_cache, timeout=timeout)
-        if not element:
-            raise DendriteException(
-                message=f"No element found with the prompt: {prompt}",
-                screenshot_base64="",
-            )
-        return element.click(
-            *args,
-            expected_outcome=expected_outcome,
-            timeout=timeout,
-            force=force,
-            **kwargs,
-        )
-
-    def fill(
-        self,
-        prompt: str,
-        value: str,
-        expected_outcome: Optional[str] = None,
-        use_cache: bool = True,
-        timeout: int = 15000,
-        *args,
-        kwargs={},
-    ) -> InteractionResponse:
-        """
-        Fills an element on the page with the provided value based on the given prompt.
-
-        This method combines the functionality of get_element and fill,
-        allowing for a more concise way to interact with elements on the page.
-
-        Args:
-            prompt (str): The prompt describing the element to be filled.
-            value (str): The value to fill the element with.
-            expected_outcome (Optional[str]): The expected outcome of the fill action.
-            use_cache (bool, optional): Whether to use cached results for element retrieval. Defaults to True.
-            max_retries (int, optional): The maximum number of retry attempts for element retrieval. Defaults to 3.
-            timeout (int, optional): The timeout (in milliseconds) for the fill operation. Defaults to 15000.
-            *args: Additional positional arguments for the fill operation.
-            kwargs: Additional keyword arguments for the fill operation.
-
-        Returns:
-            InteractionResponse: The response from the interaction.
-
-        Raises:
-            DendriteException: If no suitable element is found or if the fill operation fails.
-        """
-        element = self.get_element(prompt, use_cache=use_cache, timeout=timeout)
-        if not element:
-            raise DendriteException(
-                message=f"No element found with the prompt: {prompt}",
-                screenshot_base64="",
-            )
-        return element.fill(
-            value, *args, expected_outcome=expected_outcome, timeout=timeout, **kwargs
-        )
 
     def upload_files(
         self,
@@ -440,7 +308,9 @@ class Page(ExtractionMixin, AskMixin, GetElementMixin):
                 continue
             if isinstance(d_id, list):
                 d_id = d_id[0]
-            dendrite_elements.append(Element(d_id, locator, self.dendrite_browser))
+            dendrite_elements.append(
+                Element(d_id, locator, self.dendrite_browser, self._browser_api_client)
+            )
         return dendrite_elements
 
     def _dump_html(self, path: str) -> None:

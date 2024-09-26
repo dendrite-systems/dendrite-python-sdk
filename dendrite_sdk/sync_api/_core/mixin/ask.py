@@ -129,7 +129,7 @@ class AskMixin(DendritePageProtocol):
         Raises:
             DendriteException: If the request fails, the exception includes the failure message and a screenshot.
         """
-        api_config = self.dendrite_browser.api_config
+        api_config = self._get_dendrite_browser().api_config
         start_time = time.time()
         attempt_start = start_time
         attempt = -1
@@ -155,7 +155,8 @@ class AskMixin(DendritePageProtocol):
             time.sleep(sleep_time)
             attempt_start = time.time()
             logger.info(f"Asking '{prompt}' | Attempt {attempt + 1}")
-            page_information = self._get_page_information()
+            page = self._get_page()
+            page_information = page.get_page_information()
             schema = to_json_schema(type_spec) if type_spec else None
             if elapsed_time < 5:
                 time_prompt = f"This page was loaded {elapsed_time} seconds ago, so it might still be loading. If the page is still loading, return failed status."
@@ -169,7 +170,7 @@ class AskMixin(DendritePageProtocol):
                 return_schema=schema,
             )
             try:
-                res = self.browser_api_client.ask_page(dto)
+                res = self._get_browser_api_client().ask_page(dto)
                 logger.debug(f"Got response in {time.time() - attempt_start} seconds")
                 if res.status == "error":
                     logger.warning(

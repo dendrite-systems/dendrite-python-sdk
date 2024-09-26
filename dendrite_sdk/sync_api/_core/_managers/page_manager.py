@@ -1,6 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 from loguru import logger
-from playwright.sync_api import BrowserContext, Page, Download, FileChooser
+from playwright.sync_api import BrowserContext, Page
 
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
@@ -20,7 +20,8 @@ class PageManager:
         new_page = self.browser_context.new_page()
         if self.active_page and new_page == self.active_page.playwright_page:
             return self.active_page
-        dendrite_page = Page(new_page, self.dendrite_browser)
+        client = self.dendrite_browser._get_browser_api_client()
+        dendrite_page = Page(new_page, self.dendrite_browser, client)
         self.pages.append(dendrite_page)
         self.active_page = dendrite_page
         return dendrite_page
@@ -51,6 +52,7 @@ class PageManager:
     def _page_on_open_handler(self, page: Page):
         page.on("close", self._page_on_close_handler)
         page.on("crash", self._page_on_crash_handler)
-        dendrite_page = Page(page, self.dendrite_browser)
+        client = self.dendrite_browser._get_browser_api_client()
+        dendrite_page = Page(page, self.dendrite_browser, client)
         self.pages.append(dendrite_page)
         self.active_page = dendrite_page

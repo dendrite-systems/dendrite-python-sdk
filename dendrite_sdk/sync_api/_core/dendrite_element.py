@@ -6,6 +6,7 @@ import time
 from typing import TYPE_CHECKING, Optional
 from loguru import logger
 from playwright.sync_api import Locator
+from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.sync_api._exceptions.dendrite_exception import IncorrectOutcomeError
 
 if TYPE_CHECKING:
@@ -43,11 +44,11 @@ def perform_action(interaction_type: Interaction):
                 return InteractionResponse(status="success", message="")
             api_config = self._dendrite_browser.api_config
             page_before = self._dendrite_browser.get_active_page()
-            page_before_info = page_before._get_page_information()
+            page_before_info = page_before.get_page_information()
             func(self, *args, expected_outcome=expected_outcome, **kwargs)
             self._wait_for_page_changes(page_before.url)
             page_after = self._dendrite_browser.get_active_page()
-            page_after_info = page_after._get_page_information()
+            page_after_info = page_after.get_page_information()
             page_delta_information = PageDiffInformation(
                 page_before=page_before_info, page_after=page_after_info
             )
@@ -81,7 +82,11 @@ class Element:
     """
 
     def __init__(
-        self, dendrite_id: str, locator: Locator, dendrite_browser: BaseDendrite
+        self,
+        dendrite_id: str,
+        locator: Locator,
+        dendrite_browser: BaseDendrite,
+        browser_api_client: BrowserAPIClient,
     ):
         """
         Initialize a Element.
@@ -94,7 +99,7 @@ class Element:
         self.dendrite_id = dendrite_id
         self.locator = locator
         self._dendrite_browser = dendrite_browser
-        self._browser_api_client = dendrite_browser._browser_api_client
+        self._browser_api_client = browser_api_client
 
     def outer_html(self):
         return self.locator.evaluate("(element) => element.outerHTML")

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import re
-from typing import Any, List, Optional, Union
-from typing import Any, List, Optional, Union
+from typing import Any, List, Literal, Optional, Union
 from uuid import uuid4
 import os
 from loguru import logger
@@ -23,6 +22,13 @@ from dendrite_sdk.async_api._core._managers.page_manager import (
 
 from dendrite_sdk.async_api._core.dendrite_page import AsyncPage
 from dendrite_sdk.async_api._common.constants import STEALTH_ARGS
+from dendrite_sdk.async_api._core.mixin.ask import AskMixin
+from dendrite_sdk.async_api._core.mixin.click import ClickMixin
+from dendrite_sdk.async_api._core.mixin.extract import ExtractionMixin
+from dendrite_sdk.async_api._core.mixin.fill_fields import FillFieldsMixin
+from dendrite_sdk.async_api._core.mixin.get_element import GetElementMixin
+from dendrite_sdk.async_api._core.mixin.keyboard import KeyboardMixin
+from dendrite_sdk.async_api._core.mixin.wait_for import WaitForMixin
 from dendrite_sdk.async_api._core.models.authentication import (
     AuthSession,
 )
@@ -36,9 +42,18 @@ from dendrite_sdk.async_api._exceptions.dendrite_exception import (
 )
 
 
-class BaseAsyncDendrite(ABC):
+class BaseAsyncDendrite(
+    ExtractionMixin,
+    WaitForMixin,
+    AskMixin,
+    FillFieldsMixin,
+    ClickMixin,
+    KeyboardMixin,
+    GetElementMixin,
+    ABC,
+):
     """
-    AsyncDendrite is an abstract base class that manages a browser instance using Playwright, allowing
+    BaseAsyncDendrite is an abstract base class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
     This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
@@ -89,17 +104,18 @@ class BaseAsyncDendrite(ABC):
         )
 
         self.api_config = api_config
+        self.playwright: Optional[Playwright] = None
+        self.browser_context: Optional[BrowserContext] = None
+
         self._id = uuid4().hex
         self._playwright_options = playwright_options
         self._active_page_manager: Optional[PageManager] = None
         self._user_id: Optional[str] = None
-        self._browser_api_client = BrowserAPIClient(api_config, self._id)
-        self.playwright: Optional[Playwright] = None
-        self.browser_context: Optional[BrowserContext] = None
         self._upload_handler = EventSync(event_type=FileChooser)
         self._download_handler = EventSync(event_type=Download)
         self.closed = False
         self._auth = auth
+        self._browser_api_client = BrowserAPIClient(api_config, self._id)
 
     @property
     def pages(self) -> List[AsyncPage]:
@@ -113,6 +129,16 @@ class BaseAsyncDendrite(ABC):
             return self._active_page_manager.pages
         else:
             raise BrowserNotLaunchedError()
+
+    async def _get_page(self) -> AsyncPage:
+        active_page = await self.get_active_page()
+        return active_page
+
+    def _get_browser_api_client(self) -> BrowserAPIClient:
+        return self._browser_api_client
+
+    def _get_dendrite_browser(self) -> "BaseAsyncDendrite":
+        return self
 
     async def __aenter__(self):
         # Launch the browser and return the instance
@@ -128,19 +154,6 @@ class BaseAsyncDendrite(ABC):
         auth_session: AuthSession = await self._browser_api_client.authenticate(dto)
         return auth_session
 
-    async def new_page(self) -> AsyncPage:
-        """
-        Opens a new page in the browser.
-
-        Returns:
-            AsyncPage: The newly opened page.
-
-        Raises:
-            Exception: If there is an issue opening a new page.
-        """
-        active_page_manager = await self._get_active_page_manager()
-        return await active_page_manager.new_page()
-
     async def get_active_page(self) -> AsyncPage:
         """
         Retrieves the currently active page managed by the PageManager.
@@ -154,6 +167,19 @@ class BaseAsyncDendrite(ABC):
 
         active_page_manager = await self._get_active_page_manager()
         return await active_page_manager.get_active_page()
+
+    async def new_page(self) -> AsyncPage:
+        """
+        Opens a new page in the browser.
+
+        Returns:
+            AsyncPage: The newly opened page.
+
+        Raises:
+            Exception: If there is an issue opening a new page.
+        """
+        active_page_manager = await self._get_active_page_manager()
+        return await active_page_manager.new_page()
 
     async def new_tab(
         self,
