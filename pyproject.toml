@@ -33,8 +33,7 @@ lxml = "^5.2.1"
 typing-extensions = "^4.12.0"
 loguru = "^0.7.2"
 httpx = "^0.27.2"
-asyncer = "^0.0.8"
-syncer = "^2.0.3"
+
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.4"
