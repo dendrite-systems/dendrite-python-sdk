@@ -87,21 +87,6 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
         new_node.end_col_offset = getattr(node, "end_col_offset", None)
         return new_node
 
-        new_node = ast.FunctionDef(
-            name=self.renames.get(node.name, node.name),
-            args=node.args,
-            body=node.body,
-            decorator_list=node.decorator_list,
-            returns=node.returns,
-            type_comment=node.type_comment,
-        )
-        # Copy essential attributes
-        new_node.lineno = node.lineno
-        new_node.col_offset = node.col_offset
-        new_node.end_lineno = node.end_lineno
-        new_node.end_col_offset = node.end_col_offset
-        return new_node
-
     def visit_Await(self, node):
         # Remove 'await' from 'await' expressions
         self.generic_visit(node)
