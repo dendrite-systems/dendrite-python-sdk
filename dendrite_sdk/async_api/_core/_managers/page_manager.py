@@ -54,9 +54,14 @@ class PageManager:
         logger.error(f"Page crashed: {page.url}")
         await page.reload()
 
+    async def _page_on_download_handler(self, download: Download):
+        logger.debug(f"Download started: {download.url}")
+        self.dendrite_browser._download_handler.set_event(download)
+        
     def _page_on_open_handler(self, page: Page):
         page.on("close", self._page_on_close_handler)
         page.on("crash", self._page_on_crash_handler)
+        page.on("download", self._page_on_download_handler)
 
         dendrite_page = DendritePage(page, self.dendrite_browser)
         self.pages.append(dendrite_page)
