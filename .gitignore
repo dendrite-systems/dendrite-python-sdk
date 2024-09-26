@@ -9,4 +9,3 @@ test_screenshots/*
 dist/
 examples/
 tmp/
-*.mp3
