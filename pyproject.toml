@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dendrite-sdk"
-version = "0.1.6"
+version = "0.2.0"
 description = "Dendrite is a suite of tools that makes it easy to create web integrations for AI agents. With Dendrite your can: Authenticate on websites, Interact with elements, Extract structured data, Download and upload files, Fill out forms"
 
 authors = [
