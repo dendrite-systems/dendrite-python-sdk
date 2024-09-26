@@ -127,11 +127,11 @@ class BaseDendrite(
     def _get_dendrite_browser(self) -> "BaseDendrite":
         return self
 
-    def __aenter__(self):
+    def __enter__(self):
         self._launch()
         return self
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
     def _get_auth_session(self, domains: Union[str, list[str]]):

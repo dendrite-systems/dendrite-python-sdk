@@ -141,8 +141,6 @@ class BaseAsyncDendrite(
         return self
 
     async def __aenter__(self):
-        # Launch the browser and return the instance
-        await self._launch()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
