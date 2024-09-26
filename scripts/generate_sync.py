@@ -63,6 +63,30 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
     def visit_AsyncFunctionDef(self, node):
         # Remove 'async' from function definitions
         self.generic_visit(node)  # Mutate in place
+
+        # Handle renaming __aenter__ to __enter__ and __aexit__ to __exit__
+        if node.name == "__aenter__":
+            new_name = "__enter__"
+        elif node.name == "__aexit__":
+            new_name = "__exit__"
+        else:
+            new_name = self.renames.get(node.name, node.name)
+
+        new_node = ast.FunctionDef(
+            name=new_name,
+            args=node.args,
+            body=node.body,
+            decorator_list=node.decorator_list,
+            returns=node.returns,
+            type_comment=node.type_comment,
+        )
+        # Copy essential attributes
+        new_node.lineno = node.lineno
+        new_node.col_offset = node.col_offset
+        new_node.end_lineno = getattr(node, "end_lineno", None)
+        new_node.end_col_offset = getattr(node, "end_col_offset", None)
+        return new_node
+
         new_node = ast.FunctionDef(
             name=self.renames.get(node.name, node.name),
             args=node.args,
