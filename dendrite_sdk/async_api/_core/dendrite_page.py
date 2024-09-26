@@ -17,7 +17,6 @@ from bs4 import BeautifulSoup, Tag
 from loguru import logger
 
 from playwright.async_api import (
-    Page,
     FrameLocator,
     Keyboard,
     Download,
@@ -27,6 +26,7 @@ from playwright.async_api import (
 
 from dendrite_sdk.async_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.async_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
+from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.async_api._core.dendrite_element import AsyncElement
 from dendrite_sdk.async_api._core.mixin.ask import AskMixin
 from dendrite_sdk.async_api._core.mixin.click import ClickMixin
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 
 from dendrite_sdk.async_api._core._managers.screenshot_manager import ScreenshotManager
-from dendrite_sdk.async_api._exceptions.dendrite_exception import (
+from dendrite_sdk._common._exceptions.dendrite_exception import (
     DendriteException,
 )
 
@@ -71,7 +71,7 @@ class AsyncPage(
 
     def __init__(
         self,
-        page: Page,
+        page: PlaywrightPage,
         dendrite_browser: "BaseAsyncDendrite",
         browser_api_client: "BrowserAPIClient",
     ):
@@ -144,7 +144,7 @@ class AsyncPage(
         """
         return await self.dendrite_browser._get_download(self.playwright_page, timeout)
 
-    def _get_context(self, element: Any) -> Union[Page, FrameLocator]:
+    def _get_context(self, element: Any) -> Union[PlaywrightPage, FrameLocator]:
         """
         Gets the correct context to be able to interact with an element on a different frame.
 

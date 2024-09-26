@@ -11,7 +11,7 @@ from dendrite_sdk.sync_api._core._type_spec import (
     to_json_schema,
 )
 from dendrite_sdk.sync_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 TIMEOUT_INTERVAL = [150, 450, 1000]
 

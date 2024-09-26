@@ -1,6 +1,6 @@
 from typing import Any, Union, Literal
 from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.async_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 
 class KeyboardMixin(DendritePageProtocol):

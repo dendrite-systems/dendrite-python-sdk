@@ -10,7 +10,6 @@ from playwright.async_api import (
     BrowserContext,
     FileChooser,
     Download,
-    Page,
 )
 
 from dendrite_sdk.async_api._api.dto.authenticate_dto import AuthenticateDTO
@@ -20,6 +19,7 @@ from dendrite_sdk.async_api._core._managers.page_manager import (
     PageManager,
 )
 
+from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.async_api._core.dendrite_page import AsyncPage
 from dendrite_sdk.async_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.async_api._core.mixin.ask import AskMixin
@@ -35,7 +35,7 @@ from dendrite_sdk.async_api._core.models.authentication import (
 
 from dendrite_sdk.async_api._core.models.api_config import APIConfig
 from dendrite_sdk.async_api._api.browser_api_client import BrowserAPIClient
-from dendrite_sdk.async_api._exceptions.dendrite_exception import (
+from dendrite_sdk._common._exceptions.dendrite_exception import (
     BrowserNotLaunchedError,
     DendriteException,
     IncorrectOutcomeError,
@@ -368,7 +368,7 @@ class BaseAsyncDendrite(
         return self._active_page_manager
 
     @abstractmethod
-    async def _get_download(self, pw_page: Page, timeout: float) -> Download:
+    async def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -381,7 +381,7 @@ class BaseAsyncDendrite(
         pass
 
     async def _get_filechooser(
-        self, pw_page: Page, timeout: float = 30000
+        self, pw_page: PlaywrightPage, timeout: float = 30000
     ) -> FileChooser:
         """
         Uploads files to the browser.

@@ -6,7 +6,7 @@ from dendrite_sdk.sync_api._api.dto.get_elements_dto import GetElementsDTO
 from dendrite_sdk.sync_api._core.dendrite_element import Element
 from dendrite_sdk.sync_api._core.models.response import ElementsResponse
 from dendrite_sdk.sync_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 TIMEOUT_INTERVAL = [150, 450, 1000]
 

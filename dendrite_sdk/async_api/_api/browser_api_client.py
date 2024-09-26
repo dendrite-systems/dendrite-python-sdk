@@ -16,7 +16,7 @@ from dendrite_sdk.async_api._api.response.interaction_response import (
 )
 from dendrite_sdk.async_api._api.response.scrape_page_response import ScrapePageResponse
 from dendrite_sdk.async_api._api._http_client import HTTPClient
-from dendrite_sdk.async_api._exceptions.dendrite_exception import (
+from dendrite_sdk._common._exceptions.dendrite_exception import (
     InvalidAuthSessionError,
 )
 

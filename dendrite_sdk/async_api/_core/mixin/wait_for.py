@@ -4,8 +4,8 @@ import time
 
 from dendrite_sdk.async_api._core.mixin.ask import AskMixin
 from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.async_api._exceptions.dendrite_exception import PageConditionNotMet
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import PageConditionNotMet
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 from loguru import logger
 

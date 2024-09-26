@@ -1,4 +1,4 @@
-from typing import List, TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 
 if TYPE_CHECKING:

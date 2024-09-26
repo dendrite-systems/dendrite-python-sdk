@@ -1,9 +1,10 @@
 from typing import Optional, TYPE_CHECKING
 from loguru import logger
-from playwright.sync_api import BrowserContext, Page
+from playwright.sync_api import BrowserContext
 
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
+from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.sync_api._core.dendrite_page import Page
 
 
@@ -31,7 +32,7 @@ class PageManager:
             return self.new_page()
         return self.active_page
 
-    def _page_on_close_handler(self, page: Page):
+    def _page_on_close_handler(self, page: PlaywrightPage):
         if self.browser_context and (not self.dendrite_browser.closed):
             copy_pages = self.pages.copy()
             for dendrite_page in copy_pages:
@@ -45,11 +46,11 @@ class PageManager:
             else:
                 pass
 
-    def _page_on_crash_handler(self, page: Page):
+    def _page_on_crash_handler(self, page: PlaywrightPage):
         logger.error(f"Page crashed: {page.url}")
         page.reload()
 
-    def _page_on_open_handler(self, page: Page):
+    def _page_on_open_handler(self, page: PlaywrightPage):
         page.on("close", self._page_on_close_handler)
         page.on("crash", self._page_on_crash_handler)
         client = self.dendrite_browser._get_browser_api_client()

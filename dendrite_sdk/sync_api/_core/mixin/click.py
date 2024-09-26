@@ -3,7 +3,7 @@ from typing import Any, Optional
 from dendrite_sdk.sync_api._api.response.interaction_response import InteractionResponse
 from dendrite_sdk.sync_api._core.mixin.get_element import GetElementMixin
 from dendrite_sdk.sync_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 
 class ClickMixin(GetElementMixin, DendritePageProtocol):

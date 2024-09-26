@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 from loguru import logger
 from playwright.sync_api import Locator
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import IncorrectOutcomeError
+from dendrite_sdk._common._exceptions.dendrite_exception import IncorrectOutcomeError
 
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core._base_browser import BaseDendrite

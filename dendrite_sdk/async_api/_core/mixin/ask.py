@@ -13,7 +13,7 @@ from dendrite_sdk.async_api._core._type_spec import (
     to_json_schema,
 )
 from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.async_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 # The timeout interval between retries in milliseconds
 TIMEOUT_INTERVAL = [150, 450, 1000]

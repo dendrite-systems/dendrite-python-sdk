@@ -5,6 +5,8 @@ from typing import Tuple
 from uuid import uuid4
 from playwright.async_api import Page
 
+from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
+
 
 class ScreenshotManager:
     def __init__(self) -> None:
@@ -33,7 +35,7 @@ class ScreenshotManager:
 
     async def get_diff_images(
         self,
-        page: Page,
+        page: PlaywrightPage,
         wait_time=1,
     ) -> Tuple[str, str]:
         await asyncio.sleep(wait_time)

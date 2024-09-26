@@ -8,7 +8,7 @@ from dendrite_sdk.async_api._api.dto.get_elements_dto import GetElementsDTO
 from dendrite_sdk.async_api._core.dendrite_element import AsyncElement
 from dendrite_sdk.async_api._core.models.response import AsyncElementsResponse
 from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.async_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 
 # The timeout interval between retries in milliseconds

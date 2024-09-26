@@ -13,7 +13,7 @@ from dendrite_sdk.sync_api._api.response.ask_page_response import AskPageRespons
 from dendrite_sdk.sync_api._api.response.interaction_response import InteractionResponse
 from dendrite_sdk.sync_api._api.response.scrape_page_response import ScrapePageResponse
 from dendrite_sdk.sync_api._api._http_client import HTTPClient
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import InvalidAuthSessionError
+from dendrite_sdk._common._exceptions.dendrite_exception import InvalidAuthSessionError
 
 
 class BrowserAPIClient(HTTPClient):

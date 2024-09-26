@@ -1,14 +1,11 @@
 import pytest
-from dendrite_sdk._core.dendrite_browser import DendriteBrowser
-from dotenv import load_dotenv
-
-load_dotenv()
+from dendrite_sdk import AsyncDendrite
 
 
 @pytest.mark.asyncio
 async def test_get_element():
     """Test the get_element method retrieves an existing element."""
-    browser = DendriteBrowser()
+    browser = AsyncDendrite()
     try:
         page = await browser.goto("https://example.com")
         element = await page.get_element("The main heading")
@@ -27,7 +24,7 @@ async def test_get_element():
 )
 async def test_click(link_text, expected_url):
     """Test the click method navigates to the correct URL."""
-    browser = DendriteBrowser()
+    browser = AsyncDendrite()
     try:
         page = await browser.goto("https://example.com")
         await page.click(link_text)
@@ -39,7 +36,7 @@ async def test_click(link_text, expected_url):
 @pytest.mark.asyncio
 async def test_fill():
     """Test the fill method correctly inputs text into a form field."""
-    browser = DendriteBrowser()
+    browser = AsyncDendrite()
     try:
         page = await browser.goto("https://www.scrapethissite.com/pages/forms/")
         test_input = "Dendrite test"
@@ -54,7 +51,7 @@ async def test_fill():
 @pytest.mark.asyncio
 async def test_extract():
     """Test the extract method retrieves the correct page title."""
-    browser = DendriteBrowser()
+    browser = AsyncDendrite()
     try:
         page = await browser.goto("https://example.com")
         title = await page.extract("Get the page title", str)
@@ -66,7 +63,7 @@ async def test_extract():
 @pytest.mark.asyncio
 async def test_wait_for():
     """Test the wait_for method waits for a specific condition."""
-    browser = DendriteBrowser()
+    browser = AsyncDendrite()
     try:
         page = await browser.goto("https://example.com")
         await page.wait_for("The page to fully load and the main heading to be visible")
@@ -80,7 +77,7 @@ async def test_wait_for():
 @pytest.mark.asyncio
 async def test_ask():
     """Test the ask method returns a relevant response."""
-    browser = DendriteBrowser()
+    browser = AsyncDendrite()
     try:
         page = await browser.goto("https://example.com")
         response = await page.ask("What is the main topic of this page?", str)

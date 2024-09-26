@@ -1,9 +1,10 @@
 import os
 from typing import Any, Generic, Optional, TypeVar
-from playwright.sync_api import sync_playwright, Download, Page
+from playwright.sync_api import sync_playwright, Download
 from dendrite_sdk.sync_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.sync_api._core._managers.page_manager import PageManager
 from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
+from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.sync_api.ext._remote_provider import RemoteProvider
 
 T = TypeVar("T", bound=RemoteProvider)
@@ -47,5 +48,5 @@ class DendriteRemoteBrowser(BaseDendrite, Generic[T]):
         self._provider._close(self)
         super().close()
 
-    def _get_download(self, pw_page: Page, timeout: float) -> Download:
+    def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
         return self._provider.get_download(self, pw_page, timeout)

@@ -1,9 +1,10 @@
 import os
 from typing import Optional
 from loguru import logger
-from playwright.sync_api import Playwright, Page
+from playwright.sync_api import Playwright
+from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.sync_api._core.dendrite_remote_browser import DendriteRemoteBrowser
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import BrowserNotLaunchedError
+from dendrite_sdk._common._exceptions.dendrite_exception import BrowserNotLaunchedError
 from dendrite_sdk.sync_api.ext._remote_provider import RemoteProvider
 from dendrite_sdk.sync_api.ext.browserbase._download import BrowserbaseDownload
 from ._client import BrowserbaseClient
@@ -62,7 +63,10 @@ class BrowserbaseProvider(RemoteProvider):
         )
 
     def get_download(
-        self, dendrite_browser: DendriteRemoteBrowser, pw_page: Page, timeout: float
+        self,
+        dendrite_browser: DendriteRemoteBrowser,
+        pw_page: PlaywrightPage,
+        timeout: float,
     ) -> BrowserbaseDownload:
         if not self._session_id:
             raise ValueError(

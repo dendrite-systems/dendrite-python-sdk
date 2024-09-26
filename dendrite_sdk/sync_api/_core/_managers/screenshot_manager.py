@@ -4,6 +4,7 @@ import os
 from typing import Tuple
 from uuid import uuid4
 from playwright.sync_api import Page
+from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 
 
 class ScreenshotManager:
@@ -28,7 +29,7 @@ class ScreenshotManager:
     def start_recording_diff(self, page: Page):
         self.screenshot_before = self.take_viewport_screenshot(page)
 
-    def get_diff_images(self, page: Page, wait_time=1) -> Tuple[str, str]:
+    def get_diff_images(self, page: PlaywrightPage, wait_time=1) -> Tuple[str, str]:
         time.sleep(wait_time)
         self.screenshot_after = self.take_viewport_screenshot(page)
         return (self.screenshot_before, self.screenshot_after)

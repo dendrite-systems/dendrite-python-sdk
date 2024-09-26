@@ -1,11 +1,12 @@
 import os
 from typing import Optional
 from loguru import logger
-from playwright.async_api import Playwright, Page
+from playwright.async_api import Playwright
+from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.async_api._core.dendrite_remote_browser import (
     AsyncDendriteRemoteBrowser,
 )
-from dendrite_sdk.async_api._exceptions.dendrite_exception import (
+from dendrite_sdk._common._exceptions.dendrite_exception import (
     BrowserNotLaunchedError,
 )
 from dendrite_sdk.async_api.ext._remote_provider import RemoteProvider
@@ -77,7 +78,7 @@ class BrowserbaseProvider(RemoteProvider):
     async def get_download(
         self,
         dendrite_browser: AsyncDendriteRemoteBrowser,
-        pw_page: Page,
+        pw_page: PlaywrightPage,
         timeout: float,
     ) -> AsyncBrowserbaseDownload:
         if not self._session_id:

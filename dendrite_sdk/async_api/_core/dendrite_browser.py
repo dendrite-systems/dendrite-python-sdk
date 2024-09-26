@@ -1,5 +1,6 @@
-from playwright.async_api import FileChooser, Download, Page
+from playwright.async_api import FileChooser, Download
 from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendrite
+from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
 
 
 class AsyncDendrite(BaseAsyncDendrite):
@@ -26,7 +27,9 @@ class AsyncDendrite(BaseAsyncDendrite):
         Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
     """
 
-    async def _get_download(self, pw_page: Page, timeout: float = 30000) -> Download:
+    async def _get_download(
+        self, pw_page: PlaywrightPage, timeout: float = 30000
+    ) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -41,7 +44,7 @@ class AsyncDendrite(BaseAsyncDendrite):
         return await self._download_handler.get_data(pw_page, timeout)
 
     async def _get_filechooser(
-        self, pw_page: Page, timeout: float = 30000
+        self, pw_page: PlaywrightPage, timeout: float = 30000
     ) -> FileChooser:
         """
         Uploads files to the browser.

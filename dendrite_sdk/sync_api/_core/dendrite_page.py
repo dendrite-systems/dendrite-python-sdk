@@ -5,9 +5,10 @@ import time
 from typing import TYPE_CHECKING, Any, List, Literal, Optional, Sequence, Union
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
-from playwright.sync_api import Page, FrameLocator, Keyboard, Download, FilePayload
+from playwright.sync_api import FrameLocator, Keyboard, Download, FilePayload
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.sync_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
+from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.sync_api._core.dendrite_element import Element
 from dendrite_sdk.sync_api._core.mixin.ask import AskMixin
 from dendrite_sdk.sync_api._core.mixin.click import ClickMixin
@@ -21,7 +22,7 @@ from dendrite_sdk.sync_api._core.models.page_information import PageInformation
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
 from dendrite_sdk.sync_api._core._managers.screenshot_manager import ScreenshotManager
-from dendrite_sdk.sync_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 from dendrite_sdk.sync_api._core._utils import expand_iframes
 
 
@@ -43,7 +44,7 @@ class Page(
 
     def __init__(
         self,
-        page: Page,
+        page: PlaywrightPage,
         dendrite_browser: "BaseDendrite",
         browser_api_client: "BrowserAPIClient",
     ):
@@ -114,7 +115,7 @@ class Page(
         """
         return self.dendrite_browser._get_download(self.playwright_page, timeout)
 
-    def _get_context(self, element: Any) -> Union[Page, FrameLocator]:
+    def _get_context(self, element: Any) -> Union[PlaywrightPage, FrameLocator]:
         """
         Gets the correct context to be able to interact with an element on a different frame.
 

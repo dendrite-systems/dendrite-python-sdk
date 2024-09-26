@@ -1,8 +1,9 @@
 from typing import Union, List, TYPE_CHECKING
-from playwright.async_api import Page, FrameLocator, ElementHandle
+from playwright.async_api import FrameLocator, ElementHandle
 from bs4 import BeautifulSoup
 from loguru import logger
 
+from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.async_api._core.dendrite_element import AsyncElement
 
 if TYPE_CHECKING:
@@ -15,7 +16,7 @@ from dendrite_sdk.async_api._dom.util.mild_strip import mild_strip_in_place
 
 
 async def expand_iframes(
-    page: Page,
+    page: PlaywrightPage,
     page_soup: BeautifulSoup,
     iframe_path: str = "",
     frame: Union[ElementHandle, None] = None,
@@ -73,7 +74,9 @@ def merge_iframe_to_page(
     iframe_element.replace_with(iframe)
 
 
-def get_frame_context(page: Page, iframe_path: str) -> Union[FrameLocator, Page]:
+def get_frame_context(
+    page: PlaywrightPage, iframe_path: str
+) -> Union[FrameLocator, PlaywrightPage]:
     iframe_path_list = iframe_path.split("|")
     frame_context = page
     for iframe_id in iframe_path_list:

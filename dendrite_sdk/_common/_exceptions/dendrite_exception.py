@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from loguru import logger
 
-from dendrite_sdk.async_api._exceptions._constants import INVALID_AUTH_SESSION_MSG
+from dendrite_sdk._common._exceptions._constants import INVALID_AUTH_SESSION_MSG
 
 
 class BaseDendriteException(Exception):

@@ -5,7 +5,7 @@ from dendrite_sdk.async_api._api.response.interaction_response import (
 )
 from dendrite_sdk.async_api._core.mixin.get_element import GetElementMixin
 from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk.async_api._exceptions.dendrite_exception import DendriteException
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 
 class FillFieldsMixin(GetElementMixin, DendritePageProtocol):
