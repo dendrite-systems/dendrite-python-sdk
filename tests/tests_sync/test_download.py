@@ -9,7 +9,6 @@ def test_download(dendrite_browser: DendriteBrowser, tmp_path):
     )
     page.playwright_page.get_by_text("Download File").click()
     dw = page.get_download(timeout=5000)
-    dw.save_as(dw.suggested_filename)
 
     # Save the downloaded file to the suggested location
     download_path = tmp_path / dw.suggested_filename
