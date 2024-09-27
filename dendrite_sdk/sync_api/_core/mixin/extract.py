@@ -1,5 +1,5 @@
 from typing import Any, Optional, Type, overload
-from dendrite_sdk.sync_api._api.dto.scrape_page_dto import ScrapePageDTO
+from dendrite_sdk.sync_api._api.dto.extract_dto import ExtractDTO
 from dendrite_sdk.sync_api._core._type_spec import (
     JsonSchema,
     PydanticModel,
@@ -72,7 +72,7 @@ class ExtractionMixin(DendritePageProtocol):
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
 
         Returns:
-            ScrapePageResponse: The extracted data wrapped in a ScrapePageResponse object.
+            ExtractResponse: The extracted data wrapped in a ExtractResponse object.
         """
         json_schema = None
         if type_spec:
@@ -81,7 +81,7 @@ class ExtractionMixin(DendritePageProtocol):
             prompt = ""
         page = self._get_page()
         page_information = page.get_page_information()
-        scrape_dto = ScrapePageDTO(
+        extract_dto = ExtractDTO(
             page_information=page_information,
             api_config=self._get_dendrite_browser().api_config,
             prompt=prompt,
@@ -89,7 +89,7 @@ class ExtractionMixin(DendritePageProtocol):
             use_screenshot=True,
             use_cache=use_cache,
         )
-        res = self._get_browser_api_client().scrape_page(scrape_dto)
+        res = self._get_browser_api_client().extract(extract_dto)
         converted_res = res.return_data
         if type_spec is not None:
             converted_res = convert_to_type_spec(type_spec, res.return_data)
