@@ -180,19 +180,6 @@ class AsyncDendrite(
         active_page_manager = await self._get_active_page_manager()
         return await active_page_manager.get_active_page()
 
-    async def new_page(self) -> AsyncPage:
-        """
-        Opens a new page in the browser.
-
-        Returns:
-            AsyncPage: The newly opened page.
-
-        Raises:
-            Exception: If there is an issue opening a new page.
-        """
-        active_page_manager = await self._get_active_page_manager()
-        return await active_page_manager.new_page()
-
     async def new_tab(
         self,
         url: str,
@@ -214,13 +201,13 @@ class AsyncDendrite(
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
         return await self.goto(
-            url, new_page=True, timeout=timeout, expected_page=expected_page
+            url, new_tab=True, timeout=timeout, expected_page=expected_page
         )
 
     async def goto(
         self,
         url: str,
-        new_page: bool = False,
+        new_tab: bool = False,
         timeout: Optional[float] = 15000,
         expected_page: str = "",
     ) -> AsyncPage:
@@ -229,7 +216,7 @@ class AsyncDendrite(
 
         Args:
             url (str): The URL to navigate to.
-            new_page (bool, optional): Whether to open the URL in a new page. Defaults to False.
+            new_tab (bool, optional): Whether to open the URL in a new tab. Defaults to False.
             timeout (Optional[float], optional): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
@@ -245,7 +232,7 @@ class AsyncDendrite(
 
         active_page_manager = await self._get_active_page_manager()
 
-        if new_page:
+        if new_tab:
             active_page = await active_page_manager.new_page()
         else:
             active_page = await active_page_manager.get_active_page()
