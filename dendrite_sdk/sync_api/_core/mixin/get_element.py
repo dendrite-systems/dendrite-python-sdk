@@ -8,7 +8,7 @@ from dendrite_sdk.sync_api._core.models.response import ElementsResponse
 from dendrite_sdk.sync_api._core.protocol.page_protocol import DendritePageProtocol
 from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
-TIMEOUT_INTERVAL = [150, 450, 1000]
+TIMEOUT_INTERVAL: List[float] = [150, 450, 1000]
 
 
 class GetElementMixin(DendritePageProtocol):
@@ -167,6 +167,7 @@ class GetElementMixin(DendritePageProtocol):
         attempt_start = start_time
         attempt = -1
         force_not_use_cache = False
+        current_timeout = 0.0
         while True:
             attempt += 1
             current_timeout = (

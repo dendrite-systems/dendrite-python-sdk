@@ -12,7 +12,7 @@ from dendrite_sdk._common._exceptions.dendrite_exception import DendriteExceptio
 
 
 # The timeout interval between retries in milliseconds
-TIMEOUT_INTERVAL = [150, 450, 1000]
+TIMEOUT_INTERVAL: List[float] = [150, 450, 1000]
 
 
 class GetElementMixin(DendritePageProtocol):
@@ -190,6 +190,7 @@ class GetElementMixin(DendritePageProtocol):
         attempt_start = start_time
         attempt = -1
         force_not_use_cache = False
+        current_timeout = 0.0
         while True:
             attempt += 1
             current_timeout = (

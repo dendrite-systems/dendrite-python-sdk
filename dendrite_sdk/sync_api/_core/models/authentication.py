@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from playwright.sync_api import StorageState
 from typing import List, Literal, Optional
 from typing_extensions import TypedDict
 
