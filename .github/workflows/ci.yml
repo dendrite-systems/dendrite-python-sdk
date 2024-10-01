@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           pipx install poetry
-          poetry install --dev
+           poetry install --with dev
 
       - name: Linting with flake8
         run: |
@@ -63,7 +63,7 @@ jobs:
       - name: Install dependencies
         run: |
           pipx install poetry
-          poetry install --dev
+           poetry install --with dev
 
       - name: Ensure browsers are installed
         run: dendrite install
