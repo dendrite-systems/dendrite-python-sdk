@@ -360,7 +360,7 @@ class BaseAsyncDendrite(
             Exception: If there is an issue launching the browser or retrieving the PageManager.
         """
         if not self._active_page_manager:
-            _,_, active_page_manager = await self._launch()
+            _, _, active_page_manager = await self._launch()
             return active_page_manager
 
         return self._active_page_manager

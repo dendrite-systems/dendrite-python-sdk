@@ -258,7 +258,9 @@ def process_directory(source_dir, target_dir, renames):
 
 def check_for_uncommitted_changes(folder):
     # Check for uncommitted changes (staged and unstaged) in the folder
-    result = subprocess.run(['git', 'status', '--porcelain', folder], stdout=subprocess.PIPE, text=True)
+    result = subprocess.run(
+        ["git", "status", "--porcelain", folder], stdout=subprocess.PIPE, text=True
+    )
     if result.stdout.strip():
         return True
     else:
@@ -267,8 +269,12 @@ def check_for_uncommitted_changes(folder):
 
 def get_uncommitted_diff(folder):
     # Get the diff of uncommitted changes in the folder (staged and unstaged)
-    diff_staged = subprocess.run(['git', 'diff', '--cached', folder], stdout=subprocess.PIPE, text=True)
-    diff_unstaged = subprocess.run(['git', 'diff', folder], stdout=subprocess.PIPE, text=True)
+    diff_staged = subprocess.run(
+        ["git", "diff", "--cached", folder], stdout=subprocess.PIPE, text=True
+    )
+    diff_unstaged = subprocess.run(
+        ["git", "diff", folder], stdout=subprocess.PIPE, text=True
+    )
     return diff_staged.stdout + diff_unstaged.stdout
 
 
@@ -291,7 +297,7 @@ if __name__ == "__main__":
         diff_output = get_uncommitted_diff(target_dir)
         print(diff_output)
         proceed = input("Do you want to proceed and overwrite these changes? [y/N] ")
-        if proceed.lower() != 'y':
+        if proceed.lower() != "y":
             print("Aborting.")
             sys.exit(1)
         else:
