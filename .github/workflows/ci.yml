@@ -69,7 +69,7 @@ jobs:
         run: poetry run dendrite install
 
       - name: Run your tests
-        run: pytest --tracing=retain-on-failure
+        run: poetry run pytest --tracing=retain-on-failure
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
