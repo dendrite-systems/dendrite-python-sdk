@@ -6,7 +6,9 @@ on:
       - main
     tags:
       - '**'
-  pull_request: {}
+  pull_request:
+    branches:
+    - main
 
 
 jobs:
