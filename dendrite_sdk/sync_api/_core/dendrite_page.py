@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, List, Literal, Optional, Sequence, Union
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
 from playwright.sync_api import FrameLocator, Keyboard, Download, FilePayload
+from dendrite_sdk.async_api._core.mixin.markdown import MarkdownMixin
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.sync_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
@@ -27,8 +28,9 @@ from dendrite_sdk.sync_api._core._utils import expand_iframes
 
 
 class Page(
-    ExtractionMixin,
     WaitForMixin,
+    MarkdownMixin,
+    ExtractionMixin,
     AskMixin,
     FillFieldsMixin,
     ClickMixin,

@@ -57,7 +57,7 @@ class BrowserAPIClient(HTTPClient):
 
     async def scrape_page(self, dto: ScrapePageDTO) -> ScrapePageResponse:
         res = await self.send_request(
-            "actions/scrape-page", data=dto.dict(), method="POST"
+            "actions/extract-page", data=dto.dict(), method="POST"
         )
         res_dict = res.json()
         return ScrapePageResponse(
