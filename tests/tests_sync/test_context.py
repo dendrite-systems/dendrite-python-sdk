@@ -4,5 +4,5 @@ from dendrite_sdk.sync_api import Dendrite
 
 
 def test_context_manager():
-    with Dendrite() as browser:
+    with Dendrite(playwright_options={"headless": True},) as browser:
         browser.goto("https://dendrite.systems")
