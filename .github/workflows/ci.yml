@@ -46,7 +46,6 @@ jobs:
         run: poetry run pylint dendrite_sdk/ --errors-only
 
   test:
-    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,13 +65,13 @@ jobs:
           pipx install poetry
           poetry install --dev
 
-    - name: Ensure browsers are installed
-      run: dendrite install
+      - name: Ensure browsers are installed
+        run: dendrite install
 
-    - name: Run your tests
-      run: pytest --tracing=retain-on-failure
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-traces
-        path: test-results/
+      - name: Run your tests
+        run: pytest --tracing=retain-on-failure
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-traces
+          path: test-results/
