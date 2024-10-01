@@ -82,22 +82,22 @@ class Dendrite(
         remote_config: Optional[Providers] = None,
     ):
         """
-        Initializes the Dendrite with API keys and Playwright options.
+        Initializes Dendrite with API keys and Playwright options.
 
         Args:
-            auth (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate on.
-            openai_api_key (Optional[str], optional): The OpenAI API key. If not provided, it's fetched from the environment variables.
-            dendrite_api_key (Optional[str], optional): The Dendrite API key. If not provided, it's fetched from the environment variables.
-            anthropic_api_key (Optional[str], optional): The Anthropic API key. If not provided, it's fetched from the environment variables.
-            playwright_options (Any, optional): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
+            auth (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate.
+            dendrite_api_key (Optional[str]): The Dendrite API key. If not provided, it's fetched from the environment variables.
+            openai_api_key (Optional[str]): Your own OpenAI API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
+            anthropic_api_key (Optional[str]): The own Anthropic API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
+            playwright_options (Any): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
 
         Raises:
-            MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
+            MissingApiKeyError: If the Dendrite API key is not provided or found in the environment variables.
         """
         api_config = APIConfig(
             dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
-            openai_api_key=openai_api_key or os.environ.get("OPENAI_API_KEY"),
-            anthropic_api_key=anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY"),
+            openai_api_key=openai_api_key,
+            anthropic_api_key=anthropic_api_key,
         )
         self._impl = self._get_impl(remote_config)
         self.api_config = api_config
