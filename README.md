@@ -23,8 +23,10 @@ def send_email():
     client = Dendrite(auth="outlook.live.com")
 
     # Navigate
-    client.goto("https://outlook.live.com/mail/0/")
-    client.wait_for("The dashboard to finish loading")
+    client.goto(
+        "https://outlook.live.com/mail/0/",
+        expected_page="An email inbox"
+    )
 
     # Create new email and populate fields
     client.click("The new email button")
@@ -116,7 +118,6 @@ def get_visitor_count() -> int:
       "https://analytics.google.com/analytics/web",
       expected_page="Google Analytics dashboard"
     )
-    client.wait_for("The analytics page to finish loading")
 
     # The Dendrite extract agent will create a web script that is cached
     # and reused. It will self-heal when the website updates
