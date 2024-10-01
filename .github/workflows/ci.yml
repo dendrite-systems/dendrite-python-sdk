@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
 
@@ -68,10 +68,8 @@ jobs:
       - name: Ensure browsers are installed
         run: poetry run dendrite install
 
-      - name: Run your tests
-        run: poetry run pytest --tracing=retain-on-failure
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-traces
-          path: test-results/
+      - name: Run async tests
+        run: poetry run pytest tests/tests_async
+
+      - name: Run sync tests
+        run: poetry run pytest tests/tests_sync
