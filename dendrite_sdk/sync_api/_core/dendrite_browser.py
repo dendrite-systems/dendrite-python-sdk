@@ -27,7 +27,9 @@ from dendrite_sdk.sync_api._core.mixin.extract import ExtractionMixin
 from dendrite_sdk.sync_api._core.mixin.fill_fields import FillFieldsMixin
 from dendrite_sdk.sync_api._core.mixin.get_element import GetElementMixin
 from dendrite_sdk.sync_api._core.mixin.keyboard import KeyboardMixin
+from dendrite_sdk.sync_api._core.mixin.screenshot import ScreenshotMixin
 from dendrite_sdk.sync_api._core.mixin.wait_for import WaitForMixin
+from dendrite_sdk.sync_api._core.mixin.markdown import MarkdownMixin
 from dendrite_sdk.sync_api._core.models.authentication import AuthSession
 from dendrite_sdk.sync_api._core.models.api_config import APIConfig
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
@@ -40,8 +42,10 @@ from dendrite_sdk.remote import Providers
 
 
 class Dendrite(
-    ExtractionMixin,
+    ScreenshotMixin,
     WaitForMixin,
+    MarkdownMixin,
+    ExtractionMixin,
     AskMixin,
     FillFieldsMixin,
     ClickMixin,

@@ -76,7 +76,7 @@ class AsyncPage(
         browser_api_client: "BrowserAPIClient",
     ):
         self.playwright_page = page
-        self.screenshot_manager = ScreenshotManager()
+        self.screenshot_manager = ScreenshotManager(page)
         self.dendrite_browser = dendrite_browser
         self._browser_api_client = browser_api_client
         self._last_frame_navigated_timestamp = time.time()
@@ -253,9 +253,7 @@ class AsyncPage(
             PageInformation: An object containing the page's URL, raw HTML, and a screenshot in base64 format.
         """
 
-        base64 = await self.screenshot_manager.take_full_page_screenshot(
-            self.playwright_page
-        )
+        base64 = await self.screenshot_manager.take_full_page_screenshot()
         soup = await self._get_soup()
 
         return PageInformation(

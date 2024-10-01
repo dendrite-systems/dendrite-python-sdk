@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, List, Literal, Optional, Sequence, Union
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
 from playwright.sync_api import FrameLocator, Keyboard, Download, FilePayload
-from dendrite_sdk.async_api._core.mixin.markdown import MarkdownMixin
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.sync_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
@@ -28,9 +27,8 @@ from dendrite_sdk.sync_api._core._utils import expand_iframes
 
 
 class Page(
-    WaitForMixin,
-    MarkdownMixin,
     ExtractionMixin,
+    WaitForMixin,
     AskMixin,
     FillFieldsMixin,
     ClickMixin,
@@ -51,7 +49,7 @@ class Page(
         browser_api_client: "BrowserAPIClient",
     ):
         self.playwright_page = page
-        self.screenshot_manager = ScreenshotManager()
+        self.screenshot_manager = ScreenshotManager(page)
         self.dendrite_browser = dendrite_browser
         self._browser_api_client = browser_api_client
         self._last_frame_navigated_timestamp = time.time()
@@ -205,7 +203,7 @@ class Page(
         Returns:
             PageInformation: An object containing the page's URL, raw HTML, and a screenshot in base64 format.
         """
-        base64 = self.screenshot_manager.take_full_page_screenshot(self.playwright_page)
+        base64 = self.screenshot_manager.take_full_page_screenshot()
         soup = self._get_soup()
         return PageInformation(
             url=self.playwright_page.url,
