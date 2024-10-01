@@ -40,6 +40,11 @@ autopep8 = "^2.0.4"
 pylint = "^3.2.6"
 black = "^24.8.0"
 poethepoet = "^0.29.0"
+pylint-pydantic = "^0.3.2"
+flake8 = "^7.1.1"
+
+[tool.pylint]
+load-plugins = "pylint_pydantic"
 
 [tool.poe.tasks]
 generate_sync = "python scripts/generate_sync.py"
