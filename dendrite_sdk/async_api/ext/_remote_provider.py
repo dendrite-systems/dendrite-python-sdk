@@ -27,7 +27,7 @@ class RemoteProvider(ABC):
     @abstractmethod
     async def get_download(
         self,
-        AsyncDendriteRemoteBrowser,
+        dendrite_browser: "AsyncDendriteRemoteBrowser",
         pw_page: PlaywrightPage,
         timeout: float = 30000,
     ) -> Download:

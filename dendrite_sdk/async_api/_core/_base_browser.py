@@ -293,7 +293,7 @@ class BaseAsyncDendrite(
         )
         self._active_page_manager = PageManager(self, self.browser_context)
 
-        return self._active_page_manager
+        return browser, self.browser_context, self._active_page_manager
 
     async def add_cookies(self, cookies):
         """
@@ -360,7 +360,7 @@ class BaseAsyncDendrite(
             Exception: If there is an issue launching the browser or retrieving the PageManager.
         """
         if not self._active_page_manager:
-            active_page_manager = await self._launch()
+            _,_, active_page_manager = await self._launch()
             return active_page_manager
 
         return self._active_page_manager

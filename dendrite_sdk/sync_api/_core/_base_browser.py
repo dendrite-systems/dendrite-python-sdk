@@ -128,7 +128,6 @@ class BaseDendrite(
         return self
 
     def __enter__(self):
-        self._launch()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -260,7 +259,7 @@ class BaseDendrite(
             screenshots=True, snapshots=True, sources=True
         )
         self._active_page_manager = PageManager(self, self.browser_context)
-        return self._active_page_manager
+        return (browser, self.browser_context, self._active_page_manager)
 
     def add_cookies(self, cookies):
         """
@@ -325,7 +324,7 @@ class BaseDendrite(
             Exception: If there is an issue launching the browser or retrieving the PageManager.
         """
         if not self._active_page_manager:
-            active_page_manager = self._launch()
+            (_, _, active_page_manager) = self._launch()
             return active_page_manager
         return self._active_page_manager
 

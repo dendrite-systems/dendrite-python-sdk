@@ -79,7 +79,7 @@ class BrowserbaseProvider(RemoteProvider):
         self,
         dendrite_browser: AsyncDendriteRemoteBrowser,
         pw_page: PlaywrightPage,
-        timeout: float,
+        timeout: float = 30000,
     ) -> AsyncBrowserbaseDownload:
         if not self._session_id:
             raise ValueError(
