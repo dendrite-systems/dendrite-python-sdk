@@ -46,7 +46,30 @@ jobs:
         run: poetry run pylint dendrite_sdk/ --errors-only
 
   test:
-    - name: tests
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python version
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+
+      - name: Create and start virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+      
+      - name: Install dependencies
+        run: |
+          pipx install poetry
+          poetry install --dev
+
+    - name: Ensure browsers are installed
+      run: dendrite install
+
+    - name: Run your tests
       run: pytest --tracing=retain-on-failure
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
