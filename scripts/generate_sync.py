@@ -2,6 +2,8 @@ import os
 import ast
 import shutil
 import logging
+import subprocess
+import sys
 from typing import Dict, Any
 
 logging.basicConfig(level=logging.WARNING)
@@ -254,6 +256,22 @@ def process_directory(source_dir, target_dir, renames):
                 shutil.copy2(source_path, target_path)
 
 
+def check_for_uncommitted_changes(folder):
+    # Check for uncommitted changes (staged and unstaged) in the folder
+    result = subprocess.run(['git', 'status', '--porcelain', folder], stdout=subprocess.PIPE, text=True)
+    if result.stdout.strip():
+        return True
+    else:
+        return False
+
+
+def get_uncommitted_diff(folder):
+    # Get the diff of uncommitted changes in the folder (staged and unstaged)
+    diff_staged = subprocess.run(['git', 'diff', '--cached', folder], stdout=subprocess.PIPE, text=True)
+    diff_unstaged = subprocess.run(['git', 'diff', folder], stdout=subprocess.PIPE, text=True)
+    return diff_staged.stdout + diff_unstaged.stdout
+
+
 if __name__ == "__main__":
     source_dir = "dendrite_sdk/async_api"
     target_dir = "dendrite_sdk/sync_api"
@@ -267,4 +285,22 @@ if __name__ == "__main__":
         "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",
         "AsyncElementsResponse": "ElementsResponse",
     }
+
+    if check_for_uncommitted_changes(target_dir):
+        print(f"Uncommitted changes detected in {target_dir}:")
+        diff_output = get_uncommitted_diff(target_dir)
+        print(diff_output)
+        proceed = input("Do you want to proceed and overwrite these changes? [y/N] ")
+        if proceed.lower() != 'y':
+            print("Aborting.")
+            sys.exit(1)
+        else:
+            # Create a backup copy of the folder
+            backup_dir = f"{target_dir}_backup"
+            if os.path.exists(backup_dir):
+                print(f"Backup directory {backup_dir} already exists. Overwriting it.")
+                shutil.rmtree(backup_dir)
+            shutil.copytree(target_dir, backup_dir)
+            print(f"Backup of {target_dir} created at {backup_dir}.")
+
     process_directory(source_dir, target_dir, renames)
