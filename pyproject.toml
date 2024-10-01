@@ -42,6 +42,7 @@ black = "^24.8.0"
 poethepoet = "^0.29.0"
 pylint-pydantic = "^0.3.2"
 flake8 = "^7.1.1"
+pytest = "^8.3.3"
 
 [tool.pylint]
 load-plugins = "pylint_pydantic"
