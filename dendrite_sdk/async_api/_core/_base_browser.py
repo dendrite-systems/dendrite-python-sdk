@@ -28,6 +28,7 @@ from dendrite_sdk.async_api._core.mixin.extract import ExtractionMixin
 from dendrite_sdk.async_api._core.mixin.fill_fields import FillFieldsMixin
 from dendrite_sdk.async_api._core.mixin.get_element import GetElementMixin
 from dendrite_sdk.async_api._core.mixin.keyboard import KeyboardMixin
+from dendrite_sdk.async_api._core.mixin.upload_download_mixin import DownloadUploadMixin
 from dendrite_sdk.async_api._core.mixin.wait_for import WaitForMixin
 from dendrite_sdk.async_api._core.models.authentication import (
     AuthSession,
@@ -43,6 +44,7 @@ from dendrite_sdk._common._exceptions.dendrite_exception import (
 
 
 class BaseAsyncDendrite(
+    DownloadUploadMixin,
     ExtractionMixin,
     WaitForMixin,
     AskMixin,

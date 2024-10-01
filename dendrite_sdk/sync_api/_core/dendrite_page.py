@@ -5,7 +5,7 @@ import time
 from typing import TYPE_CHECKING, Any, List, Literal, Optional, Sequence, Union
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
-from playwright.sync_api import FrameLocator, Keyboard, Download, FilePayload
+from playwright.sync_api import FrameLocator, Keyboard, Download
 from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk.sync_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
@@ -102,18 +102,6 @@ class Page(
         if not re.match("^\\w+://", url):
             url = f"https://{url}"
         self.playwright_page.goto(url, timeout=timeout, wait_until=wait_until)
-
-    def get_download(self, timeout: float = 30000) -> Download:
-        """
-        Retrieves the download event associated with.
-
-        Args:
-            timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the download to complete. Defaults to 30.
-
-        Returns:
-            The downloaded file data.
-        """
-        return self.dendrite_browser._get_download(self.playwright_page, timeout)
 
     def _get_context(self, element: Any) -> Union[PlaywrightPage, FrameLocator]:
         """
@@ -234,33 +222,6 @@ class Page(
             None
         """
         self.scroll_to_bottom()
-
-    def upload_files(
-        self,
-        files: Union[
-            str,
-            pathlib.Path,
-            FilePayload,
-            Sequence[Union[str, pathlib.Path]],
-            Sequence[FilePayload],
-        ],
-        timeout: float = 30000,
-    ) -> None:
-        """
-        Uploads files to the page using a file chooser.
-
-        Args:
-            files (Union[str, pathlib.Path, FilePayload, Sequence[Union[str, pathlib.Path]], Sequence[FilePayload]]): The file(s) to be uploaded.
-                This can be a file path, a `FilePayload` object, or a sequence of file paths or `FilePayload` objects.
-            timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the file chooser to be ready. Defaults to 30.
-
-        Returns:
-            None
-        """
-        file_chooser = self.dendrite_browser._get_filechooser(
-            self.playwright_page, timeout
-        )
-        file_chooser.set_files(files)
 
     def get_content(self):
         """

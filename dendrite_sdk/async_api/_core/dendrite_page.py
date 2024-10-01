@@ -20,7 +20,6 @@ from playwright.async_api import (
     FrameLocator,
     Keyboard,
     Download,
-    FilePayload,
 )
 
 
@@ -131,18 +130,6 @@ class AsyncPage(
             url = f"https://{url}"
 
         await self.playwright_page.goto(url, timeout=timeout, wait_until=wait_until)
-
-    async def get_download(self, timeout: float = 30000) -> Download:
-        """
-        Retrieves the download event associated with.
-
-        Args:
-            timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the download to complete. Defaults to 30.
-
-        Returns:
-            The downloaded file data.
-        """
-        return await self.dendrite_browser._get_download(self.playwright_page, timeout)
 
     def _get_context(self, element: Any) -> Union[PlaywrightPage, FrameLocator]:
         """
@@ -291,33 +278,6 @@ class AsyncPage(
             None
         """
         await self.scroll_to_bottom()
-
-    async def upload_files(
-        self,
-        files: Union[
-            str,
-            pathlib.Path,
-            FilePayload,
-            Sequence[Union[str, pathlib.Path]],
-            Sequence[FilePayload],
-        ],
-        timeout: float = 30000,
-    ) -> None:
-        """
-        Uploads files to the page using a file chooser.
-
-        Args:
-            files (Union[str, pathlib.Path, FilePayload, Sequence[Union[str, pathlib.Path]], Sequence[FilePayload]]): The file(s) to be uploaded.
-                This can be a file path, a `FilePayload` object, or a sequence of file paths or `FilePayload` objects.
-            timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the file chooser to be ready. Defaults to 30.
-
-        Returns:
-            None
-        """
-        file_chooser = await self.dendrite_browser._get_filechooser(
-            self.playwright_page, timeout
-        )
-        await file_chooser.set_files(files)
 
     async def get_content(self):
         """
