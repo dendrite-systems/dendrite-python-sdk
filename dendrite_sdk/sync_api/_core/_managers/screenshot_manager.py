@@ -14,6 +14,7 @@ class ScreenshotManager:
         self.screenshot_after: str = ""
 
     def take_full_page_screenshot(self, page: Page) -> str:
+        time.sleep(0.5)
         image_data = page.screenshot(type="jpeg", full_page=True, timeout=30000)
         if image_data is None:
             return ""
