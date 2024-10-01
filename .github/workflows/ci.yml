@@ -63,10 +63,10 @@ jobs:
       - name: Install dependencies
         run: |
           pipx install poetry
-           poetry install --with dev
+          poetry install --with dev
 
       - name: Ensure browsers are installed
-        run: dendrite install
+        run: poetry run dendrite install
 
       - name: Run your tests
         run: pytest --tracing=retain-on-failure
