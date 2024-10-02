@@ -15,6 +15,7 @@ from playwright.async_api import (
 from dendrite_sdk.async_api._api.dto.authenticate_dto import AuthenticateDTO
 from dendrite_sdk.async_api._api.dto.upload_auth_session_dto import UploadAuthSessionDTO
 from dendrite_sdk.async_api._common.event_sync import EventSync
+from dendrite_sdk.async_api._core._impl_mapping import get_impl
 from dendrite_sdk.async_api._core._managers.page_manager import (
     PageManager,
 )
@@ -82,6 +83,7 @@ class BaseAsyncDendrite(
             "headless": False,
             "args": STEALTH_ARGS,
         },
+        remote_provider: Any = None,
     ):
         """
         Initializes the BaseAsyncDendrite with API keys and Playwright options.
@@ -102,6 +104,8 @@ class BaseAsyncDendrite(
             openai_api_key=openai_api_key or os.environ.get("OPENAI_API_KEY"),
             anthropic_api_key=anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY"),
         )
+
+        self._impl = self._get_impl(remote_provider)
 
         self.api_config = api_config
         self.playwright: Optional[Playwright] = None
@@ -146,6 +150,10 @@ class BaseAsyncDendrite(
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         # Ensure cleanup is handled
         await self.close()
+
+    def _get_impl(self, remote_provider):
+        # if remote_provider is None:)
+        return get_impl(remote_provider)
 
     async def _get_auth_session(self, domains: Union[str, list[str]]):
         dto = AuthenticateDTO(domains=domains)
@@ -265,19 +273,14 @@ class BaseAsyncDendrite(
         Raises:
             Exception: If there is an issue launching the browser or setting up the context.
         """
-        user_dir = "tmp/playwright"
-        user_dir = os.path.join(os.getcwd(), user_dir)
-
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self._playwright = await async_playwright().start()
-        # self.browser_context = (
-        #     await self._playwright.chromium.launch_persistent_context(
-        #         headless=False,
-        #         user_data_dir=user_dir,
-        #     )
-        # )
 
-        browser = await self._playwright.chromium.launch(**self._playwright_options)
+        # browser = await self._playwright.chromium.launch(**self._playwright_options)
+
+        browser = await self._impl.start_browser(
+            self._playwright, self._playwright_options
+        )
 
         if self._auth:
             auth_session = await self._get_auth_session(self._auth)
@@ -288,9 +291,8 @@ class BaseAsyncDendrite(
         else:
             self.browser_context = await browser.new_context()
 
-        await self.browser_context.tracing.start(
-            screenshots=True, snapshots=True, sources=True
-        )
+        await self._impl.configure_context(self)
+
         self._active_page_manager = PageManager(self, self.browser_context)
 
         return browser, self.browser_context, self._active_page_manager
@@ -333,6 +335,7 @@ class BaseAsyncDendrite(
                     auth_data=auth_session, storage_state=storage_state
                 )
                 await self._browser_api_client.upload_auth_session(dto)
+            await self._impl.stop_session()
             await self.browser_context.close()
         try:
             if self._playwright:
@@ -365,7 +368,6 @@ class BaseAsyncDendrite(
 
         return self._active_page_manager
 
-    @abstractmethod
     async def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
@@ -376,7 +378,7 @@ class BaseAsyncDendrite(
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        pass
+        return await self._impl.get_download(pw_page, timeout)
 
     async def _get_filechooser(
         self, pw_page: PlaywrightPage, timeout: float = 30000
