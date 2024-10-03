@@ -1,10 +1,7 @@
+import time
 import asyncio
 from typing import Generic, Optional, Type, TypeVar, Union, cast
-import playwright
-from playwright.async_api import Download, FileChooser
-import playwright.sync_api
-
-from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
+from playwright.async_api import Page, Download, FileChooser
 
 
 Events = TypeVar("Events", Download, FileChooser)
@@ -16,18 +13,40 @@ mapping = {
 
 
 class EventSync(Generic[Events]):
+
     def __init__(self, event_type: Type[Events]):
         self.event_type = event_type
+        self.event_set = False
+        self.data: Optional[Events] = None
 
-    async def get_data(self, pw_page: PlaywrightPage, timeout: float = 30000) -> Events:
-        try:
-            data = await pw_page.wait_for_event(
-                mapping[self.event_type], timeout=timeout
-            )
-            this_type = self.event_type
-            return cast(this_type, data)
+    async def get_data(self, pw_page: Page, timeout: float = 30000) -> Events:
+        start_time = time.time()
+        while not self.event_set:
+            elapsed_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+            if elapsed_time > timeout:
+                raise TimeoutError(f'Timeout waiting for event "{self.event_type}".')
+            # Advance the playwright event loop without blocking
+            await pw_page.wait_for_timeout(0)
+            # Sleep briefly to prevent CPU spinning
+            await asyncio.sleep(0.01)
+        data = self.data
+        self.data = None
+        self.event_set = False
+        if data is None:
+            raise ValueError("Data is None for event type: ", self.event_type)
+        return data
 
-        except playwright.sync_api.TimeoutError:
-            raise TimeoutError(
-                f"There was no '{self.event_type}' event set within the specified timeout."
-            )
+    def set_event(self, data: Events) -> None:
+        """
+        Sets the event and stores the provided data.
+
+        This method is used to signal that the data is ready to be retrieved by any waiting tasks.
+
+        Args:
+            data (T): The data to be stored and associated with the event.
+
+        Returns:
+            None
+        """
+        self.data = data
+        self.event_set = True
