@@ -4,7 +4,7 @@ from loguru import logger
 from playwright.async_api import BrowserContext, Download, FileChooser
 
 if TYPE_CHECKING:
-    from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendrite
+    from dendrite_sdk.async_api._core.dendrite_browser import AsyncDendrite
 from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.async_api._core.dendrite_page import AsyncPage
 
@@ -14,7 +14,7 @@ class PageManager:
         self.pages: list[AsyncPage] = []
         self.active_page: Optional[AsyncPage] = None
         self.browser_context = browser_context
-        self.dendrite_browser: BaseAsyncDendrite = dendrite_browser
+        self.dendrite_browser: AsyncDendrite = dendrite_browser
 
         browser_context.on("page", self._page_on_open_handler)
 

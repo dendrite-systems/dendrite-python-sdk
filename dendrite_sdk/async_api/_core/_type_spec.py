@@ -7,6 +7,8 @@ from pydantic import BaseModel
 
 from playwright.async_api import Page
 from dendrite_sdk.async_api._core.models.download_interface import DownloadInterface
+from dendrite_sdk.ext.bfloat_provider import BFloatProviderConfig
+from dendrite_sdk.ext.browserbase_provider import BrowserbaseConfig
 
 
 Interaction = Literal["click", "fill", "hover"]
@@ -18,6 +20,8 @@ JsonSchema = Dict[str, Any]
 TypeSpec = Union[PrimitiveTypes, PydanticModel, JsonSchema]
 
 PlaywrightPage = Page
+
+Providers = Union[BrowserbaseConfig, BFloatProviderConfig]
 
 
 def to_json_schema(type_spec: TypeSpec) -> Dict[str, Any]:

@@ -1,59 +1,33 @@
 from typing import Any, Dict, Optional, Type
 from pydantic import BaseModel
 
-from dendrite_sdk.async_api._core._impl_browser import BrowserBaseImpl, ImplBrowser
+from dendrite_sdk.async_api._core._impl_browser import ImplBrowser, LocalImpl
+from dendrite_sdk.async_api._core._type_spec import Providers
+from dendrite_sdk.async_api.ext.browserbase._impl import BrowserBaseImpl
+from dendrite_sdk.async_api.ext.browserbase._settings import BrowserBaseSettings
+from dendrite_sdk.ext.bfloat_provider import BFloatProviderConfig
+from dendrite_sdk.ext.browserbase_provider import BrowserbaseConfig
 
 
-class BrowserBaseSettings(BaseModel):
-    api_key: str
-    project_id: str
-    enable_proxy: bool = False
-    enable_stealth: bool = True
-
-
-class BFloatSettings(BaseModel):
-    api_key: str
-    enable_proxy: bool = True
-
-
-class BFloatProvider(ImplBrowser):
-    def __init__(self, settings: BFloatSettings):
-        pass
-        # Additional initialization
-
-    def connect(self):
-        # Implementation for BFloat
-        pass
-
-
-PROVIDER_CLASSES: Dict[str, Type[ImplBrowser]] = {
-    "browserbase": BrowserBaseImpl,
-    "bfloat": BFloatProvider,
+IMPL_MAPPING: Dict[Type[Providers], Type[ImplBrowser]] = {
+    BrowserbaseConfig: BrowserBaseImpl,
+    # BFloatProviderConfig: ,
 }
 
-SETTINGS_CLASSES: Dict[str, Type[BaseModel]] = {
-    "browserbase": BrowserBaseSettings,
-    "bfloat": BFloatSettings,
+SETTINGS_CLASSES: Dict[str, Type[BrowserbaseConfig]] = {
+    "browserbase": BrowserbaseConfig,
 }
 
 
-def get_impl(remote_provider: Optional[Dict[str, Any]]) -> ImplBrowser:
+def get_impl(remote_provider: Optional[Providers]) -> ImplBrowser:
     if remote_provider is None:
-        raise ValueError("Remote provider not specified")
-
-    name = remote_provider.get("name")
-    if name is None:
-        raise ValueError("Remote provider name not specified")
-    settings = remote_provider.get("settings")
-    if settings is None:
-        raise ValueError("Remote provider settings not specified")
+        return LocalImpl()
 
     try:
-        settings_class = SETTINGS_CLASSES[name.lower()]
-        provider_class = PROVIDER_CLASSES[name.lower()]
+        provider_class = IMPL_MAPPING[type(remote_provider)]
     except KeyError:
         raise ValueError(
-            f"Unknown provider: {name}. Available providers: {', '.join(PROVIDER_CLASSES.keys())}"
+            f"No implementation for {type(remote_provider)}. Available providers: {', '.join(map(lambda x: x.__name__, IMPL_MAPPING.keys()))}"
         )
-    settings = settings_class(**settings)
-    return provider_class(settings)
+
+    return provider_class(remote_provider)

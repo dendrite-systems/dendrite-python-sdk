@@ -1,0 +1,9 @@
+[remote_provider]
+name = "browserbase"
+
+[remote_provider.settings]
+api_key = "<API KEY>"
+project_id = "<PROJECT ID>"
+enable_proxy = false
+enable_stealth = true
+

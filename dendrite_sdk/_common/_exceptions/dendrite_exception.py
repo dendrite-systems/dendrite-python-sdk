@@ -21,7 +21,7 @@ class BaseDendriteException(Exception):
 
     def __init__(self, message: str, screenshot_base64: Optional[str] = None) -> None:
         self._message = message
-        logger.error(self)
+        logger.exception(self)
         super().__init__(message)
 
     @property
@@ -136,8 +136,6 @@ class BrowserNotLaunchedError(BaseDendriteException):
 class DendriteException(BaseDendriteException):
     """
     General exception class for Dendrite errors, including optional screenshot and additional metadata.
-
-    Inherits from BaseDendriteException.
     """
 
     def __init__(self, message: str, screenshot_base64: str = "") -> None:
@@ -153,6 +151,10 @@ class DendriteException(BaseDendriteException):
         self._name: Optional[str] = None
         self._stack: Optional[str] = None
         super().__init__(message)
+
+    @property
+    def message(self) -> str:
+        return self._message
 
     @property
     def name(self) -> Optional[str]:
@@ -190,6 +192,8 @@ class DendriteException(BaseDendriteException):
 
         # Create the full file path
         filepath = os.path.join(path, f"{name}.png")
+
+        # print("filepath: ", filepath)
 
         # Ensure the directory exists
         os.makedirs(os.path.dirname(filepath), exist_ok=True)

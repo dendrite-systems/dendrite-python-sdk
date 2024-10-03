@@ -1,6 +1,5 @@
-from .browserbase._browser import AsyncBrowserbaseBrowser, AsyncBrowserbaseDownload
+from .browserbase import AsyncBrowserbaseDownload
 
 __all__ = [
-    "AsyncBrowserbaseBrowser",
     "AsyncBrowserbaseDownload",
 ]

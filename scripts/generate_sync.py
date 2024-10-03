@@ -285,7 +285,6 @@ if __name__ == "__main__":
         "AsyncBrowserbaseDownload": "BrowserbaseDownload",
         "AsyncBrowserbaseBrowser": "BrowserbaseBrowser",
         "AsyncDendrite": "Dendrite",
-        "BaseAsyncDendrite": "BaseDendrite",
         "AsyncElement": "Element",
         "AsyncPage": "Page",
         "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",

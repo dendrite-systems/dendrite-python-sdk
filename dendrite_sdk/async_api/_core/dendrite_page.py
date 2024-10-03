@@ -39,7 +39,7 @@ from dendrite_sdk.async_api._core.models.page_information import PageInformation
 
 
 if TYPE_CHECKING:
-    from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendrite
+    from dendrite_sdk.async_api._core.dendrite_browser import AsyncDendrite
 
 
 from dendrite_sdk.async_api._core._managers.screenshot_manager import ScreenshotManager
@@ -72,7 +72,7 @@ class AsyncPage(
     def __init__(
         self,
         page: PlaywrightPage,
-        dendrite_browser: "BaseAsyncDendrite",
+        dendrite_browser: "AsyncDendrite",
         browser_api_client: "BrowserAPIClient",
     ):
         self.playwright_page = page
@@ -103,7 +103,7 @@ class AsyncPage(
     async def _get_page(self) -> "AsyncPage":
         return self
 
-    def _get_dendrite_browser(self) -> "BaseAsyncDendrite":
+    def _get_dendrite_browser(self) -> "AsyncDendrite":
         return self.dendrite_browser
 
     def _get_browser_api_client(self) -> BrowserAPIClient:

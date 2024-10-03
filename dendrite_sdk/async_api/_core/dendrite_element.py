@@ -12,7 +12,7 @@ from dendrite_sdk.async_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk._common._exceptions.dendrite_exception import IncorrectOutcomeError
 
 if TYPE_CHECKING:
-    from dendrite_sdk.async_api._core._base_browser import BaseAsyncDendrite
+    from dendrite_sdk.async_api._core.dendrite_browser import AsyncDendrite
 from dendrite_sdk.async_api._core.models.page_diff_information import (
     PageDiffInformation,
 )
@@ -110,7 +110,7 @@ class AsyncElement:
         self,
         dendrite_id: str,
         locator: Locator,
-        dendrite_browser: BaseAsyncDendrite,
+        dendrite_browser: AsyncDendrite,
         browser_api_client: BrowserAPIClient,
     ):
         """
