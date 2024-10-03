@@ -22,7 +22,7 @@ from dendrite_sdk.async_api._core._managers.page_manager import (
     PageManager,
 )
 
-from dendrite_sdk.async_api._core._type_spec import PlaywrightPage, Providers
+from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.async_api._core.dendrite_page import AsyncPage
 from dendrite_sdk.async_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.async_api._core.mixin.ask import AskMixin
@@ -43,6 +43,7 @@ from dendrite_sdk._common._exceptions.dendrite_exception import (
     DendriteException,
     IncorrectOutcomeError,
 )
+from dendrite_sdk.ext import Providers
 
 
 class AsyncDendrite(
@@ -295,7 +296,7 @@ class AsyncDendrite(
                 user_agent=auth_session.user_agent,
             )
         else:
-            self.browser_context = await browser.new_context()
+            self.browser_context = browser.contexts[0]
 
         self._active_page_manager = PageManager(self, self.browser_context)
 

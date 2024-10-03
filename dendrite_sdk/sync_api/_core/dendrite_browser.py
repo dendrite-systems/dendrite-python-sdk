@@ -18,7 +18,7 @@ from dendrite_sdk.sync_api._common.event_sync import EventSync
 from dendrite_sdk.sync_api._core._impl_browser import ImplBrowser
 from dendrite_sdk.sync_api._core._impl_mapping import get_impl
 from dendrite_sdk.sync_api._core._managers.page_manager import PageManager
-from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage, Providers
+from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.sync_api._core.dendrite_page import Page
 from dendrite_sdk.sync_api._common.constants import STEALTH_ARGS
 from dendrite_sdk.sync_api._core.mixin.ask import AskMixin
@@ -36,6 +36,7 @@ from dendrite_sdk._common._exceptions.dendrite_exception import (
     DendriteException,
     IncorrectOutcomeError,
 )
+from dendrite_sdk.ext import Providers
 
 
 class Dendrite(
@@ -264,7 +265,7 @@ class Dendrite(
                 user_agent=auth_session.user_agent,
             )
         else:
-            self.browser_context = browser.new_context()
+            self.browser_context = browser.contexts[0]
         self._active_page_manager = PageManager(self, self.browser_context)
         self._impl.configure_context(self)
         return (browser, self.browser_context, self._active_page_manager)

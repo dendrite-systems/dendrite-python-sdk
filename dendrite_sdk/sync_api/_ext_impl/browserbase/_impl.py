@@ -2,15 +2,15 @@ from typing import TYPE_CHECKING, Optional
 from dendrite_sdk._common._exceptions.dendrite_exception import BrowserNotLaunchedError
 from dendrite_sdk.sync_api._core._impl_browser import ImplBrowser
 from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
-from dendrite_sdk.ext.browserbase_provider import BrowserbaseConfig
+from dendrite_sdk.ext.browserbase_config import BrowserbaseConfig
 
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core.dendrite_browser import Dendrite
-from dendrite_sdk.sync_api.ext.browserbase._client import BrowserbaseClient
+from dendrite_sdk.sync_api._ext_impl.browserbase._client import BrowserbaseClient
 from playwright.sync_api import Playwright
 from loguru import logger
-from dendrite_sdk.sync_api.ext.browserbase._download import BrowserbaseDownload
-from dendrite_sdk.sync_api.ext.browserbase._settings import BrowserBaseSettings
+from dendrite_sdk.sync_api._ext_impl.browserbase._download import BrowserbaseDownload
+from dendrite_sdk.sync_api._ext_impl.browserbase._settings import BrowserBaseSettings
 
 
 class BrowserBaseImpl(ImplBrowser):

@@ -4,13 +4,13 @@ import shutil
 from typing import Union
 import zipfile
 from loguru import logger
-from playwright.async_api import Download
+from playwright.sync_api import Download
+from dendrite_sdk.sync_api._core.models.download_interface import DownloadInterface
+from dendrite_sdk.sync_api._ext_impl.browserbase._client import BrowserbaseClient
 
-from dendrite_sdk.async_api._core.models.download_interface import DownloadInterface
-from dendrite_sdk.async_api.ext.browserbase._client import BrowserbaseClient
 
+class BrowserbaseDownload(DownloadInterface):
 
-class AsyncBrowserbaseDownload(DownloadInterface):
     def __init__(
         self, session_id: str, download: Download, client: BrowserbaseClient
     ) -> None:
@@ -18,7 +18,7 @@ class AsyncBrowserbaseDownload(DownloadInterface):
         self._session_id = session_id
         self._client = client
 
-    async def save_as(self, path: Union[str, Path], timeout: float = 20) -> None:
+    def save_as(self, path: Union[str, Path], timeout: float = 20) -> None:
         """
         Save the latest file from the downloaded ZIP archive to the specified path.
 
@@ -29,30 +29,16 @@ class AsyncBrowserbaseDownload(DownloadInterface):
         Raises:
             Exception: If no matching files are found in the ZIP archive or if the file cannot be saved.
         """
-
         destination_path = Path(path)
-
-        source_path = await self._download.path()
+        source_path = self._download.path()
         destination_path.parent.mkdir(parents=True, exist_ok=True)
-
         with zipfile.ZipFile(source_path, "r") as zip_ref:
-            # Get all file names in the ZIP
             file_list = zip_ref.namelist()
-
-            # Filter and sort files based on timestamp
-
-            sorted_files = sorted(
-                file_list,
-                key=extract_timestamp,
-                reverse=True,
-            )
-
+            sorted_files = sorted(file_list, key=extract_timestamp, reverse=True)
             if not sorted_files:
                 raise FileNotFoundError(
                     "No files found in the Browserbase download ZIP"
                 )
-
-            # Extract the latest file
             latest_file = sorted_files[0]
             with zip_ref.open(latest_file) as source, open(
                 destination_path, "wb"
@@ -62,6 +48,6 @@ class AsyncBrowserbaseDownload(DownloadInterface):
 
 
 def extract_timestamp(filename):
-    timestamp_pattern = re.compile(r"-(\d+)\.")
+    timestamp_pattern = re.compile("-(\\d+)\\.")
     match = timestamp_pattern.search(filename)
     return int(match.group(1)) if match else 0

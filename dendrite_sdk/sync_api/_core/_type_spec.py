@@ -1,13 +1,7 @@
-from abc import ABC
 import inspect
 from typing import Any, Dict, Literal, Type, TypeVar, Union
-import playwright
-import playwright.sync_api
 from pydantic import BaseModel
 from playwright.sync_api import Page
-from dendrite_sdk.sync_api._core.models.download_interface import DownloadInterface
-from dendrite_sdk.ext.bfloat_provider import BFloatProviderConfig
-from dendrite_sdk.ext.browserbase_provider import BrowserbaseConfig
 
 Interaction = Literal["click", "fill", "hover"]
 T = TypeVar("T")
@@ -16,7 +10,6 @@ PrimitiveTypes = PrimitiveTypes = Union[Type[bool], Type[int], Type[float], Type
 JsonSchema = Dict[str, Any]
 TypeSpec = Union[PrimitiveTypes, PydanticModel, JsonSchema]
 PlaywrightPage = Page
-Providers = Union[BrowserbaseConfig, BFloatProviderConfig]
 
 
 def to_json_schema(type_spec: TypeSpec) -> Dict[str, Any]:

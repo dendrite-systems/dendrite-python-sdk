@@ -1,23 +1,23 @@
 from pathlib import Path
 from typing import Union
 
-from dendrite_sdk.ext.bfloat_provider import BFloatProviderConfig
-from dendrite_sdk.ext.browserbase_provider import BrowserbaseConfig
+
+from dendrite_sdk.ext import Providers
+from dendrite_sdk.ext.browserbase_config import BrowserbaseConfig
+
 
 try:
     import tomllib  # type: ignore
 except ModuleNotFoundError:
-    import tomli as tomllib
+    import tomli as tomllib  # tomllib is only included standard lib for python 3.11+
 
 
-NAME_TO_CONFIG = {"browserbase": BrowserbaseConfig, "bfloat": BFloatProviderConfig}
+NAME_TO_CONFIG = {"browserbase": BrowserbaseConfig}
 
 
 class ProviderConfig:
     @classmethod
-    def from_toml(
-        cls, path: Union[str, Path]
-    ) -> Union[BrowserbaseConfig, BFloatProviderConfig]:
+    def from_toml(cls, path: Union[str, Path]) -> Providers:
         if isinstance(path, str):
             path = Path(path)
         if not path.exists():

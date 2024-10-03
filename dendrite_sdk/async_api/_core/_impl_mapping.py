@@ -1,12 +1,10 @@
 from typing import Any, Dict, Optional, Type
-from pydantic import BaseModel
 
 from dendrite_sdk.async_api._core._impl_browser import ImplBrowser, LocalImpl
-from dendrite_sdk.async_api._core._type_spec import Providers
-from dendrite_sdk.async_api.ext.browserbase._impl import BrowserBaseImpl
-from dendrite_sdk.async_api.ext.browserbase._settings import BrowserBaseSettings
-from dendrite_sdk.ext.bfloat_provider import BFloatProviderConfig
-from dendrite_sdk.ext.browserbase_provider import BrowserbaseConfig
+
+from dendrite_sdk.async_api._ext_impl.browserbase._impl import BrowserBaseImpl
+from dendrite_sdk.ext import Providers
+from dendrite_sdk.ext.browserbase_config import BrowserbaseConfig
 
 
 IMPL_MAPPING: Dict[Type[Providers], Type[ImplBrowser]] = {
