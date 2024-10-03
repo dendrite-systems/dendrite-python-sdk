@@ -11,6 +11,7 @@ on:
     - main
 
 
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -47,6 +48,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    env:
+      BROWSERBASE_API_KEY: ${{ secrets.BROWSERBASE_API_KEY }} 
+      BROWSERBASE_PROJECT_ID: ${{ secrets.BROWSERBASE_PROJECT_ID }} 
     steps:
       - uses: actions/checkout@v4
 
