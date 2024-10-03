@@ -4,6 +4,7 @@ import time
 from typing import Optional, Union
 import httpx
 from loguru import logger
+from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 
 
 class BrowserbaseClient:
@@ -19,6 +20,8 @@ class BrowserbaseClient:
         headers = {"Content-Type": "application/json", "x-bb-api-key": self.api_key}
         json = {"projectId": self.project_id, "keepAlive": False}
         response = httpx.post(url, json=json, headers=headers)
+        if response.status_code >= 400:
+            raise DendriteException(f"Failed to create session: {response.text}")
         return response.json()["id"]
 
     def stop_session(self, session_id: str):
