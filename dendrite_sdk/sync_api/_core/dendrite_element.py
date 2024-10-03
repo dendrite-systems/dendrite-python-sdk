@@ -10,7 +10,7 @@ from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 from dendrite_sdk._common._exceptions.dendrite_exception import IncorrectOutcomeError
 
 if TYPE_CHECKING:
-    from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
+    from dendrite_sdk.sync_api._core.dendrite_browser import Dendrite
 from dendrite_sdk.sync_api._core.models.page_diff_information import PageDiffInformation
 from dendrite_sdk.sync_api._core._type_spec import Interaction
 from dendrite_sdk.sync_api._api.response.interaction_response import InteractionResponse
@@ -85,7 +85,7 @@ class Element:
         self,
         dendrite_id: str,
         locator: Locator,
-        dendrite_browser: BaseDendrite,
+        dendrite_browser: Dendrite,
         browser_api_client: BrowserAPIClient,
     ):
         """
