@@ -3,8 +3,8 @@ from typing import Any, Dict, Optional, Type
 from dendrite_sdk.async_api._core._impl_browser import ImplBrowser, LocalImpl
 
 from dendrite_sdk.async_api._ext_impl.browserbase._impl import BrowserBaseImpl
-from dendrite_sdk.ext import Providers
-from dendrite_sdk.ext.browserbase_config import BrowserbaseConfig
+from dendrite_sdk.remote import Providers
+from dendrite_sdk.remote.browserbase_config import BrowserbaseConfig
 
 
 IMPL_MAPPING: Dict[Type[Providers], Type[ImplBrowser]] = {

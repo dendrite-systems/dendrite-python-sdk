@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Union
 
 
-from dendrite_sdk.ext import Providers
-from dendrite_sdk.ext.browserbase_config import BrowserbaseConfig
+from dendrite_sdk.remote import Providers
+from dendrite_sdk.remote.browserbase_config import BrowserbaseConfig
 
 
 try:

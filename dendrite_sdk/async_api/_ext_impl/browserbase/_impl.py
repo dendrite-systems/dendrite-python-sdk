@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional
 from dendrite_sdk._common._exceptions.dendrite_exception import BrowserNotLaunchedError
 from dendrite_sdk.async_api._core._impl_browser import ImplBrowser
 from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
-from dendrite_sdk.ext.browserbase_config import BrowserbaseConfig
+from dendrite_sdk.remote.browserbase_config import BrowserbaseConfig
 
 if TYPE_CHECKING:
     from dendrite_sdk.async_api._core.dendrite_browser import AsyncDendrite

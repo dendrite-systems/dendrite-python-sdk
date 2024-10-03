@@ -36,7 +36,7 @@ from dendrite_sdk._common._exceptions.dendrite_exception import (
     DendriteException,
     IncorrectOutcomeError,
 )
-from dendrite_sdk.ext import Providers
+from dendrite_sdk.remote import Providers
 
 
 class Dendrite(
