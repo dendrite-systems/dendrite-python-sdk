@@ -193,8 +193,6 @@ class DendriteException(BaseDendriteException):
         # Create the full file path
         filepath = os.path.join(path, f"{name}.png")
 
-        # print("filepath: ", filepath)
-
         # Ensure the directory exists
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 

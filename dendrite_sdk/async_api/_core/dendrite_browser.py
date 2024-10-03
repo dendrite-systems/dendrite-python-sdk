@@ -105,7 +105,6 @@ class AsyncDendrite(
             MissingApiKeyError: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
         """
 
-        logger.debug("hello")
         api_config = APIConfig(
             dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
             openai_api_key=openai_api_key or os.environ.get("OPENAI_API_KEY"),
