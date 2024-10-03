@@ -264,7 +264,11 @@ class Dendrite(
                 user_agent=auth_session.user_agent,
             )
         else:
-            self.browser_context = browser.contexts[0]
+            self.browser_context = (
+                browser.contexts[0]
+                if len(browser.contexts) > 0
+                else browser.new_context()
+            )
         self._active_page_manager = PageManager(self, self.browser_context)
         self._impl.configure_context(self)
         return (browser, self.browser_context, self._active_page_manager)

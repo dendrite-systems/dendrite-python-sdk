@@ -295,7 +295,11 @@ class AsyncDendrite(
                 user_agent=auth_session.user_agent,
             )
         else:
-            self.browser_context = browser.contexts[0]
+            self.browser_context = (
+                browser.contexts[0]
+                if len(browser.contexts) > 0
+                else await browser.new_context()
+            )
 
         self._active_page_manager = PageManager(self, self.browser_context)
 
