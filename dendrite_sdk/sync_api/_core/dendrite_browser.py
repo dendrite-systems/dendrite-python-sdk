@@ -163,19 +163,6 @@ class Dendrite(
         active_page_manager = self._get_active_page_manager()
         return active_page_manager.get_active_page()
 
-    def new_page(self) -> Page:
-        """
-        Opens a new page in the browser.
-
-        Returns:
-            Page: The newly opened page.
-
-        Raises:
-            Exception: If there is an issue opening a new page.
-        """
-        active_page_manager = self._get_active_page_manager()
-        return active_page_manager.new_page()
-
     def new_tab(
         self, url: str, timeout: Optional[float] = 15000, expected_page: str = ""
     ) -> Page:
@@ -194,13 +181,13 @@ class Dendrite(
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
         return self.goto(
-            url, new_page=True, timeout=timeout, expected_page=expected_page
+            url, new_tab=True, timeout=timeout, expected_page=expected_page
         )
 
     def goto(
         self,
         url: str,
-        new_page: bool = False,
+        new_tab: bool = False,
         timeout: Optional[float] = 15000,
         expected_page: str = "",
     ) -> Page:
@@ -209,7 +196,7 @@ class Dendrite(
 
         Args:
             url (str): The URL to navigate to.
-            new_page (bool, optional): Whether to open the URL in a new page. Defaults to False.
+            new_tab (bool, optional): Whether to open the URL in a new tab. Defaults to False.
             timeout (Optional[float], optional): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
@@ -222,7 +209,7 @@ class Dendrite(
         if not re.match("^\\w+://", url):
             url = f"https://{url}"
         active_page_manager = self._get_active_page_manager()
-        if new_page:
+        if new_tab:
             active_page = active_page_manager.new_page()
         else:
             active_page = active_page_manager.get_active_page()
