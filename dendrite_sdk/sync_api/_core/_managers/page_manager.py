@@ -3,7 +3,7 @@ from loguru import logger
 from playwright.sync_api import BrowserContext, Download, FileChooser
 
 if TYPE_CHECKING:
-    from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
+    from dendrite_sdk.sync_api._core.dendrite_browser import Dendrite
 from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 from dendrite_sdk.sync_api._core.dendrite_page import Page
 
@@ -14,7 +14,7 @@ class PageManager:
         self.pages: list[Page] = []
         self.active_page: Optional[Page] = None
         self.browser_context = browser_context
-        self.dendrite_browser: BaseDendrite = dendrite_browser
+        self.dendrite_browser: Dendrite = dendrite_browser
         browser_context.on("page", self._page_on_open_handler)
 
     def new_page(self) -> Page:

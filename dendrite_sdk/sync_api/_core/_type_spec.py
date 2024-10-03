@@ -1,11 +1,7 @@
-from abc import ABC
 import inspect
 from typing import Any, Dict, Literal, Type, TypeVar, Union
-import playwright
-import playwright.sync_api
 from pydantic import BaseModel
 from playwright.sync_api import Page
-from dendrite_sdk.sync_api._core.models.download_interface import DownloadInterface
 
 Interaction = Literal["click", "fill", "hover"]
 T = TypeVar("T")

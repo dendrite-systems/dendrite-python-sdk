@@ -1,6 +1,8 @@
 from typing import Optional
 from pydantic import BaseModel, model_validator
 
+from dendrite_sdk._common._exceptions.dendrite_exception import MissingApiKeyError
+
 
 class APIConfig(BaseModel):
     """
@@ -24,7 +26,7 @@ class APIConfig(BaseModel):
         dendrite_api_key = values.get("dendrite_api_key")
 
         if not dendrite_api_key:
-            raise ValueError(
+            raise MissingApiKeyError(
                 "A valid dendrite_api_key must be provided. Make sure you have set the DENDRITE_API_KEY environment variable or passed it to the AsyncDendrite."
             )
 

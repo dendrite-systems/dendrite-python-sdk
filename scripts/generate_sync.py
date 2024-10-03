@@ -285,7 +285,6 @@ if __name__ == "__main__":
         "AsyncBrowserbaseDownload": "BrowserbaseDownload",
         "AsyncBrowserbaseBrowser": "BrowserbaseBrowser",
         "AsyncDendrite": "Dendrite",
-        "BaseAsyncDendrite": "BaseDendrite",
         "AsyncElement": "Element",
         "AsyncPage": "Page",
         "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",
@@ -300,13 +299,21 @@ if __name__ == "__main__":
         if proceed.lower() != "y":
             print("Aborting.")
             sys.exit(1)
-        else:
+        elif os.path.exists(f"{target_dir}"):
             # Create a backup copy of the folder
+
             backup_dir = f"{target_dir}_backup"
             if os.path.exists(backup_dir):
                 print(f"Backup directory {backup_dir} already exists. Overwriting it.")
                 shutil.rmtree(backup_dir)
             shutil.copytree(target_dir, backup_dir)
             print(f"Backup of {target_dir} created at {backup_dir}.")
+
+        # Ensure target directory is clean
+    if os.path.exists(target_dir):
+        print(f"Removing existing directory: {target_dir}")
+        shutil.rmtree(target_dir)
+    print(f"Creating new directory: {target_dir}")
+    os.makedirs(target_dir)
 
     process_directory(source_dir, target_dir, renames)

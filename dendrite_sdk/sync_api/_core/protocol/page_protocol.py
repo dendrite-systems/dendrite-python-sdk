@@ -3,7 +3,7 @@ from dendrite_sdk.sync_api._api.browser_api_client import BrowserAPIClient
 
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core.dendrite_page import Page
-    from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
+    from dendrite_sdk.sync_api._core.dendrite_browser import Dendrite
 
 
 class DendritePageProtocol(Protocol):
@@ -12,7 +12,7 @@ class DendritePageProtocol(Protocol):
     for the `ExtractionMixin` to work.
     """
 
-    def _get_dendrite_browser(self) -> "BaseDendrite": ...
+    def _get_dendrite_browser(self) -> "Dendrite": ...
 
     def _get_browser_api_client(self) -> BrowserAPIClient: ...
 

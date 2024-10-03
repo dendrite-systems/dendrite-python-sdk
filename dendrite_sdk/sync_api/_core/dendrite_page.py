@@ -20,7 +20,7 @@ from dendrite_sdk.sync_api._core.mixin.wait_for import WaitForMixin
 from dendrite_sdk.sync_api._core.models.page_information import PageInformation
 
 if TYPE_CHECKING:
-    from dendrite_sdk.sync_api._core._base_browser import BaseDendrite
+    from dendrite_sdk.sync_api._core.dendrite_browser import Dendrite
 from dendrite_sdk.sync_api._core._managers.screenshot_manager import ScreenshotManager
 from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 from dendrite_sdk.sync_api._core._utils import expand_iframes
@@ -45,7 +45,7 @@ class Page(
     def __init__(
         self,
         page: PlaywrightPage,
-        dendrite_browser: "BaseDendrite",
+        dendrite_browser: "Dendrite",
         browser_api_client: "BrowserAPIClient",
     ):
         self.playwright_page = page
@@ -76,7 +76,7 @@ class Page(
     def _get_page(self) -> "Page":
         return self
 
-    def _get_dendrite_browser(self) -> "BaseDendrite":
+    def _get_dendrite_browser(self) -> "Dendrite":
         return self.dendrite_browser
 
     def _get_browser_api_client(self) -> BrowserAPIClient:
