@@ -13,9 +13,9 @@ class ScreenshotManager:
         self.screenshot_after: str = ""
         self.page = page
 
-    def take_full_page_screenshot(self, page: PlaywrightPage) -> str:
+    def take_full_page_screenshot(self) -> str:
         time.sleep(0.5)
-        image_data = page.screenshot(type="jpeg", full_page=True, timeout=30000)
+        image_data = self.page.screenshot(type="jpeg", full_page=True, timeout=30000)
         if image_data is None:
             return ""
         return base64.b64encode(image_data).decode("utf-8")
