@@ -33,6 +33,7 @@ lxml = "^5.2.1"
 typing-extensions = "^4.12.0"
 loguru = "^0.7.2"
 httpx = "^0.27.2"
+markdownify = "^0.13.1"
 
 
 [tool.poetry.group.dev.dependencies]

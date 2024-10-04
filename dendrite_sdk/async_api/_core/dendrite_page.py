@@ -76,9 +76,16 @@ class AsyncPage(
         browser_api_client: "BrowserAPIClient",
     ):
         self.playwright_page = page
-        self.screenshot_manager = ScreenshotManager()
+        self.screenshot_manager = ScreenshotManager(page)
         self.dendrite_browser = dendrite_browser
         self._browser_api_client = browser_api_client
+        self._last_frame_navigated_timestamp = time.time()
+
+        self.playwright_page.on("framenavigated", self._on_frame_navigated)
+
+    def _on_frame_navigated(self, frame):
+        if frame is self.playwright_page.main_frame:
+            self._last_frame_navigated_timestamp = time.time()
 
     @property
     def url(self):
@@ -246,15 +253,14 @@ class AsyncPage(
             PageInformation: An object containing the page's URL, raw HTML, and a screenshot in base64 format.
         """
 
-        base64 = await self.screenshot_manager.take_full_page_screenshot(
-            self.playwright_page
-        )
+        base64 = await self.screenshot_manager.take_full_page_screenshot()
         soup = await self._get_soup()
 
         return PageInformation(
             url=self.playwright_page.url,
             raw_html=str(soup),
             screenshot_base64=base64,
+            time_since_frame_navigated=self.get_time_since_last_frame_navigated(),
         )
 
     async def _generate_dendrite_ids(self):
@@ -393,3 +399,12 @@ class AsyncPage(
 
         with open(path, "w") as f:
             f.write(await self.playwright_page.content())
+
+    def get_time_since_last_frame_navigated(self) -> float:
+        """
+        Get the time elapsed since the last URL change.
+
+        Returns:
+            float: The number of seconds elapsed since the last URL change.
+        """
+        return time.time() - self._last_frame_navigated_timestamp
