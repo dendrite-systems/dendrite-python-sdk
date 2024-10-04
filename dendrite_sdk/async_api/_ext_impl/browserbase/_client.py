@@ -34,7 +34,7 @@ class BrowserbaseClient:
 
         if response.status_code >= 400:
             raise DendriteException(f"Failed to create session: {response.text}")
-        
+
         return response.json()["id"]
 
     async def stop_session(self, session_id: str):
