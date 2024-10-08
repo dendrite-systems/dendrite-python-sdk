@@ -13,7 +13,6 @@ from loguru import logger
 from dendrite_sdk.async_api._ext_impl.browserbase._download import (
     AsyncBrowserbaseDownload,
 )
-from dendrite_sdk.async_api._ext_impl.browserbase._settings import BrowserBaseSettings
 
 
 class BrowserBaseImpl(ImplBrowser):
