@@ -116,16 +116,6 @@ class ExtractionMixin(DendritePageProtocol):
         init_start_time = time.time()
         page = await self._get_page()
 
-        page_information = await page.get_page_information()
-        extract_dto = ExtractDTO(
-            page_information=page_information,
-            api_config=self._get_dendrite_browser().api_config,
-            prompt=prompt,
-            return_data_json_schema=json_schema,
-            use_screenshot=True,
-            use_cache=use_cache,
-        )
-
         delay = 1
         while True:
             elapsed_time = time.time() - init_start_time
@@ -135,6 +125,17 @@ class ExtractionMixin(DendritePageProtocol):
                 )
 
             start_time = time.time()
+
+            page_information = await page.get_page_information()
+            extract_dto = ExtractDTO(
+                page_information=page_information,
+                api_config=self._get_dendrite_browser().api_config,
+                prompt=prompt,
+                return_data_json_schema=json_schema,
+                use_screenshot=True,
+                use_cache=use_cache,
+            )
+
             res = await self._get_browser_api_client().extract(extract_dto)
             request_time = time.time() - start_time
 
