@@ -14,9 +14,8 @@ class ScreenshotManager:
         self.page = page
 
     async def take_full_page_screenshot(self) -> str:
-        image_data = await self.page.screenshot(
-            type="jpeg", full_page=True, timeout=30000
-        )
+        await asyncio.sleep(0.5)
+        image_data = await self.page.screenshot(type="jpeg", full_page=True, timeout=30000)
         if image_data is None:
             return ""
 
