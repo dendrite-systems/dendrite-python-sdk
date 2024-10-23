@@ -1,7 +1,5 @@
-import asyncio
 import base64
 import os
-from typing import Tuple
 from uuid import uuid4
 
 from dendrite_sdk.async_api._core._type_spec import PlaywrightPage
@@ -14,16 +12,45 @@ class ScreenshotManager:
         self.page = page
 
     async def take_full_page_screenshot(self) -> str:
-        image_data = await self.page.screenshot(
-            type="jpeg", full_page=True, timeout=30000
-        )
+        try:
+            # Check the page height
+            scroll_height = await self.page.evaluate(
+                """
+                Math.max(
+                    document.body.scrollHeight,
+                    document.documentElement.scrollHeight,
+                    document.body.offsetHeight,
+                    document.documentElement.offsetHeight,
+                    document.body.clientHeight,
+                    document.documentElement.clientHeight
+                )
+            """
+            )
+
+            if scroll_height > 30000:
+                print(
+                    f"Page height ({scroll_height}px) exceeds 30000px. Taking viewport screenshot instead."
+                )
+                return await self.take_viewport_screenshot()
+
+            # Attempt to take a full-page screenshot
+            image_data = await self.page.screenshot(
+                type="jpeg", full_page=True, timeout=10000
+            )
+        except Exception as e:  # Catch any exception, including timeout
+            print(
+                f"Full-page screenshot failed: {e}. Falling back to viewport screenshot."
+            )
+            # Fall back to viewport screenshot
+            return await self.take_viewport_screenshot()
+
         if image_data is None:
             return ""
 
         return base64.b64encode(image_data).decode("utf-8")
 
     async def take_viewport_screenshot(self) -> str:
-        image_data = await self.page.screenshot(type="jpeg", timeout=30000)
+        image_data = await self.page.screenshot(type="jpeg", timeout=10000)
 
         if image_data is None:
             return ""
