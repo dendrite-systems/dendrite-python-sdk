@@ -1,7 +1,5 @@
-import time
 import base64
 import os
-from typing import Tuple
 from uuid import uuid4
 from dendrite_sdk.sync_api._core._type_spec import PlaywrightPage
 
@@ -14,13 +12,29 @@ class ScreenshotManager:
         self.page = page
 
     def take_full_page_screenshot(self) -> str:
-        image_data = self.page.screenshot(type="jpeg", full_page=True, timeout=30000)
+        try:
+            scroll_height = self.page.evaluate(
+                "\n                Math.max(\n                    document.body.scrollHeight,\n                    document.documentElement.scrollHeight,\n                    document.body.offsetHeight,\n                    document.documentElement.offsetHeight,\n                    document.body.clientHeight,\n                    document.documentElement.clientHeight\n                )\n            "
+            )
+            if scroll_height > 30000:
+                print(
+                    f"Page height ({scroll_height}px) exceeds 30000px. Taking viewport screenshot instead."
+                )
+                return self.take_viewport_screenshot()
+            image_data = self.page.screenshot(
+                type="jpeg", full_page=True, timeout=10000
+            )
+        except Exception as e:
+            print(
+                f"Full-page screenshot failed: {e}. Falling back to viewport screenshot."
+            )
+            return self.take_viewport_screenshot()
         if image_data is None:
             return ""
         return base64.b64encode(image_data).decode("utf-8")
 
     def take_viewport_screenshot(self) -> str:
-        image_data = self.page.screenshot(type="jpeg", timeout=30000)
+        image_data = self.page.screenshot(type="jpeg", timeout=10000)
         if image_data is None:
             return ""
         reduced_base64 = base64.b64encode(image_data).decode("utf-8")

@@ -10,7 +10,6 @@ from dendrite_sdk.sync_api._ext_impl.browserbase._client import BrowserbaseClien
 from playwright.sync_api import Playwright
 from loguru import logger
 from dendrite_sdk.sync_api._ext_impl.browserbase._download import BrowserbaseDownload
-from dendrite_sdk.sync_api._ext_impl.browserbase._settings import BrowserBaseSettings
 
 
 class BrowserBaseImpl(ImplBrowser):
