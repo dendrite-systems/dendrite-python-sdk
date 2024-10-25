@@ -11,3 +11,4 @@ class GetElementsDTO(BaseModel):
     api_config: APIConfig
     use_cache: bool = True
     only_one: bool
+    force_use_cache: bool = False

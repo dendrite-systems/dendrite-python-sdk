@@ -29,7 +29,7 @@ class FillFieldsMixin(GetElementMixin, DendritePageProtocol):
         """
 
         for field, value in fields.items():
-            prompt = f"I'll be filling in several values from a object with these keys: {fields.keys()} in this page. Get the field best described as '{field}'. I want to fill it with a '{type(value)}' type value."
+            prompt = f"I'll be filling in text in several fields with these keys: {fields.keys()} in this page. Get the field best described as '{field}'. I want to fill it with a '{type(value)}' type value."
             await self.fill(prompt, value)
             await asyncio.sleep(0.5)
 
@@ -65,8 +65,9 @@ class FillFieldsMixin(GetElementMixin, DendritePageProtocol):
         Raises:
             DendriteException: If no suitable element is found or if the fill operation fails.
         """
+        augmented_prompt = prompt + "\n\nMake sure the element can be filled with text."
         element = await self.get_element(
-            prompt,
+            augmented_prompt,
             use_cache=use_cache,
             timeout=timeout,
         )

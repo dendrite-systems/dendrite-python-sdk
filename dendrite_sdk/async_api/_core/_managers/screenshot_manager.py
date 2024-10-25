@@ -16,15 +16,14 @@ class ScreenshotManager:
             # Check the page height
             scroll_height = await self.page.evaluate(
                 """
-                Math.max(
-                    document.body.scrollHeight,
-                    document.documentElement.scrollHeight,
-                    document.body.offsetHeight,
-                    document.documentElement.offsetHeight,
-                    document.body.clientHeight,
-                    document.documentElement.clientHeight
-                )
-            """
+                () => {
+                    const body = document.body;
+                    if (!body) {
+                        return 0;  // Return 0 if body is null
+                    }
+                    return body.scrollHeight || 0;
+                }
+                """
             )
 
             if scroll_height > 30000:

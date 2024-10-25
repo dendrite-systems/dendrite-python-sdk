@@ -41,8 +41,9 @@ class ClickMixin(GetElementMixin, DendritePageProtocol):
         Raises:
             DendriteException: If no suitable element is found or if the click operation fails.
         """
+        augmented_prompt = prompt + "\n\nThe element should be clickable."
         element = await self.get_element(
-            prompt,
+            augmented_prompt,
             use_cache=use_cache,
             timeout=timeout,
         )
