@@ -5,14 +5,12 @@ from typing import Dict, List, Literal, Optional, Union, overload
 from loguru import logger
 
 from dendrite_sdk.async_api._api.dto.get_elements_dto import GetElementsDTO
+from dendrite_sdk.async_api._api.response.get_element_response import GetElementResponse
+from dendrite_sdk.async_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
 from dendrite_sdk.async_api._core.dendrite_element import AsyncElement
 from dendrite_sdk.async_api._core.models.response import AsyncElementsResponse
 from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
-
-
-# The timeout interval between retries in milliseconds
-TIMEOUT_INTERVAL: List[float] = [150, 450, 1000]
+from dendrite_sdk.async_api._core.models.api_config import APIConfig
 
 
 class GetElementMixin(DendritePageProtocol):
@@ -179,7 +177,7 @@ class GetElementMixin(DendritePageProtocol):
             prompt_or_elements (Union[str, Dict[str, str]]): The prompt or dictionary of prompts for element retrieval.
             only_one (bool): Whether to retrieve only one element or a list of elements.
             use_cache (bool): Whether to use cached results.
-            timeout (float): The total timeout (in milliseconds) until the last request is sent to the API.
+            timeout (float): The total timeout (in seconds) for the entire operation.
 
         Returns:
             Union[AsyncElement, List[AsyncElement], AsyncElementsResponse]: The retrieved element, list of elements, or response object.
@@ -187,98 +185,136 @@ class GetElementMixin(DendritePageProtocol):
 
         api_config = self._get_dendrite_browser().api_config
         start_time = time.time()
-        attempt_start = start_time
-        attempt = -1
-        force_not_use_cache = False
-        current_timeout = 0.0
-        while True:
-            attempt += 1
-            current_timeout = (
-                TIMEOUT_INTERVAL[attempt]
-                if len(TIMEOUT_INTERVAL) > attempt
-                else current_timeout * 1.75  # Default to 1 second if not specified
+
+        # First, let's check if there is a cached selector
+        cache_available = await test_if_cache_available(self,prompt_or_elements)
+
+        # If we have cached elements, attempt to use them with an exponentation backoff
+        if cache_available and use_cache == True:
+            logger.info(f"Cache available, attempting to use cached selectors")
+            res = await attempt_with_backoff(
+                self,
+                prompt_or_elements,
+                only_one,
+                api_config,
+                only_use_cache=True,
+                remaining_timeout=timeout - (time.time() - start_time),
             )
-
-            elapsed_time = time.time() - start_time
-            remaining_time = timeout * 0.001 - elapsed_time
-
-            if remaining_time <= 8 or attempt > 2:
+            if res:
+                return res
+            else:
                 logger.debug(
-                    f"Forcing cache bypass: remaining_time={remaining_time}, attempt={attempt}"
+                    f"After attempting to use cached selectors several times without success, let's find the elements using the find element agent."
                 )
-                force_not_use_cache = True
 
-            if remaining_time <= 0:
-                logger.warning(
-                    f"Timeout reached for '{prompt_or_elements}' after {attempt + 1} attempts"
-                )
-                break
-
-            prev_attempt_time = time.time() - attempt_start
-
-            sleep_time = min(
-                max(current_timeout * 0.001 - prev_attempt_time, 0), remaining_time
-            )
-            logger.debug(f"Waiting for {sleep_time} seconds before retrying")
-            await asyncio.sleep(sleep_time)
-            attempt_start = time.time()
-
-            logger.info(
-                f"Getting element for '{prompt_or_elements}' | Attempt {attempt + 1}"
-            )
-
-            page = await self._get_page()
-            page_information = await page.get_page_information()
-
-            dto = GetElementsDTO(
-                page_information=page_information,
-                prompt=prompt_or_elements,
-                api_config=api_config,
-                use_cache=use_cache and not force_not_use_cache,
-                only_one=only_one,
-            )
-            res = await self._get_browser_api_client().get_interactions_selector(dto)
-
-            logger.debug(
-                f"Got selectors: {res} in {time.time() - attempt_start} seconds"
-            )
-
-            if isinstance(res.selectors, dict):
-                result = {}
-                for key, selectors in res.selectors.items():
-                    for selector in reversed(selectors):
-                        page = await self._get_page()
-                        dendrite_elements = await page._get_all_elements_from_selector(
-                            selector
-                        )
-                        if len(dendrite_elements) > 0:
-                            logger.info(f"Got working selector for '{key}': {selector}")
-                            result[key] = dendrite_elements[0]
-                            break
-                    else:
-                        logger.warning(
-                            f"No elements found for '{key}' on attempt {attempt + 1}"
-                        )
-                return AsyncElementsResponse(result)
-            elif isinstance(res.selectors, list):
-                for selector in reversed(res.selectors):
-                    page = await self._get_page()
-                    dendrite_elements = await page._get_all_elements_from_selector(
-                        selector
-                    )
-                    if len(dendrite_elements) > 0:
-                        logger.info(f"Got working selector: {selector}")
-                        return dendrite_elements[0] if only_one else dendrite_elements
-                    else:
-                        logger.warning(
-                            f"No elements found for selector: {selector} on attempt {attempt + 1}"
-                        )
-
-            logger.warning(
-                f"All selectors failed for '{prompt_or_elements}' on attempt {attempt + 1}"
-            )
+        # Now that no cached selectors were found or they failed repeatedly, let's use the find element agent to find the requested elements.
+        logger.info(
+            "Proceeding to use the find element agent to find the requested elements."
+        )
+        res = await attempt_with_backoff(
+            self,
+            prompt_or_elements,
+            only_one,
+            api_config,
+            only_use_cache=False,
+            remaining_timeout=timeout - (time.time() - start_time),
+        )
+        if res:
+            return res
 
         logger.error(
-            f"Failed to get elements for '{prompt_or_elements}' after {attempt + 1} attempts"
+            f"Failed to retrieve elements within the specified timeout of {timeout} seconds"
         )
         return None
+
+async def test_if_cache_available(
+    obj: DendritePageProtocol,
+    prompt_or_elements: Union[str, Dict[str, str]],
+) -> bool:
+    page = await obj._get_page()
+    page_information = await page.get_page_information(include_screenshot=False)
+    dto = CheckSelectorCacheDTO(
+        url=page_information.url,
+        prompt=prompt_or_elements,
+    )
+    cache_available = await obj._get_browser_api_client().check_selector_cache(dto)
+    return cache_available.exists
+
+async def attempt_with_backoff(
+    obj: DendritePageProtocol,
+    prompt_or_elements: Union[str, Dict[str, str]],
+    only_one: bool,
+    api_config: APIConfig,
+    only_use_cache: bool = False,
+    remaining_timeout: float = 15.0,
+) -> Union[Optional[AsyncElement], List[AsyncElement], AsyncElementsResponse]:
+    TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
+    total_elapsed_time = 0
+    start_time = time.time()
+
+    for current_timeout in TIMEOUT_INTERVAL:
+        if total_elapsed_time >= remaining_timeout:
+            logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
+            return None
+
+        request_start_time = time.time()
+        page = await obj._get_page()
+        page_information = await page.get_page_information(
+            include_screenshot=not only_use_cache
+        )
+        dto = GetElementsDTO(
+            page_information=page_information,
+            prompt=prompt_or_elements,
+            api_config=api_config,
+            use_cache=only_use_cache,
+            only_one=only_one,
+            force_use_cache=only_use_cache,
+        )
+        res = await obj._get_browser_api_client().get_interactions_selector(dto)
+        request_duration = time.time() - request_start_time
+
+        if res.status == "impossible":
+            logger.error(
+                f"Impossible to get elements for '{prompt_or_elements}'. Reason: {res.message}"
+            )
+            return None
+
+        if res.status == "success":
+            response = await get_elements_from_selectors(obj, res, only_one)
+            if response:
+                return response
+
+        sleep_duration = max(0, current_timeout - request_duration)
+        logger.info(
+            f"Failed to get elements for prompt:\n\n'{prompt_or_elements}'\n\nStatus: {res.status}\n\nMessage: {res.message}\n\nSleeping for {sleep_duration:.2f} seconds"
+        )
+        await asyncio.sleep(sleep_duration)
+        total_elapsed_time = time.time() - start_time
+
+    logger.error(f"All attempts failed after {total_elapsed_time:.2f} seconds")
+    return None
+
+async def get_elements_from_selectors(
+    obj: DendritePageProtocol, res: GetElementResponse, only_one: bool
+) -> Union[Optional[AsyncElement], List[AsyncElement], AsyncElementsResponse]:
+    if isinstance(res.selectors, dict):
+        result = {}
+        for key, selectors in res.selectors.items():
+            for selector in selectors:
+                page = await obj._get_page()
+                dendrite_elements = await page._get_all_elements_from_selector(
+                    selector
+                )
+                if len(dendrite_elements) > 0:
+                    result[key] = dendrite_elements[0]
+                    break
+        return AsyncElementsResponse(result)
+    elif isinstance(res.selectors, list):
+        for selector in reversed(res.selectors):
+            page = await obj._get_page()
+            dendrite_elements = await page._get_all_elements_from_selector(selector)
+
+            if len(dendrite_elements) > 0:
+                return dendrite_elements[0] if only_one else dendrite_elements
+
+    return None

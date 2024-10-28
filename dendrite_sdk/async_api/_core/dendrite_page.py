@@ -79,12 +79,14 @@ class AsyncPage(
         self.screenshot_manager = ScreenshotManager(page)
         self.dendrite_browser = dendrite_browser
         self._browser_api_client = browser_api_client
+        self._last_main_frame_url = page.url
         self._last_frame_navigated_timestamp = time.time()
 
         self.playwright_page.on("framenavigated", self._on_frame_navigated)
 
     def _on_frame_navigated(self, frame):
         if frame is self.playwright_page.main_frame:
+            self._last_main_frame_url = frame.url
             self._last_frame_navigated_timestamp = time.time()
 
     @property
@@ -245,7 +247,9 @@ class AsyncPage(
         """
         await self.playwright_page.close()
 
-    async def get_page_information(self) -> PageInformation:
+    async def get_page_information(
+        self, include_screenshot: bool = True
+    ) -> PageInformation:
         """
         Retrieves information about the current page, including the URL, raw HTML, and a screenshot.
 
@@ -253,7 +257,11 @@ class AsyncPage(
             PageInformation: An object containing the page's URL, raw HTML, and a screenshot in base64 format.
         """
 
-        base64 = await self.screenshot_manager.take_full_page_screenshot()
+        if include_screenshot:
+            base64 = await self.screenshot_manager.take_full_page_screenshot()
+        else:
+            base64 = "No screenshot available"
+
         soup = await self._get_soup()
 
         return PageInformation(
@@ -408,3 +416,18 @@ class AsyncPage(
             float: The number of seconds elapsed since the last URL change.
         """
         return time.time() - self._last_frame_navigated_timestamp
+
+    async def check_if_renavigated(
+        self, initial_url: str, wait_time: float = 0.1
+    ) -> bool:
+        """
+        Waits for a short period and checks if a main frame navigation has occurred.
+
+        Args:
+            wait_time (float): The time to wait in seconds. Defaults to 0.1 seconds.
+
+        Returns:
+            bool: True if a main frame navigation occurred, False otherwise.
+        """
+        await asyncio.sleep(wait_time)
+        return self._last_main_frame_url != initial_url

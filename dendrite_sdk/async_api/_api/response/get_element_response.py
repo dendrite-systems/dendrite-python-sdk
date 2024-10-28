@@ -9,3 +9,4 @@ class GetElementResponse(BaseModel):
     status: Status
     selectors: Optional[Union[List[str], Dict[str, List[str]]]] = None
     message: str = ""
+    used_cache: bool = False

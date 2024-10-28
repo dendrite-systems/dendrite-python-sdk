@@ -2,9 +2,9 @@ from typing import Any, Dict, Optional, Type
 from dendrite_sdk.sync_api._core._impl_browser import ImplBrowser, LocalImpl
 from dendrite_sdk.sync_api._ext_impl.browserbase._impl import BrowserBaseImpl
 from dendrite_sdk.sync_api._ext_impl.browserless._impl import BrowserlessImpl
-from dendrite_sdk.sync_api._ext_impl.browserless._settings import BrowserlessConfig
-from dendrite_sdk.remote import Providers
+from dendrite_sdk.remote.browserless_config import BrowserlessConfig
 from dendrite_sdk.remote.browserbase_config import BrowserbaseConfig
+from dendrite_sdk.remote import Providers
 
 IMPL_MAPPING: Dict[Type[Providers], Type[ImplBrowser]] = {
     BrowserbaseConfig: BrowserBaseImpl,

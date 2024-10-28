@@ -26,7 +26,7 @@ class FillFieldsMixin(GetElementMixin, DendritePageProtocol):
             This method will make multiple fill requests, one for each key in the 'fields' dictionary.
         """
         for field, value in fields.items():
-            prompt = f"I'll be filling in several values from a object with these keys: {fields.keys()} in this page. Get the field best described as '{field}'. I want to fill it with a '{type(value)}' type value."
+            prompt = f"I'll be filling in text in several fields with these keys: {fields.keys()} in this page. Get the field best described as '{field}'. I want to fill it with a '{type(value)}' type value."
             self.fill(prompt, value)
             time.sleep(0.5)
 
@@ -62,7 +62,10 @@ class FillFieldsMixin(GetElementMixin, DendritePageProtocol):
         Raises:
             DendriteException: If no suitable element is found or if the fill operation fails.
         """
-        element = self.get_element(prompt, use_cache=use_cache, timeout=timeout)
+        augmented_prompt = prompt + "\n\nMake sure the element can be filled with text."
+        element = self.get_element(
+            augmented_prompt, use_cache=use_cache, timeout=timeout
+        )
         if not element:
             raise DendriteException(
                 message=f"No element found with the prompt: {prompt}",
