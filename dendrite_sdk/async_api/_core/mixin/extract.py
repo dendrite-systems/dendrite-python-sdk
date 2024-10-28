@@ -113,20 +113,21 @@ class ExtractionMixin(DendritePageProtocol):
         navigation_tracker.start_nav_tracking()
 
         # Check if a script exists in the cache
-        cache_available = await self.check_if_extract_cache_available(
-            prompt, json_schema
-        )
-
-        if cache_available and use_cache:
-            logger.info("Cache available, attempting to use cached extraction")
-            result = await self.attempt_extraction_with_backoff(
-                prompt,
-                json_schema,
-                only_use_cache=True,
-                remaining_timeout=timeout - (time.time() - start_time),
+        if use_cache:
+            cache_available = await self.check_if_extract_cache_available(
+                prompt, json_schema
             )
-            if result:
-                return self.convert_and_return_result(result, type_spec)
+
+            if cache_available:
+                logger.info("Cache available, attempting to use cached extraction")
+                result = await self.attempt_extraction_with_backoff(
+                    prompt,
+                    json_schema,
+                    only_use_cache=True,
+                    remaining_timeout=timeout - (time.time() - start_time),
+                )
+                if result:
+                    return self.convert_and_return_result(result, type_spec)
 
         logger.info(
             "Using extraction agent to perform extraction, since no cache was found or failed."
