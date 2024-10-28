@@ -164,10 +164,11 @@ class GetElementMixin(DendritePageProtocol):
         """
         api_config = self._get_dendrite_browser().api_config
         start_time = time.time()
-        cache_available = self.test_if_cache_available(prompt_or_elements)
+        cache_available = test_if_cache_available(self, prompt_or_elements)
         if cache_available and use_cache == True:
             logger.info(f"Cache available, attempting to use cached selectors")
-            res = self.attempt_with_backoff(
+            res = attempt_with_backoff(
+                self,
                 prompt_or_elements,
                 only_one,
                 api_config,
@@ -183,7 +184,8 @@ class GetElementMixin(DendritePageProtocol):
         logger.info(
             "Proceeding to use the find element agent to find the requested elements."
         )
-        res = self.attempt_with_backoff(
+        res = attempt_with_backoff(
+            self,
             prompt_or_elements,
             only_one,
             api_config,
@@ -197,80 +199,83 @@ class GetElementMixin(DendritePageProtocol):
         )
         return None
 
-    def test_if_cache_available(
-        self, prompt_or_elements: Union[str, Dict[str, str]]
-    ) -> bool:
-        page = self._get_page()
-        page_information = page.get_page_information(include_screenshot=False)
-        dto = CheckSelectorCacheDTO(url=page_information.url, prompt=prompt_or_elements)
-        cache_available = self._get_browser_api_client().check_selector_cache(dto)
-        return cache_available.exists
 
-    def attempt_with_backoff(
-        self,
-        prompt_or_elements: Union[str, Dict[str, str]],
-        only_one: bool,
-        api_config: APIConfig,
-        only_use_cache: bool = False,
-        remaining_timeout: float = 15.0,
-    ) -> Union[Optional[Element], List[Element], ElementsResponse]:
-        TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
-        total_elapsed_time = 0
-        start_time = time.time()
-        for current_timeout in TIMEOUT_INTERVAL:
-            if total_elapsed_time >= remaining_timeout:
-                logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
-                return None
-            request_start_time = time.time()
-            page = self._get_page()
-            page_information = page.get_page_information(
-                include_screenshot=not only_use_cache
-            )
-            dto = GetElementsDTO(
-                page_information=page_information,
-                prompt=prompt_or_elements,
-                api_config=api_config,
-                use_cache=only_use_cache,
-                only_one=only_one,
-                force_use_cache=only_use_cache,
-            )
-            res = self._get_browser_api_client().get_interactions_selector(dto)
-            request_duration = time.time() - request_start_time
-            if res.status == "impossible":
-                logger.error(
-                    f"Impossible to get elements for '{prompt_or_elements}'. Reason: {res.message}"
-                )
-                return None
-            if res.status == "success":
-                response = self.get_elements_from_selectors(res, only_one)
-                if response:
-                    return response
-            sleep_duration = max(0, current_timeout - request_duration)
-            logger.info(
-                f"Failed to get elements for prompt:\n\n'{prompt_or_elements}'\n\nStatus: {res.status}\n\nMessage: {res.message}\n\nSleeping for {sleep_duration:.2f} seconds"
-            )
-            time.sleep(sleep_duration)
-            total_elapsed_time = time.time() - start_time
-        logger.error(f"All attempts failed after {total_elapsed_time:.2f} seconds")
-        return None
+def test_if_cache_available(
+    obj: DendritePageProtocol, prompt_or_elements: Union[str, Dict[str, str]]
+) -> bool:
+    page = obj._get_page()
+    page_information = page.get_page_information(include_screenshot=False)
+    dto = CheckSelectorCacheDTO(url=page_information.url, prompt=prompt_or_elements)
+    cache_available = obj._get_browser_api_client().check_selector_cache(dto)
+    return cache_available.exists
 
-    def get_elements_from_selectors(
-        self, res: GetElementResponse, only_one: bool
-    ) -> Union[Optional[Element], List[Element], ElementsResponse]:
-        if isinstance(res.selectors, dict):
-            result = {}
-            for key, selectors in res.selectors.items():
-                for selector in selectors:
-                    page = self._get_page()
-                    dendrite_elements = page._get_all_elements_from_selector(selector)
-                    if len(dendrite_elements) > 0:
-                        result[key] = dendrite_elements[0]
-                        break
-            return ElementsResponse(result)
-        elif isinstance(res.selectors, list):
-            for selector in reversed(res.selectors):
-                page = self._get_page()
+
+def attempt_with_backoff(
+    obj: DendritePageProtocol,
+    prompt_or_elements: Union[str, Dict[str, str]],
+    only_one: bool,
+    api_config: APIConfig,
+    only_use_cache: bool = False,
+    remaining_timeout: float = 15.0,
+) -> Union[Optional[Element], List[Element], ElementsResponse]:
+    TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
+    total_elapsed_time = 0
+    start_time = time.time()
+    for current_timeout in TIMEOUT_INTERVAL:
+        if total_elapsed_time >= remaining_timeout:
+            logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
+            return None
+        request_start_time = time.time()
+        page = obj._get_page()
+        page_information = page.get_page_information(
+            include_screenshot=not only_use_cache
+        )
+        dto = GetElementsDTO(
+            page_information=page_information,
+            prompt=prompt_or_elements,
+            api_config=api_config,
+            use_cache=only_use_cache,
+            only_one=only_one,
+            force_use_cache=only_use_cache,
+        )
+        res = obj._get_browser_api_client().get_interactions_selector(dto)
+        request_duration = time.time() - request_start_time
+        if res.status == "impossible":
+            logger.error(
+                f"Impossible to get elements for '{prompt_or_elements}'. Reason: {res.message}"
+            )
+            return None
+        if res.status == "success":
+            response = get_elements_from_selectors(obj, res, only_one)
+            if response:
+                return response
+        sleep_duration = max(0, current_timeout - request_duration)
+        logger.info(
+            f"Failed to get elements for prompt:\n\n'{prompt_or_elements}'\n\nStatus: {res.status}\n\nMessage: {res.message}\n\nSleeping for {sleep_duration:.2f} seconds"
+        )
+        time.sleep(sleep_duration)
+        total_elapsed_time = time.time() - start_time
+    logger.error(f"All attempts failed after {total_elapsed_time:.2f} seconds")
+    return None
+
+
+def get_elements_from_selectors(
+    obj: DendritePageProtocol, res: GetElementResponse, only_one: bool
+) -> Union[Optional[Element], List[Element], ElementsResponse]:
+    if isinstance(res.selectors, dict):
+        result = {}
+        for key, selectors in res.selectors.items():
+            for selector in selectors:
+                page = obj._get_page()
                 dendrite_elements = page._get_all_elements_from_selector(selector)
                 if len(dendrite_elements) > 0:
-                    return dendrite_elements[0] if only_one else dendrite_elements
-        return None
+                    result[key] = dendrite_elements[0]
+                    break
+        return ElementsResponse(result)
+    elif isinstance(res.selectors, list):
+        for selector in reversed(res.selectors):
+            page = obj._get_page()
+            dendrite_elements = page._get_all_elements_from_selector(selector)
+            if len(dendrite_elements) > 0:
+                return dendrite_elements[0] if only_one else dendrite_elements
+    return None

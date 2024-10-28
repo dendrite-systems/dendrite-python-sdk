@@ -128,25 +128,28 @@ class ExtractionMixin(DendritePageProtocol):
 
         # Check if a script exists in the cache
         if use_cache:
-            cache_available = await self.check_if_extract_cache_available(
+            cache_available = await check_if_extract_cache_available(
+                self,
                 prompt, json_schema
             )
 
             if cache_available:
                 logger.info("Cache available, attempting to use cached extraction")
-                result = await self.attempt_extraction_with_backoff(
+                result = await attempt_extraction_with_backoff(
+                    self,
                     prompt,
                     json_schema,
                     only_use_cache=True,
                     remaining_timeout=timeout - (time.time() - start_time),
                 )
                 if result:
-                    return self.convert_and_return_result(result, type_spec)
+                    return convert_and_return_result(result, type_spec)
 
         logger.info(
             "Using extraction agent to perform extraction, since no cache was found or failed."
         )
-        result = await self.attempt_extraction_with_backoff(
+        result = await attempt_extraction_with_backoff(
+            self,
             prompt,
             json_schema,
             only_use_cache=False,
@@ -154,90 +157,90 @@ class ExtractionMixin(DendritePageProtocol):
         )
 
         if result:
-            return self.convert_and_return_result(result, type_spec)
+            return convert_and_return_result(result, type_spec)
 
         logger.error(f"Extraction failed after {time.time() - start_time:.2f} seconds")
         return None
 
-    async def check_if_extract_cache_available(
-        self, prompt: str, json_schema: Optional[JsonSchema]
-    ) -> bool:
-        page = await self._get_page()
-        page_information = await page.get_page_information(include_screenshot=False)
-        dto = ExtractDTO(
+async def check_if_extract_cache_available(
+    obj: DendritePageProtocol, prompt: str, json_schema: Optional[JsonSchema]
+) -> bool:
+    page = await obj._get_page()
+    page_information = await page.get_page_information(include_screenshot=False)
+    dto = ExtractDTO(
+        page_information=page_information,
+        api_config=obj._get_dendrite_browser().api_config,
+        prompt=prompt,
+        return_data_json_schema=json_schema,
+    )
+    cache_response: CacheExtractResponse = (
+        await obj._get_browser_api_client().check_extract_cache(dto)
+    )
+    return cache_response.exists
+
+async def attempt_extraction_with_backoff(
+    obj: DendritePageProtocol,
+    prompt: str,
+    json_schema: Optional[JsonSchema],
+    only_use_cache: bool = False,
+    remaining_timeout: float = 180.0,
+) -> Optional[ExtractResponse]:
+    TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
+    total_elapsed_time = 0
+    start_time = time.time()
+
+    for current_timeout in TIMEOUT_INTERVAL:
+        if total_elapsed_time >= remaining_timeout:
+            logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
+            return None
+
+        request_start_time = time.time()
+        page = await obj._get_page()
+        page_information = await page.get_page_information(
+            include_screenshot=not only_use_cache
+        )
+        extract_dto = ExtractDTO(
             page_information=page_information,
-            api_config=self._get_dendrite_browser().api_config,
+            api_config=obj._get_dendrite_browser().api_config,
             prompt=prompt,
             return_data_json_schema=json_schema,
+            use_screenshot=True,
+            use_cache=only_use_cache,
+            force_use_cache=only_use_cache,
         )
-        cache_response: CacheExtractResponse = (
-            await self._get_browser_api_client().check_extract_cache(dto)
+
+        res = await obj._get_browser_api_client().extract(extract_dto)
+        request_duration = time.time() - request_start_time
+
+        if res.status == "impossible":
+            logger.error(f"Impossible to extract data. Reason: {res.message}")
+            return None
+
+        if res.status == "success":
+            logger.success(
+                f"Extraction successful: '{res.message}'\nUsed cache: {res.used_cache}\nUsed script:\n\n{res.created_script}"
+            )
+            return res
+
+        sleep_duration = max(0, current_timeout - request_duration)
+        logger.info(
+            f"Extraction attempt failed. Status: {res.status}\nMessage: {res.message}\nSleeping for {sleep_duration:.2f} seconds"
         )
-        return cache_response.exists
+        await asyncio.sleep(sleep_duration)
+        total_elapsed_time = time.time() - start_time
 
-    async def attempt_extraction_with_backoff(
-        self,
-        prompt: str,
-        json_schema: Optional[JsonSchema],
-        only_use_cache: bool = False,
-        remaining_timeout: float = 180.0,
-    ) -> Optional[ExtractResponse]:
-        TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
-        total_elapsed_time = 0
-        start_time = time.time()
+    logger.error(
+        f"All extraction attempts failed after {total_elapsed_time:.2f} seconds"
+    )
+    return None
 
-        for current_timeout in TIMEOUT_INTERVAL:
-            if total_elapsed_time >= remaining_timeout:
-                logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
-                return None
+def convert_and_return_result(
+    res: ExtractResponse, type_spec: Optional[TypeSpec]
+) -> TypeSpec:
+    converted_res = res.return_data
+    if type_spec is not None:
+        logger.debug("Converting extraction result to specified type")
+        converted_res = convert_to_type_spec(type_spec, res.return_data)
 
-            request_start_time = time.time()
-            page = await self._get_page()
-            page_information = await page.get_page_information(
-                include_screenshot=not only_use_cache
-            )
-            extract_dto = ExtractDTO(
-                page_information=page_information,
-                api_config=self._get_dendrite_browser().api_config,
-                prompt=prompt,
-                return_data_json_schema=json_schema,
-                use_screenshot=True,
-                use_cache=only_use_cache,
-                force_use_cache=only_use_cache,
-            )
-
-            res = await self._get_browser_api_client().extract(extract_dto)
-            request_duration = time.time() - request_start_time
-
-            if res.status == "impossible":
-                logger.error(f"Impossible to extract data. Reason: {res.message}")
-                return None
-
-            if res.status == "success":
-                logger.success(
-                    f"Extraction successful: '{res.message}'\nUsed cache: {res.used_cache}\nUsed script:\n\n{res.created_script}"
-                )
-                return res
-
-            sleep_duration = max(0, current_timeout - request_duration)
-            logger.info(
-                f"Extraction attempt failed. Status: {res.status}\nMessage: {res.message}\nSleeping for {sleep_duration:.2f} seconds"
-            )
-            await asyncio.sleep(sleep_duration)
-            total_elapsed_time = time.time() - start_time
-
-        logger.error(
-            f"All extraction attempts failed after {total_elapsed_time:.2f} seconds"
-        )
-        return None
-
-    def convert_and_return_result(
-        self, res: ExtractResponse, type_spec: Optional[TypeSpec]
-    ) -> TypeSpec:
-        converted_res = res.return_data
-        if type_spec is not None:
-            logger.debug("Converting extraction result to specified type")
-            converted_res = convert_to_type_spec(type_spec, res.return_data)
-
-        logger.info("Extraction process completed successfully")
-        return converted_res
+    logger.info("Extraction process completed successfully")
+    return converted_res
