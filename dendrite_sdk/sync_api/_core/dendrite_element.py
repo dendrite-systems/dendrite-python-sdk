@@ -11,6 +11,7 @@ from dendrite_sdk._common._exceptions.dendrite_exception import IncorrectOutcome
 
 if TYPE_CHECKING:
     from dendrite_sdk.sync_api._core.dendrite_browser import Dendrite
+from dendrite_sdk.sync_api._core._managers.navigation_tracker import NavigationTracker
 from dendrite_sdk.sync_api._core.models.page_diff_information import PageDiffInformation
 from dendrite_sdk.sync_api._core._type_spec import Interaction
 from dendrite_sdk.sync_api._api.response.interaction_response import InteractionResponse
@@ -36,9 +37,6 @@ def perform_action(interaction_type: Interaction):
         @functools.wraps(func)
         def wrapper(self: Element, *args, **kwargs) -> InteractionResponse:
             expected_outcome: Optional[str] = kwargs.pop("expected_outcome", None)
-            logger.info(
-                f'Performing action "{interaction_type}" | element: d_id:"{self.dendrite_id}" {self.locator}'
-            )
             if not expected_outcome:
                 func(self, *args, **kwargs)
                 return InteractionResponse(status="success", message="")
@@ -119,7 +117,11 @@ class Element:
 
     @perform_action("click")
     def click(
-        self, expected_outcome: Optional[str] = None, *args, **kwargs
+        self,
+        expected_outcome: Optional[str] = None,
+        wait_for_navigation: bool = True,
+        *args,
+        **kwargs,
     ) -> InteractionResponse:
         """
         Click the element.
@@ -134,6 +136,9 @@ class Element:
         """
         timeout = kwargs.pop("timeout", 2000)
         force = kwargs.pop("force", False)
+        page = self._dendrite_browser.get_active_page()
+        navigation_tracker = NavigationTracker(page)
+        navigation_tracker.start_nav_tracking()
         try:
             self.locator.click(*args, timeout=timeout, force=force, **kwargs)
         except Exception as e:
@@ -141,6 +146,16 @@ class Element:
                 self.locator.click(*args, timeout=2000, force=True, **kwargs)
             except Exception as e:
                 self.locator.dispatch_event("click", timeout=2000)
+        if wait_for_navigation:
+            has_navigated = navigation_tracker.has_navigated_since_start()
+            if has_navigated:
+                try:
+                    start_time = time.time()
+                    page.playwright_page.wait_for_load_state("load", timeout=2000)
+                    wait_duration = time.time() - start_time
+                    print(f"Waited {wait_duration:.2f} seconds for load state")
+                except Exception as e:
+                    print(f"Page navigated but failed to wait for load state: {e}")
         return InteractionResponse(status="success", message="")
 
     @perform_action("fill")
@@ -148,8 +163,8 @@ class Element:
         self, value: str, expected_outcome: Optional[str] = None, *args, **kwargs
     ) -> InteractionResponse:
         """
-        Fill the element with a value. If an expected outcome is provided, the LLM will be used to verify the outcome and raise an exception if the outcome is not as expected.
-        All additional arguments are passed to the Playwright fill method.
+        Fill the element with a value. If the element itself is not fillable,
+        it attempts to find and fill a fillable child element.
 
         Args:
             value (str): The value to fill the element with.
@@ -161,7 +176,13 @@ class Element:
             InteractionResponse: The response from the interaction.
         """
         timeout = kwargs.pop("timeout", 2000)
-        self.locator.fill(value, *args, timeout=timeout, **kwargs)
+        try:
+            self.locator.fill(value, *args, timeout=timeout, **kwargs)
+        except Exception as e:
+            fillable_child = self.locator.locator(
+                'input, textarea, [contenteditable="true"]'
+            ).first
+            fillable_child.fill(value, *args, timeout=timeout, **kwargs)
         return InteractionResponse(status="success", message="")
 
     @perform_action("hover")

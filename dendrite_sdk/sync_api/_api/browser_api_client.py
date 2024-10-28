@@ -1,5 +1,11 @@
 from typing import Optional
 from loguru import logger
+from dendrite_sdk.sync_api._api.response.cache_extract_response import (
+    CacheExtractResponse,
+)
+from dendrite_sdk.sync_api._api.response.selector_cache_response import (
+    SelectorCacheResponse,
+)
 from dendrite_sdk.sync_api._core.models.authentication import AuthSession
 from dendrite_sdk.sync_api._api.response.get_element_response import GetElementResponse
 from dendrite_sdk.sync_api._api.dto.ask_page_dto import AskPageDTO
@@ -14,6 +20,7 @@ from dendrite_sdk.sync_api._api.response.interaction_response import Interaction
 from dendrite_sdk.sync_api._api.response.extract_response import ExtractResponse
 from dendrite_sdk.sync_api._api._http_client import HTTPClient
 from dendrite_sdk._common._exceptions.dendrite_exception import InvalidAuthSessionError
+from dendrite_sdk.sync_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
 
 
 class BrowserAPIClient(HTTPClient):
@@ -29,6 +36,12 @@ class BrowserAPIClient(HTTPClient):
     def upload_auth_session(self, dto: UploadAuthSessionDTO):
         self.send_request("actions/upload-auth-session", data=dto.dict(), method="POST")
 
+    def check_selector_cache(self, dto: CheckSelectorCacheDTO) -> SelectorCacheResponse:
+        res = self.send_request(
+            "actions/check-selector-cache", data=dto.dict(), method="POST"
+        )
+        return SelectorCacheResponse(**res.json())
+
     def get_interactions_selector(self, dto: GetElementsDTO) -> GetElementResponse:
         res = self.send_request(
             "actions/get-interaction-selector", data=dto.dict(), method="POST"
@@ -43,6 +56,12 @@ class BrowserAPIClient(HTTPClient):
         return InteractionResponse(
             status=res_dict["status"], message=res_dict["message"]
         )
+
+    def check_extract_cache(self, dto: ExtractDTO) -> CacheExtractResponse:
+        res = self.send_request(
+            "actions/check-extract-cache", data=dto.dict(), method="POST"
+        )
+        return CacheExtractResponse(**res.json())
 
     def extract(self, dto: ExtractDTO) -> ExtractResponse:
         res = self.send_request("actions/extract-page", data=dto.dict(), method="POST")

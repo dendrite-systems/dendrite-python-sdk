@@ -5,6 +5,11 @@ from dendrite_sdk.async_api._core.models.api_config import APIConfig
 from dendrite_sdk.async_api._core.models.page_information import PageInformation
 
 
+class CheckSelectorCacheDTO(BaseModel):
+    url: str
+    prompt: Union[str, Dict[str, str]]
+
+
 class GetElementsDTO(BaseModel):
     page_information: PageInformation
     prompt: Union[str, Dict[str, str]]

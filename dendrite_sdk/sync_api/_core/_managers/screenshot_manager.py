@@ -14,7 +14,7 @@ class ScreenshotManager:
     def take_full_page_screenshot(self) -> str:
         try:
             scroll_height = self.page.evaluate(
-                "\n                Math.max(\n                    document.body.scrollHeight,\n                    document.documentElement.scrollHeight,\n                    document.body.offsetHeight,\n                    document.documentElement.offsetHeight,\n                    document.body.clientHeight,\n                    document.documentElement.clientHeight\n                )\n            "
+                "\n                () => {\n                    const body = document.body;\n                    if (!body) {\n                        return 0;  // Return 0 if body is null\n                    }\n                    return body.scrollHeight || 0;\n                }\n                "
             )
             if scroll_height > 30000:
                 print(

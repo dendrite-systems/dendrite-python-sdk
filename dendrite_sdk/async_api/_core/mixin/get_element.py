@@ -1,17 +1,16 @@
 import asyncio
 import time
-from typing import Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import Dict, List, Literal, Optional, Union, overload
 
 from loguru import logger
 
-from dendrite_sdk._common._exceptions.dendrite_exception import DendriteException
 from dendrite_sdk.async_api._api.dto.get_elements_dto import GetElementsDTO
 from dendrite_sdk.async_api._api.response.get_element_response import GetElementResponse
+from dendrite_sdk.async_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
 from dendrite_sdk.async_api._core.dendrite_element import AsyncElement
 from dendrite_sdk.async_api._core.models.response import AsyncElementsResponse
 from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProtocol
 from dendrite_sdk.async_api._core.models.api_config import APIConfig
-from dendrite_sdk.sync_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
 
 
 class GetElementMixin(DendritePageProtocol):
