@@ -1,5 +1,5 @@
 from typing import Union
-from dendrite_sdk.async_api._ext_impl.browserless._settings import BrowserlessConfig
+from dendrite_sdk.remote.browserless_config import BrowserlessConfig
 from dendrite_sdk.remote.browserbase_config import BrowserbaseConfig
 
 

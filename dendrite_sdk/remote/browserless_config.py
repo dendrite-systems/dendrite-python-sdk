@@ -1,12 +1,10 @@
 import os
-from typing import Any, Optional
+from typing import Optional
 
-from pydantic import BaseModel, Field, TypeAdapter, ValidationError, model_validator
-from dendrite_sdk.exceptions import MissingApiKeyError
+from dendrite_sdk._common._exceptions.dendrite_exception import MissingApiKeyError
 
 
 class BrowserlessConfig:
-
     def __init__(
         self,
         url: str = "wss://production-sfo.browserless.io",

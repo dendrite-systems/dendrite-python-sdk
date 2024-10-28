@@ -26,7 +26,7 @@ def _mild_strip(soup: BeautifulSoup, keep_d_id: bool = True) -> None:
             continue
         tag.attrs = {
             attr: value[:100] if isinstance(value, str) else value
-            for (attr, value) in tag.attrs.items()
+            for attr, value in tag.attrs.items()
         }
         if keep_d_id == False:
             del tag["d-id"]
