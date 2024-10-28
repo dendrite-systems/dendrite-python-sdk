@@ -25,7 +25,7 @@ from dendrite_sdk.async_api._api._http_client import HTTPClient
 from dendrite_sdk._common._exceptions.dendrite_exception import (
     InvalidAuthSessionError,
 )
-from dendrite_sdk.sync_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
+from dendrite_sdk.async_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
 
 
 class BrowserAPIClient(HTTPClient):
