@@ -97,6 +97,20 @@ class ExtractionMixin(DendritePageProtocol):
         use_cache: bool = True,
         timeout: int = 180,
     ) -> TypeSpec:
+        """
+        Extract data from a web page based on a prompt and optional type specification.
+        Args:
+            prompt (Optional[str]): The prompt to describe the information to extract.
+            type_spec (Optional[TypeSpec], optional): The type specification for the extracted data.
+            use_cache (bool, optional): Whether to use cached results. Defaults to True.
+            timeout (int, optional): The maximum time to wait for extraction in seconds. Defaults to 180 seconds, which is 3 minutes.
+
+        Returns:
+            ExtractResponse: The extracted data wrapped in a ExtractResponse object.
+        Raises:
+            TimeoutError: If the extraction process exceeds the specified timeout.
+        """
+
         logger.info(f"Starting extraction with prompt: {prompt}")
 
         json_schema = None
