@@ -17,7 +17,7 @@
 With Dendrite, it's easy to create web interaction tools for your agent.
 
 ```python
-from dendrite_sdk import Dendrite
+from dendrite import Dendrite
 
 def send_email():
     client = Dendrite(auth="outlook.live.com")
@@ -55,7 +55,7 @@ Initialize the Dendrite client and start doing web interactions without boilerpl
 [Get your API key here](https://dendrite.systems/app)
 
 ```python
-from dendrite_sdk import Dendrite
+from dendrite import Dendrite
 
 client = Dendrite(dendrite_api_key="sk...")
 
@@ -75,7 +75,7 @@ Now, let's have some fun. Earlier we showed you a simple send_email example. And
 First up, a tool that allows our AI agent to download our bank's monthly transactions so that they can be analyzed and compiled into a report that can be sent to stakeholders with `send_email`.
 
 ```python
-from dendrite_sdk import Dendrite
+from dendrite import Dendrite
 
 def get_transactions() -> str:
     client = Dendrite(auth="mercury.com")
@@ -144,8 +144,8 @@ BROWSERBASE_PROJECT_ID=
 ```
 
 ```python
-# from dendrite_sdk import Dendrite
-from dendrite_sdk import DendriteRemoteBrowser
+# from dendrite import Dendrite
+from dendrite import DendriteRemoteBrowser
 
 ...
 

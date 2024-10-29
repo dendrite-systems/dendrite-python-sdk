@@ -20,7 +20,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-include = ["dendrite_sdk/py.typed"]
+include = ["dendrite/py.typed"]
 
 
 
@@ -56,7 +56,7 @@ build_sync = ["generate_sync", "format_sync"]
 test_sync = "pytest tests/tests_sync"
 
 [tool.poetry.scripts]
-dendrite = "dendrite_sdk._cli.main:main"
+dendrite = "dendrite._cli.main:main"
 
 [build-system]
 requires = ["poetry-core", "requests", "python-dotenv", "pydantic"]
