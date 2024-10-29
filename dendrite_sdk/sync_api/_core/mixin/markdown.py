@@ -1,4 +1,6 @@
 from typing import Optional
+from bs4 import BeautifulSoup
+import re
 from dendrite_sdk.sync_api._core.mixin.extract import ExtractionMixin
 from dendrite_sdk.sync_api._core.protocol.page_protocol import DendritePageProtocol
 from markdownify import markdownify as md
@@ -10,8 +12,12 @@ class MarkdownMixin(ExtractionMixin, DendritePageProtocol):
         page = self._get_page()
         page_information = page.get_page_information()
         if prompt:
-            extract_prompt = f"Extract and return the html for this requested section of the website:\n\n{prompt}"
-            res = self.extract(extract_prompt, str)
-            return md(res, heading_style="ATX")
+            extract_prompt = f"Create a script that returns the HTML from one element from the DOM that best matches this requested section of the website.\n\nDescription of section: '{prompt}'\n\nWe will be converting your returned HTML to markdown, so just return ONE stringified HTML element and nothing else. It's OK if extra information is present. Example script: 'response_data = soup.find('tag', {{'attribute': 'value'}}).prettify()'"
+            res = self.extract(extract_prompt)
+            markdown_text = md(res)
+            cleaned_markdown = re.sub("\\n{3,}", "\n\n", markdown_text)
+            return cleaned_markdown
         else:
-            return md(page_information.raw_html)
+            markdown_text = md(page_information.raw_html)
+            cleaned_markdown = re.sub("\\n{3,}", "\n\n", markdown_text)
+            return cleaned_markdown

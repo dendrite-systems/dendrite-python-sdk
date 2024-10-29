@@ -17,6 +17,8 @@ from dendrite_sdk.sync_api._core.protocol.page_protocol import DendritePageProto
 from dendrite_sdk.sync_api._core._managers.navigation_tracker import NavigationTracker
 from loguru import logger
 
+CACHE_TIMEOUT = 5
+
 
 class ExtractionMixin(DendritePageProtocol):
     """
@@ -103,7 +105,9 @@ class ExtractionMixin(DendritePageProtocol):
             prompt (Optional[str]): The prompt to describe the information to extract.
             type_spec (Optional[TypeSpec], optional): The type specification for the extracted data.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            timeout (int, optional): The maximum time to wait for extraction in seconds. Defaults to 180 seconds, which is 3 minutes.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached scripts before falling back to the
+                extraction agent for the remaining time that will attempt to generate a new script. Defaults to 15000 (15 seconds).
 
         Returns:
             ExtractResponse: The extracted data wrapped in a ExtractResponse object.
@@ -131,8 +135,8 @@ class ExtractionMixin(DendritePageProtocol):
                     self,
                     prompt,
                     json_schema,
+                    remaining_timeout=CACHE_TIMEOUT,
                     only_use_cache=True,
-                    remaining_timeout=timeout - (time.time() - start_time),
                 )
                 if result:
                     return convert_and_return_result(result, type_spec)
@@ -143,8 +147,8 @@ class ExtractionMixin(DendritePageProtocol):
             self,
             prompt,
             json_schema,
-            only_use_cache=False,
             remaining_timeout=timeout - (time.time() - start_time),
+            only_use_cache=False,
         )
         if result:
             return convert_and_return_result(result, type_spec)
@@ -173,8 +177,8 @@ def attempt_extraction_with_backoff(
     obj: DendritePageProtocol,
     prompt: str,
     json_schema: Optional[JsonSchema],
-    only_use_cache: bool = False,
     remaining_timeout: float = 180.0,
+    only_use_cache: bool = False,
 ) -> Optional[ExtractResponse]:
     TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
     total_elapsed_time = 0

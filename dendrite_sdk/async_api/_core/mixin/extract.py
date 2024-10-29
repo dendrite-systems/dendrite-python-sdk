@@ -18,7 +18,7 @@ from dendrite_sdk.async_api._core._managers.navigation_tracker import Navigation
 from loguru import logger
 
 
-CACHE_TIMEOUT = 5000
+CACHE_TIMEOUT = 5
 
 
 class ExtractionMixin(DendritePageProtocol):
@@ -106,7 +106,9 @@ class ExtractionMixin(DendritePageProtocol):
             prompt (Optional[str]): The prompt to describe the information to extract.
             type_spec (Optional[TypeSpec], optional): The type specification for the extracted data.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            timeout (int, optional): The maximum time to wait for extraction in seconds. Defaults to 180 seconds, which is 3 minutes.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached scripts before falling back to the
+                extraction agent for the remaining time that will attempt to generate a new script. Defaults to 15000 (15 seconds).
 
         Returns:
             ExtractResponse: The extracted data wrapped in a ExtractResponse object.

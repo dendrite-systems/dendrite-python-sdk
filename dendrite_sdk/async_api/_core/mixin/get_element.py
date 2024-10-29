@@ -13,7 +13,7 @@ from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProt
 from dendrite_sdk.async_api._core.models.api_config import APIConfig
 
 
-CACHE_TIMEOUT = 5000
+CACHE_TIMEOUT = 5
 
 
 class GetElementMixin(DendritePageProtocol):
@@ -31,7 +31,9 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt_or_elements (str): The prompt describing the elements to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 15000 (15 seconds).
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached selectors before falling back to the
+                find element agent for the remaining time. Defaults to 15000 (15 seconds).
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -52,7 +54,9 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt_or_elements (Dict[str, str]): A dictionary where keys are field names and values are prompts describing the elements to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 3000.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached selectors before falling back to the
+                find element agent for the remaining time. Defaults to 15000 (15 seconds).
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -75,7 +79,9 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt_or_elements (Union[str, Dict[str, str]]): The prompt or dictionary of prompts for element retrieval.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 3000.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached selectors before falling back to the
+                find element agent for the remaining time. Defaults to 15000 (15 seconds).
             context (str, optional): Additional context for the retrieval. Defaults to an empty string.
 
         Returns:
@@ -89,7 +95,7 @@ class GetElementMixin(DendritePageProtocol):
             prompt_or_elements,
             only_one=False,
             use_cache=use_cache,
-            timeout=timeout,
+            timeout=timeout / 1000,
         )
 
     async def get_element(
@@ -104,7 +110,9 @@ class GetElementMixin(DendritePageProtocol):
         Args:
             prompt (str): The prompt describing the element to be retrieved.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            timeout (int, optional): The total timeout (in milliseconds) until the last request is sent to the API. Defaults to 15000 (15 seconds).
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached selectors before falling back to the
+                find element agent for the remaining time. Defaults to 15000 (15 seconds).
 
         Returns:
             AsyncElement: The retrieved element.
@@ -113,7 +121,7 @@ class GetElementMixin(DendritePageProtocol):
             prompt,
             only_one=True,
             use_cache=use_cache,
-            timeout=timeout,
+            timeout=timeout / 1000,
         )
 
     @overload
@@ -131,7 +139,9 @@ class GetElementMixin(DendritePageProtocol):
             prompt (Union[str, Dict[str, str]]): The prompt describing the element to be retrieved.
             only_one (Literal[True]): Indicates that only one element should be retrieved.
             use_cache (bool): Whether to use cached results.
-            timeout: The total timeout (in milliseconds) until the last request is sent to the API.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached selectors before falling back to the
+                find element agent for the remaining time. Defaults to 15000 (15 seconds).
 
         Returns:
             AsyncElement: The retrieved element.
@@ -152,7 +162,9 @@ class GetElementMixin(DendritePageProtocol):
             prompt (str): The prompt describing the elements to be retrieved.
             only_one (Literal[False]): Indicates that multiple elements should be retrieved.
             use_cache (bool): Whether to use cached results.
-            timeout: The total timeout (in milliseconds) until the last request is sent to the API.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached selectors before falling back to the
+                find element agent for the remaining time. Defaults to 15000 (15 seconds).
 
         Returns:
             List[AsyncElement]: A list of retrieved elements.
@@ -178,7 +190,9 @@ class GetElementMixin(DendritePageProtocol):
             prompt_or_elements (Union[str, Dict[str, str]]): The prompt or dictionary of prompts for element retrieval.
             only_one (bool): Whether to retrieve only one element or a list of elements.
             use_cache (bool): Whether to use cached results.
-            timeout (float): The total timeout (in seconds) for the entire operation.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached selectors before falling back to the
+                find element agent for the remaining time. Defaults to 15000 (15 seconds).
 
         Returns:
             Union[AsyncElement, List[AsyncElement], AsyncElementsResponse]: The retrieved element, list of elements, or response object.
