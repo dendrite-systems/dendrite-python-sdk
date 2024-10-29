@@ -13,6 +13,9 @@ from dendrite_sdk.async_api._core.protocol.page_protocol import DendritePageProt
 from dendrite_sdk.async_api._core.models.api_config import APIConfig
 
 
+CACHE_TIMEOUT = 5000
+
+
 class GetElementMixin(DendritePageProtocol):
     @overload
     async def get_elements(
@@ -88,8 +91,6 @@ class GetElementMixin(DendritePageProtocol):
             use_cache=use_cache,
             timeout=timeout,
         )
-
-        raise ValueError("Prompt must be either a string prompt or a dictionary")
 
     async def get_element(
         self,
@@ -187,7 +188,7 @@ class GetElementMixin(DendritePageProtocol):
         start_time = time.time()
 
         # First, let's check if there is a cached selector
-        cache_available = await test_if_cache_available(self,prompt_or_elements)
+        cache_available = await test_if_cache_available(self, prompt_or_elements)
 
         # If we have cached elements, attempt to use them with an exponentation backoff
         if cache_available and use_cache == True:
@@ -197,8 +198,8 @@ class GetElementMixin(DendritePageProtocol):
                 prompt_or_elements,
                 only_one,
                 api_config,
+                remaining_timeout=CACHE_TIMEOUT,
                 only_use_cache=True,
-                remaining_timeout=timeout - (time.time() - start_time),
             )
             if res:
                 return res
@@ -216,8 +217,8 @@ class GetElementMixin(DendritePageProtocol):
             prompt_or_elements,
             only_one,
             api_config,
-            only_use_cache=False,
             remaining_timeout=timeout - (time.time() - start_time),
+            only_use_cache=False,
         )
         if res:
             return res
@@ -226,6 +227,7 @@ class GetElementMixin(DendritePageProtocol):
             f"Failed to retrieve elements within the specified timeout of {timeout} seconds"
         )
         return None
+
 
 async def test_if_cache_available(
     obj: DendritePageProtocol,
@@ -240,13 +242,14 @@ async def test_if_cache_available(
     cache_available = await obj._get_browser_api_client().check_selector_cache(dto)
     return cache_available.exists
 
+
 async def attempt_with_backoff(
     obj: DendritePageProtocol,
     prompt_or_elements: Union[str, Dict[str, str]],
     only_one: bool,
     api_config: APIConfig,
+    remaining_timeout: float,
     only_use_cache: bool = False,
-    remaining_timeout: float = 15.0,
 ) -> Union[Optional[AsyncElement], List[AsyncElement], AsyncElementsResponse]:
     TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
     total_elapsed_time = 0
@@ -294,6 +297,7 @@ async def attempt_with_backoff(
     logger.error(f"All attempts failed after {total_elapsed_time:.2f} seconds")
     return None
 
+
 async def get_elements_from_selectors(
     obj: DendritePageProtocol, res: GetElementResponse, only_one: bool
 ) -> Union[Optional[AsyncElement], List[AsyncElement], AsyncElementsResponse]:
@@ -302,9 +306,7 @@ async def get_elements_from_selectors(
         for key, selectors in res.selectors.items():
             for selector in selectors:
                 page = await obj._get_page()
-                dendrite_elements = await page._get_all_elements_from_selector(
-                    selector
-                )
+                dendrite_elements = await page._get_all_elements_from_selector(selector)
                 if len(dendrite_elements) > 0:
                     result[key] = dendrite_elements[0]
                     break
