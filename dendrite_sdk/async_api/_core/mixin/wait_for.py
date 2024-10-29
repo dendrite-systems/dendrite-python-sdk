@@ -47,7 +47,7 @@ class WaitForMixin(AskMixin, DendritePageProtocol):
 
             page = await self._get_page()
             page_information = await page.get_page_information()
-            prompt_with_instruction = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page."
+            prompt_with_instruction = f"Prompt: '{prompt}'\n\nReturn a boolean that determines if the requested information or thing is available on the page. {round(page_information.time_since_frame_navigated, 2)} seconds have passed since the page first loaded."
 
             try:
                 res = await self.ask(prompt_with_instruction, bool)

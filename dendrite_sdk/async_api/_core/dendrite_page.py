@@ -34,6 +34,7 @@ from dendrite_sdk.async_api._core.mixin.extract import ExtractionMixin
 from dendrite_sdk.async_api._core.mixin.fill_fields import FillFieldsMixin
 from dendrite_sdk.async_api._core.mixin.get_element import GetElementMixin
 from dendrite_sdk.async_api._core.mixin.keyboard import KeyboardMixin
+from dendrite_sdk.async_api._core.mixin.markdown import MarkdownMixin
 from dendrite_sdk.async_api._core.mixin.wait_for import WaitForMixin
 from dendrite_sdk.async_api._core.models.page_information import PageInformation
 
@@ -54,6 +55,7 @@ from dendrite_sdk.async_api._core._utils import (
 
 
 class AsyncPage(
+    MarkdownMixin,
     ExtractionMixin,
     WaitForMixin,
     AskMixin,
