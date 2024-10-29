@@ -18,6 +18,9 @@ from dendrite_sdk.async_api._core._managers.navigation_tracker import Navigation
 from loguru import logger
 
 
+CACHE_TIMEOUT = 5
+
+
 class ExtractionMixin(DendritePageProtocol):
     """
     Mixin that provides extraction functionality for web pages.
@@ -103,7 +106,9 @@ class ExtractionMixin(DendritePageProtocol):
             prompt (Optional[str]): The prompt to describe the information to extract.
             type_spec (Optional[TypeSpec], optional): The type specification for the extracted data.
             use_cache (bool, optional): Whether to use cached results. Defaults to True.
-            timeout (int, optional): The maximum time to wait for extraction in seconds. Defaults to 180 seconds, which is 3 minutes.
+            timeout (int, optional): Maximum time in milliseconds for the entire operation. If use_cache=True,
+                up to 5000ms will be spent attempting to use cached scripts before falling back to the
+                extraction agent for the remaining time that will attempt to generate a new script. Defaults to 15000 (15 seconds).
 
         Returns:
             ExtractResponse: The extracted data wrapped in a ExtractResponse object.
@@ -129,8 +134,7 @@ class ExtractionMixin(DendritePageProtocol):
         # Check if a script exists in the cache
         if use_cache:
             cache_available = await check_if_extract_cache_available(
-                self,
-                prompt, json_schema
+                self, prompt, json_schema
             )
 
             if cache_available:
@@ -139,8 +143,8 @@ class ExtractionMixin(DendritePageProtocol):
                     self,
                     prompt,
                     json_schema,
+                    remaining_timeout=CACHE_TIMEOUT,
                     only_use_cache=True,
-                    remaining_timeout=timeout - (time.time() - start_time),
                 )
                 if result:
                     return convert_and_return_result(result, type_spec)
@@ -152,8 +156,8 @@ class ExtractionMixin(DendritePageProtocol):
             self,
             prompt,
             json_schema,
-            only_use_cache=False,
             remaining_timeout=timeout - (time.time() - start_time),
+            only_use_cache=False,
         )
 
         if result:
@@ -161,6 +165,7 @@ class ExtractionMixin(DendritePageProtocol):
 
         logger.error(f"Extraction failed after {time.time() - start_time:.2f} seconds")
         return None
+
 
 async def check_if_extract_cache_available(
     obj: DendritePageProtocol, prompt: str, json_schema: Optional[JsonSchema]
@@ -178,12 +183,13 @@ async def check_if_extract_cache_available(
     )
     return cache_response.exists
 
+
 async def attempt_extraction_with_backoff(
     obj: DendritePageProtocol,
     prompt: str,
     json_schema: Optional[JsonSchema],
-    only_use_cache: bool = False,
     remaining_timeout: float = 180.0,
+    only_use_cache: bool = False,
 ) -> Optional[ExtractResponse]:
     TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
     total_elapsed_time = 0
@@ -233,6 +239,7 @@ async def attempt_extraction_with_backoff(
         f"All extraction attempts failed after {total_elapsed_time:.2f} seconds"
     )
     return None
+
 
 def convert_and_return_result(
     res: ExtractResponse, type_spec: Optional[TypeSpec]
