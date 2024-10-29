@@ -136,9 +136,9 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                 alias = ast.alias(name="playwright.sync_api", asname=alias.asname)
             elif alias.name == "asyncio":
                 alias = ast.alias(name="time", asname=alias.asname)
-            elif alias.name.startswith("dendrite_sdk"):
+            elif alias.name.startswith("dendrite"):
                 new_name = alias.name.replace(
-                    "dendrite_sdk.async_api", "dendrite_sdk.sync_api", 1
+                    "dendrite.async_api", "dendrite.sync_api", 1
                 )
                 alias = ast.alias(name=new_name, asname=alias.asname)
             new_names.append(alias)
@@ -158,9 +158,9 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             node.names = new_names
         elif node.module == "asyncio":
             node.module = "time"
-        elif node.module and node.module.startswith("dendrite_sdk"):
+        elif node.module and node.module.startswith("dendrite"):
             node.module = node.module.replace(
-                "dendrite_sdk.async_api", "dendrite_sdk.sync_api", 1
+                "dendrite.async_api", "dendrite.sync_api", 1
             )
         return node
 
@@ -279,8 +279,8 @@ def get_uncommitted_diff(folder):
 
 
 if __name__ == "__main__":
-    source_dir = "dendrite_sdk/async_api"
-    target_dir = "dendrite_sdk/sync_api"
+    source_dir = "dendrite/async_api"
+    target_dir = "dendrite/sync_api"
     renames = {
         "AsyncBrowserbaseDownload": "BrowserbaseDownload",
         "AsyncBrowserbaseBrowser": "BrowserbaseBrowser",

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "dendrite-sdk"
+name = "dendrite"
 version = "0.2.2"
 description = "Dendrite is a suite of tools that makes it easy to create web integrations for AI agents. With Dendrite your can: Authenticate on websites, Interact with elements, Extract structured data, Download and upload files, Fill out forms"
 
@@ -51,7 +51,7 @@ load-plugins = "pylint_pydantic"
 
 [tool.poe.tasks]
 generate_sync = "python scripts/generate_sync.py"
-format_sync = "python -m black ./dendrite_sdk/sync_api/"
+format_sync = "python -m black ./dendrite/sync_api/"
 build_sync = ["generate_sync", "format_sync"]
 test_sync = "pytest tests/tests_sync"
 
