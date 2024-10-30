@@ -1,5 +1,5 @@
 from typing import Union, List, TYPE_CHECKING
-from playwright.sync_api import FrameLocator, ElementHandle
+from playwright.sync_api import FrameLocator, ElementHandle, Error
 from bs4 import BeautifulSoup
 from loguru import logger
 from dendrite.sync_api._core._type_spec import PlaywrightPage
@@ -34,19 +34,19 @@ def expand_iframes(
         new_iframe_path = f"{new_iframe_path}{iframe_id}"
         try:
             content_frame = iframe.content_frame()
-        except Exception as e:
+            if content_frame is None:
+                continue
+            content_frame.evaluate(
+                GENERATE_DENDRITE_IDS_IFRAME_SCRIPT, {"frame_path": new_iframe_path}
+            )
+            frame_content = content_frame.content()
+            frame_tree = BeautifulSoup(frame_content, "html.parser")
+            mild_strip_in_place(frame_tree)
+            merge_iframe_to_page(iframe_id, page_soup, frame_tree)
+            expand_iframes(page, page_soup, new_iframe_path, iframe)
+        except Error as e:
             logger.debug(f"Error getting content frame for iframe {iframe_id}: {e}")
             continue
-        if content_frame is None:
-            continue
-        content_frame.evaluate(
-            GENERATE_DENDRITE_IDS_IFRAME_SCRIPT, {"frame_path": new_iframe_path}
-        )
-        frame_content = content_frame.content()
-        frame_tree = BeautifulSoup(frame_content, "html.parser")
-        mild_strip_in_place(frame_tree)
-        merge_iframe_to_page(iframe_id, page_soup, frame_tree)
-        expand_iframes(page, page_soup, new_iframe_path, iframe)
 
 
 def merge_iframe_to_page(iframe_id: str, page: BeautifulSoup, iframe: BeautifulSoup):

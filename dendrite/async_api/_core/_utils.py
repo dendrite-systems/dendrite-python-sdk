@@ -1,5 +1,5 @@
 from typing import Union, List, TYPE_CHECKING
-from playwright.async_api import FrameLocator, ElementHandle
+from playwright.async_api import FrameLocator, ElementHandle, Error
 from bs4 import BeautifulSoup
 from loguru import logger
 
@@ -42,28 +42,28 @@ async def expand_iframes(
 
         try:
             content_frame = await iframe.content_frame()
-        except Exception as e:
+
+            if content_frame is None:
+                continue
+
+            await content_frame.evaluate(
+                GENERATE_DENDRITE_IDS_IFRAME_SCRIPT, {"frame_path": new_iframe_path}
+            )
+
+            frame_content = await content_frame.content()
+
+            frame_tree = BeautifulSoup(frame_content, "html.parser")
+            mild_strip_in_place(frame_tree)
+            merge_iframe_to_page(iframe_id, page_soup, frame_tree)
+            await expand_iframes(
+                page,
+                page_soup,
+                new_iframe_path,
+                iframe,
+            )
+        except Error as e:
             logger.debug(f"Error getting content frame for iframe {iframe_id}: {e}")
             continue
-
-        if content_frame is None:
-            continue
-
-        await content_frame.evaluate(
-            GENERATE_DENDRITE_IDS_IFRAME_SCRIPT, {"frame_path": new_iframe_path}
-        )
-
-        frame_content = await content_frame.content()
-
-        frame_tree = BeautifulSoup(frame_content, "html.parser")
-        mild_strip_in_place(frame_tree)
-        merge_iframe_to_page(iframe_id, page_soup, frame_tree)
-        await expand_iframes(
-            page,
-            page_soup,
-            new_iframe_path,
-            iframe,
-        )
 
 
 def merge_iframe_to_page(
