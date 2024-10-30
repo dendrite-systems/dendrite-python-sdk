@@ -264,9 +264,13 @@ def attempt_with_backoff(
             )
             return None
         if res.status == "success":
-            response = get_elements_from_selectors(obj, res, only_one)
-            if response:
-                return response
+            try:
+                response = get_elements_from_selectors(obj, res, only_one)
+                if response:
+                    return response
+            except Exception as e:
+                logger.error(f"Error getting elements from selectors: {e}")
+                continue
         sleep_duration = max(0, current_timeout - request_duration)
         logger.info(
             f"Failed to get elements for prompt:\n\n'{prompt_or_elements}'\n\nStatus: {res.status}\n\nMessage: {res.message}\n\nSleeping for {sleep_duration:.2f} seconds"
