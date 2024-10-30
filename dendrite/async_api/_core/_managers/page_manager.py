@@ -40,17 +40,22 @@ class PageManager:
     async def _page_on_close_handler(self, page: PlaywrightPage):
         if self.browser_context and not self.dendrite_browser.closed:
             copy_pages = self.pages.copy()
+            is_active_page = False
             for dendrite_page in copy_pages:
                 if dendrite_page.playwright_page == page:
                     self.pages.remove(dendrite_page)
+                    if dendrite_page == self.active_page:
+                        is_active_page = True
                     break
 
-            if self.pages:
-                self.active_page = self.pages[-1]
-                await self.active_page.playwright_page.bring_to_front()
-                logger.debug("Switched the active tab to: ", self.active_page.url)
-            else:
-                pass
+            for i in reversed(range(len(self.pages))):
+                try:
+                    self.active_page = self.pages[i]
+                    await self.pages[i].playwright_page.bring_to_front()
+                    break
+                except Exception as e:
+                    logger.warning(f"Error switching to the next page: {e}")
+                    continue
 
     async def _page_on_crash_handler(self, page: PlaywrightPage):
         logger.error(f"Page crashed: {page.url}")
