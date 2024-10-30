@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+import pathlib
 import re
-from typing import Any, List, Literal, Optional, Union
+from typing import Any, List, Literal, Optional, Sequence, Union
 from uuid import uuid4
 import os
 from loguru import logger
@@ -11,6 +12,7 @@ from playwright.sync_api import (
     FileChooser,
     Download,
     Error,
+    FilePayload,
 )
 from dendrite.sync_api._api.dto.authenticate_dto import AuthenticateDTO
 from dendrite.sync_api._api.dto.upload_auth_session_dto import UploadAuthSessionDTO
@@ -333,11 +335,11 @@ class Dendrite(
             Exception: If there is an issue launching the browser or retrieving the PageManager.
         """
         if not self._active_page_manager:
-            _, _, active_page_manager = self._launch()
+            (_, _, active_page_manager) = self._launch()
             return active_page_manager
         return self._active_page_manager
 
-    def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
+    def get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -348,6 +350,32 @@ class Dendrite(
             Exception: If there is an issue retrieving the download event.
         """
         return self._impl.get_download(self, pw_page, timeout)
+
+    def upload_files(
+        self,
+        files: Union[
+            str,
+            pathlib.Path,
+            FilePayload,
+            Sequence[Union[str, pathlib.Path]],
+            Sequence[FilePayload],
+        ],
+        timeout: float = 30000,
+    ) -> None:
+        """
+        Uploads files to the active page using a file chooser.
+
+        Args:
+            files (Union[str, pathlib.Path, FilePayload, Sequence[Union[str, pathlib.Path]], Sequence[FilePayload]]): The file(s) to be uploaded.
+                This can be a file path, a `FilePayload` object, or a sequence of file paths or `FilePayload` objects.
+            timeout (float, optional): The maximum amount of time (in milliseconds) to wait for the file chooser to be ready. Defaults to 30.
+
+        Returns:
+            None
+        """
+        page = self.get_active_page()
+        file_chooser = self._get_filechooser(page.playwright_page, timeout)
+        file_chooser.set_files(files)
 
     def _get_filechooser(
         self, pw_page: PlaywrightPage, timeout: float = 30000
