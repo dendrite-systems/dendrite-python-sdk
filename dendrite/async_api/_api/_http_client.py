@@ -1,10 +1,10 @@
+import os
 from typing import Optional
 import httpx
 from loguru import logger
 
 
 from dendrite.async_api._core.models.api_config import APIConfig
-from dendrite.async_api._common.constants import DENDRITE_API_BASE_URL
 
 
 class HTTPClient:
@@ -14,7 +14,12 @@ class HTTPClient:
         self.base_url = self.resolve_base_url()
 
     def resolve_base_url(self):
-        return DENDRITE_API_BASE_URL
+        base_url = (
+            "http://localhost:8000/api/v1"
+            if os.environ.get("DENDRITE_DEV")
+            else "https://dendrite-server.azurewebsites.net/api/v1"
+        )
+        return base_url
 
     async def send_request(
         self,
