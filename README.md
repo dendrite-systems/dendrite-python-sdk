@@ -45,7 +45,7 @@ To authenticate you'll need to use our Chrome Extension **Dendrite Vault**, you 
 ## Quickstart
 
 ```
-pip install dendrite-sdk && dendrite install
+pip install dendrite && dendrite install
 ```
 
 #### Simple navigation and interaction
