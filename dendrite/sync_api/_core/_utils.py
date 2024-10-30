@@ -32,7 +32,11 @@ def expand_iframes(
         if iframe_path:
             new_iframe_path = f"{iframe_path}|"
         new_iframe_path = f"{new_iframe_path}{iframe_id}"
-        content_frame = iframe.content_frame()
+        try:
+            content_frame = iframe.content_frame()
+        except Exception as e:
+            logger.debug(f"Error getting content frame for iframe {iframe_id}: {e}")
+            continue
         if content_frame is None:
             continue
         content_frame.evaluate(
