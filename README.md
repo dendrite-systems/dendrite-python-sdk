@@ -1,16 +1,26 @@
-[![Website](https://img.shields.io/badge/Website-dendrite.systems-blue?style=for-the-badge&logo=google-chrome)](https://dendrite.systems)
-[![Documentation](https://img.shields.io/badge/Docs-docs.dendrite.systems-orange?style=for-the-badge&logo=bookstack)](https://docs.dendrite.systems)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/ETPBdXU3kx)
+<p align="center">
+  <a href="https://dendrite.systems"><img src="https://img.shields.io/badge/Website-dendrite.systems-blue?style=for-the-badge&logo=google-chrome" alt="Dendrite Homepage"></a>
+  <a href="https://docs.dendrite.systems"><img src="https://img.shields.io/badge/Docs-docs.dendrite.systems-orange?style=for-the-badge&logo=bookstack" alt="Docs"></a>
+  <a href="https://discord.gg/ETPBdXU3kx"><img src="https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+</p>
+
+<div align="center">
+<h2>🎉We are going open source🎉</h1>
+<p>
+   Let us know if you're interested in contributing! 
+</p>
+</div>
 
 ## What is Dendrite?
 
-#### Dendrite is a devtool that makes it easy for AI agents to:
+#### Dendrite is a framework that makes it easy for web AI agents to browse the internet just like humans do. Use Dendrite to:
 
-- 🔓 Authenticate on websites
 - 👆🏼 Interact with elements
 - 💿 Extract structured data
+- 🔓 Authenticate on websites
 - ↕️ Download/upload files
 - 🚫 Browse without getting blocked
+
 
 #### A simple outlook integration
 
