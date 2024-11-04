@@ -5,6 +5,7 @@ from loguru import logger
 from dendrite.sync_api._api.dto.get_elements_dto import GetElementsDTO
 from dendrite.sync_api._api.response.get_element_response import GetElementResponse
 from dendrite.sync_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
+from dendrite.sync_api._core._utils import get_elements_from_selectors_soup
 from dendrite.sync_api._core.dendrite_element import Element
 from dendrite.sync_api._core.models.response import ElementsResponse
 from dendrite.sync_api._core.protocol.page_protocol import DendritePageProtocol
@@ -182,7 +183,8 @@ class GetElementMixin(DendritePageProtocol):
         """
         api_config = self._get_dendrite_browser().api_config
         start_time = time.time()
-        cache_available = test_if_cache_available(self, prompt_or_elements)
+        page = self._get_page()
+        cache_available = test_if_cache_available(self, prompt_or_elements, page.url)
         if cache_available and use_cache == True:
             logger.info(f"Cache available, attempting to use cached selectors")
             res = attempt_with_backoff(
@@ -219,11 +221,9 @@ class GetElementMixin(DendritePageProtocol):
 
 
 def test_if_cache_available(
-    obj: DendritePageProtocol, prompt_or_elements: Union[str, Dict[str, str]]
+    obj: DendritePageProtocol, prompt_or_elements: Union[str, Dict[str, str]], url: str
 ) -> bool:
-    page = obj._get_page()
-    page_information = page.get_page_information(include_screenshot=False)
-    dto = CheckSelectorCacheDTO(url=page_information.url, prompt=prompt_or_elements)
+    dto = CheckSelectorCacheDTO(url=url, prompt=prompt_or_elements)
     cache_available = obj._get_browser_api_client().check_selector_cache(dto)
     return cache_available.exists
 
@@ -264,7 +264,9 @@ def attempt_with_backoff(
             )
             return None
         if res.status == "success":
-            response = get_elements_from_selectors(obj, res, only_one)
+            response = get_elements_from_selectors_soup(
+                page, page._get_previous_soup(), res, only_one
+            )
             if response:
                 return response
         sleep_duration = max(0, current_timeout - request_duration)
