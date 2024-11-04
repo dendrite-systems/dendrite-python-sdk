@@ -7,6 +7,7 @@ from loguru import logger
 from dendrite.async_api._api.dto.get_elements_dto import GetElementsDTO
 from dendrite.async_api._api.response.get_element_response import GetElementResponse
 from dendrite.async_api._api.dto.get_elements_dto import CheckSelectorCacheDTO
+from dendrite.async_api._core._utils import get_elements_from_selectors_soup
 from dendrite.async_api._core.dendrite_element import AsyncElement
 from dendrite.async_api._core.models.response import AsyncElementsResponse
 from dendrite.async_api._core.protocol.page_protocol import DendritePageProtocol
@@ -202,7 +203,10 @@ class GetElementMixin(DendritePageProtocol):
         start_time = time.time()
 
         # First, let's check if there is a cached selector
-        cache_available = await test_if_cache_available(self, prompt_or_elements)
+        page = await self._get_page()
+        cache_available = await test_if_cache_available(
+            self, prompt_or_elements, page.url
+        )
 
         # If we have cached elements, attempt to use them with an exponentation backoff
         if cache_available and use_cache == True:
@@ -244,16 +248,14 @@ class GetElementMixin(DendritePageProtocol):
 
 
 async def test_if_cache_available(
-    obj: DendritePageProtocol,
-    prompt_or_elements: Union[str, Dict[str, str]],
+    obj: DendritePageProtocol, prompt_or_elements: Union[str, Dict[str, str]], url: str
 ) -> bool:
-    page = await obj._get_page()
-    page_information = await page.get_page_information(include_screenshot=False)
     dto = CheckSelectorCacheDTO(
-        url=page_information.url,
+        url=url,
         prompt=prompt_or_elements,
     )
     cache_available = await obj._get_browser_api_client().check_selector_cache(dto)
+
     return cache_available.exists
 
 
@@ -297,7 +299,9 @@ async def attempt_with_backoff(
             return None
 
         if res.status == "success":
-            response = await get_elements_from_selectors(obj, res, only_one)
+            response = await get_elements_from_selectors_soup(
+                page, await page._get_previous_soup(), res, only_one
+            )
             if response:
                 return response
 
