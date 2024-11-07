@@ -339,7 +339,7 @@ class Dendrite(
             return active_page_manager
         return self._active_page_manager
 
-    def get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
+    def get_download(self, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -349,7 +349,21 @@ class Dendrite(
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        return self._impl.get_download(self, pw_page, timeout)
+        active_page = self.get_active_page()
+        pw_page = active_page.playwright_page
+        return self._get_download(pw_page, timeout)
+
+    def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
+        """
+        Retrieves the download event from the browser.
+
+        Returns:
+            Download: The download event.
+
+        Raises:
+            Exception: If there is an issue retrieving the download event.
+        """
+        return self._download_handler.get_data(pw_page, timeout=timeout)
 
     def upload_files(
         self,

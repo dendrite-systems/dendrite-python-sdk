@@ -183,9 +183,10 @@ class AsyncElement:
                     start_time = time.time()
                     await page.playwright_page.wait_for_load_state("load", timeout=2000)
                     wait_duration = time.time() - start_time
-                    print(f"Waited {wait_duration:.2f} seconds for load state")
+                    # print(f"Waited {wait_duration:.2f} seconds for load state")
                 except Exception as e:
-                    print(f"Page navigated but failed to wait for load state: {e}")
+                    pass
+                    # print(f"Page navigated but failed to wait for load state: {e}")
 
         return InteractionResponse(status="success", message="")
 

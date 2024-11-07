@@ -376,7 +376,7 @@ class AsyncDendrite(
 
         return self._active_page_manager
 
-    async def get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
+    async def get_download(self, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -386,7 +386,21 @@ class AsyncDendrite(
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        return await self._impl.get_download(self, pw_page, timeout)
+        active_page = await self.get_active_page()
+        pw_page = active_page.playwright_page
+        return await self._get_download(pw_page, timeout)
+
+    async def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
+        """
+        Retrieves the download event from the browser.
+
+        Returns:
+            Download: The download event.
+
+        Raises:
+            Exception: If there is an issue retrieving the download event.
+        """
+        return await self._download_handler.get_data(pw_page, timeout=timeout)
 
     async def upload_files(
         self,
