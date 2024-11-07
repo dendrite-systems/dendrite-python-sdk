@@ -259,6 +259,25 @@ class AsyncDendrite(
 
         return active_page
 
+    async def scroll_to_bottom(
+        self,
+        timeout: float = 30000,
+        scroll_increment: int = 1000,
+        no_progress_limit: int = 3,
+    ):
+        """
+        Scrolls to the bottom of the current page.
+
+        Returns:
+            None
+        """
+        active_page = await self.get_active_page()
+        await active_page.scroll_to_bottom(
+            timeout=timeout,
+            scroll_increment=scroll_increment,
+            no_progress_limit=no_progress_limit,
+        )
+
     async def _launch(self):
         """
         Launches the Playwright instance and sets up the browser context and page manager.

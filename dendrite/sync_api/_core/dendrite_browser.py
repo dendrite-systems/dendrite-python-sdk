@@ -234,6 +234,25 @@ class Dendrite(
                 raise IncorrectOutcomeError(f"Incorrect navigation, reason: {e}")
         return active_page
 
+    def scroll_to_bottom(
+        self,
+        timeout: float = 30000,
+        scroll_increment: int = 1000,
+        no_progress_limit: int = 3,
+    ):
+        """
+        Scrolls to the bottom of the current page.
+
+        Returns:
+            None
+        """
+        active_page = self.get_active_page()
+        active_page.scroll_to_bottom(
+            timeout=timeout,
+            scroll_increment=scroll_increment,
+            no_progress_limit=no_progress_limit,
+        )
+
     def _launch(self):
         """
         Launches the Playwright instance and sets up the browser context and page manager.
