@@ -7,7 +7,7 @@
 <div align="center">
 <h2>🎉We are going open source🎉</h1>
 <p>
-   Let us know if you're interested in contributing! 
+   Let us know if you're interested in contributing! We're working on integrating the core logic for getting elements and extraction into the sdk!
 </p>
 </div>
 
