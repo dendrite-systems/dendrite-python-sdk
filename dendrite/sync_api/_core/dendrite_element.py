@@ -153,9 +153,8 @@ class Element:
                     start_time = time.time()
                     page.playwright_page.wait_for_load_state("load", timeout=2000)
                     wait_duration = time.time() - start_time
-                    print(f"Waited {wait_duration:.2f} seconds for load state")
                 except Exception as e:
-                    print(f"Page navigated but failed to wait for load state: {e}")
+                    pass
         return InteractionResponse(status="success", message="")
 
     @perform_action("fill")

@@ -123,7 +123,7 @@ class Page(
         Returns:
             The downloaded file data.
         """
-        return self.dendrite_browser.get_download(self.playwright_page, timeout)
+        return self.dendrite_browser._get_download(self.playwright_page, timeout)
 
     def _get_context(self, element: Any) -> Union[PlaywrightPage, FrameLocator]:
         """
