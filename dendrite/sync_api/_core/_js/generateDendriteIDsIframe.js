@@ -1,51 +1,54 @@
 ({frame_path}) => {
-    var hashCode = (string) => {
+    var hashCode = (str) => {
         var hash = 0, i, chr;
-        if (string.length === 0) return hash;
-        for (i = 0; i < string.length; i++) {
-            chr = string.charCodeAt(i);
+        if (str.length === 0) return hash;
+        for (i = 0; i < str.length; i++) {
+            chr = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + chr;
             hash |= 0; // Convert to 32bit integer
         }
         return hash;
     }
     
-    var getXPathForElement = (element) => {
-        const getElementIndex = (element) => {
-            let index = 1;
-            let sibling = element.previousElementSibling;
-            
-            while (sibling) {
-                if (sibling.localName === element.localName) {
-                    index++;
-                }
-                sibling = sibling.previousElementSibling;
+    const getElementIndex = (element) => {
+        let index = 1;
+        let sibling = element.previousElementSibling;
+        
+        while (sibling) {
+            if (sibling.localName === element.localName) {
+                index++;
             }
-            
-            return index;
-        };
+            sibling = sibling.previousElementSibling;
+        }
+        
+        return index;
+    };
     
-        const segs = elm => {
-            if (!elm || elm.nodeType !== 1) return [''];
-            if (elm.id && document.getElementById(elm.id) === elm) return [`id("${elm.id}")`];
-            const localName = typeof elm.localName === 'string' ? elm.localName.toLowerCase() : 'unknown';
-            let index = getElementIndex(elm);
-            
-            return [...segs(elm.parentNode), `${localName}[${index}]`];
-        };
+    
+    const segs = function elmSegs(elm) {
+        if (!elm || elm.nodeType !== 1) return [''];
+        if (elm.id && document.getElementById(elm.id) === elm) return [`id("${elm.id}")`];
+        const localName = typeof elm.localName === 'string' ? elm.localName.toLowerCase() : 'unknown';
+        let index = getElementIndex(elm);
+    
+        return [...elmSegs(elm.parentNode), `${localName}[${index}]`];
+    };
+    
+    var getXPathForElement = (element) => {
         return segs(element).join('/');
-    }
-    
+    }    
 
     // Create a Map to store used hashes and their counters
     const usedHashes = new Map();
+
+    var markHidden = (hidden_element) => {
+        // Mark the hidden element itself
+        hidden_element.setAttribute('data-hidden', 'true');
+    }
     
     document.querySelectorAll('*').forEach((element, index) => {
         try {
-            const markHidden = (hidden_element) => {
-                // Mark the hidden element itself
-                hidden_element.setAttribute('data-hidden', 'true');
-            }
+
     
             // const is_marked_hidden = element.getAttribute("data-hidden") === "true";
             const isHidden = !element.checkVisibility();
@@ -57,7 +60,7 @@
             }else{
                 element.removeAttribute("data-hidden") // in case we hid it in a previous call
             }
-            const xpath = getXPathForElement(element);
+            let xpath = getXPathForElement(element);
             if(frame_path){
                 element.setAttribute("iframe-path",frame_path)
                 xpath = frame_path + xpath;
