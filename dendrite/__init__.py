@@ -1,13 +1,13 @@
 import sys
 from loguru import logger
-from dendrite.async_api import (
+from dendrite.browser.async_api import (
     AsyncDendrite,
     AsyncElement,
     AsyncPage,
     AsyncElementsResponse,
 )
 
-from dendrite.sync_api import (
+from dendrite.browser.sync_api import (
     Dendrite,
     Element,
     Page,

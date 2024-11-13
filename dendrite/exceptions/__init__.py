@@ -1,4 +1,4 @@
-from .._common._exceptions.dendrite_exception import (
+from ..browser._common._exceptions.dendrite_exception import (
     BaseDendriteException,
     DendriteException,
     IncorrectOutcomeError,

@@ -2,10 +2,10 @@ import pytest
 import asyncio
 
 import pytest_asyncio
-from dendrite.async_api._core.dendrite_browser import (
+from dendrite.browser.async_api._core.dendrite_browser import (
     AsyncDendrite,
 )
-from dendrite.remote import (
+from dendrite.browser.remote import (
     BrowserbaseConfig,
 )  # Import your class here
 

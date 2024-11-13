@@ -138,7 +138,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                 alias = ast.alias(name="time", asname=alias.asname)
             elif alias.name.startswith("dendrite"):
                 new_name = alias.name.replace(
-                    "dendrite.async_api", "dendrite.sync_api", 1
+                    "dendrite.browser.async_api", "dendrite.browser.sync_api", 1
                 )
                 alias = ast.alias(name=new_name, asname=alias.asname)
             new_names.append(alias)
@@ -160,7 +160,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             node.module = "time"
         elif node.module and node.module.startswith("dendrite"):
             node.module = node.module.replace(
-                "dendrite.async_api", "dendrite.sync_api", 1
+                "dendrite.browser.async_api", "dendrite.browser.sync_api", 1
             )
         return node
 

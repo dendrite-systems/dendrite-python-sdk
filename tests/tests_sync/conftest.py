@@ -1,5 +1,5 @@
 import pytest
-from dendrite.sync_api import Dendrite
+from dendrite.browser.sync_api import Dendrite
 
 
 @pytest.fixture(scope="session")
