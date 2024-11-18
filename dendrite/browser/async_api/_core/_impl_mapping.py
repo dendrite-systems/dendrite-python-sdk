@@ -1,9 +1,10 @@
 from typing import Any, Dict, Optional, Type
 
-from dendrite.browser.async_api._core._impl_browser import ImplBrowser, LocalImpl
+from dendrite.browser.async_api._core._impl_browser import ImplBrowser
 
-from dendrite.browser.async_api._ext_impl.browserbase._impl import BrowserBaseImpl
-from dendrite.browser.async_api._ext_impl.browserless._impl import BrowserlessImpl
+from dendrite.browser.async_api._core._local_browser_impl import LocalImpl
+from dendrite.browser.async_api._remote_impl.browserbase._impl import BrowserBaseImpl
+from dendrite.browser.async_api._remote_impl.browserless._impl import BrowserlessImpl
 from dendrite.browser.remote.browserless_config import BrowserlessConfig
 from dendrite.browser.remote.browserbase_config import BrowserbaseConfig
 from dendrite.browser.remote import Providers

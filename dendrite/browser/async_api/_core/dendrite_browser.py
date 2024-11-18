@@ -17,7 +17,7 @@ from playwright.async_api import (
 
 from dendrite.browser.async_api._api.dto.authenticate_dto import AuthenticateDTO
 from dendrite.browser.async_api._api.dto.upload_auth_session_dto import UploadAuthSessionDTO
-from dendrite.browser.async_api._common.event_sync import EventSync
+from dendrite.browser.async_api._core.event_sync import EventSync
 from dendrite.browser.async_api._core._impl_browser import ImplBrowser
 from dendrite.browser.async_api._core._impl_mapping import get_impl
 from dendrite.browser.async_api._core._managers.page_manager import (

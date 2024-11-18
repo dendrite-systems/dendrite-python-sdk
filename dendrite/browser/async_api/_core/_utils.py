@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 from dendrite.browser.async_api._core._js import (
     GENERATE_DENDRITE_IDS_IFRAME_SCRIPT,
 )
-from dendrite.browser.async_api._dom.util.mild_strip import mild_strip_in_place
+from dendrite.browser.async_api._dom.mild_strip import mild_strip_in_place
 
 
 async def expand_iframes(
