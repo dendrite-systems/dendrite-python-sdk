@@ -1,7 +1,6 @@
 from typing import Optional
 
-from anthropic import BaseModel
-from pydantic import model_validator
+from pydantic import BaseModel, model_validator
 
 from dendrite.browser._common._exceptions.dendrite_exception import MissingApiKeyError
 

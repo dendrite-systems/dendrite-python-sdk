@@ -1,54 +1,47 @@
-from abc import ABC, abstractmethod
+import os
 import pathlib
 import re
-from typing import Any, List, Literal, Optional, Sequence, Union
+from abc import ABC
+from typing import Any, List, Optional, Sequence, Union
 from uuid import uuid4
-import os
+
 from loguru import logger
 from playwright.async_api import (
-    async_playwright,
-    Playwright,
     BrowserContext,
-    FileChooser,
     Download,
     Error,
+    FileChooser,
     FilePayload,
+    Playwright,
+    async_playwright,
 )
 
-from dendrite.browser.async_api._api.dto.authenticate_dto import AuthenticateDTO
-from dendrite.browser.async_api._api.dto.upload_auth_session_dto import UploadAuthSessionDTO
-from dendrite.browser.async_api._core.event_sync import EventSync
-from dendrite.browser.async_api._core._impl_browser import ImplBrowser
-from dendrite.browser.async_api._core._impl_mapping import get_impl
-from dendrite.browser.async_api._core._managers.page_manager import (
-    PageManager,
-)
-
-from dendrite.browser.async_api._core._type_spec import PlaywrightPage
-from dendrite.browser.async_api._core.dendrite_page import AsyncPage
-from dendrite.browser.async_api._common.constants import STEALTH_ARGS
-from dendrite.browser.async_api._core.mixin.ask import AskMixin
-from dendrite.browser.async_api._core.mixin.click import ClickMixin
-from dendrite.browser.async_api._core.mixin.extract import ExtractionMixin
-from dendrite.browser.async_api._core.mixin.fill_fields import FillFieldsMixin
-from dendrite.browser.async_api._core.mixin.get_element import GetElementMixin
-from dendrite.browser.async_api._core.mixin.keyboard import KeyboardMixin
-from dendrite.browser.async_api._core.mixin.screenshot import ScreenshotMixin
-from dendrite.browser.async_api._core.mixin.wait_for import WaitForMixin
-from dendrite.browser.async_api._core.mixin.markdown import MarkdownMixin
-from dendrite.browser.async_api._core.models.authentication import (
-    AuthSession,
-)
-
-from dendrite.browser.async_api._core.models.api_config import APIConfig
-from dendrite.browser.async_api._api.browser_api_client import BrowserAPIClient
 from dendrite.browser._common._exceptions.dendrite_exception import (
     BrowserNotLaunchedError,
     DendriteException,
     IncorrectOutcomeError,
 )
+from dendrite.browser._common.constants import STEALTH_ARGS
+from dendrite.models.api_config import APIConfig
+from dendrite.browser.async_api._core._impl_browser import ImplBrowser
+from dendrite.browser.async_api._core._impl_mapping import get_impl
+from dendrite.browser.async_api._core._managers.page_manager import PageManager
+from dendrite.browser.async_api._core._type_spec import PlaywrightPage
+from dendrite.browser.async_api._core.dendrite_page import AsyncPage
+from dendrite.browser.async_api._core.event_sync import EventSync
+from dendrite.browser.async_api._core.mixin import (
+    AskMixin,
+    ClickMixin,
+    ExtractionMixin,
+    FillFieldsMixin,
+    GetElementMixin,
+    KeyboardMixin,
+    MarkdownMixin,
+    ScreenshotMixin,
+    WaitForMixin,
+    )
 from dendrite.browser.remote import Providers
-from dendrite.logic.interfaces.async_api import BrowserAPIProtocol
+from dendrite.logic.interfaces.async_api import LocalProtocol, LogicAPIProtocol
 
 
 class AsyncDendrite(
@@ -88,7 +81,6 @@ class AsyncDendrite(
 
     def __init__(
         self,
-        auth: Optional[Union[str, List[str]]] = None,
         dendrite_api_key: Optional[str] = None,
         openai_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
@@ -102,7 +94,6 @@ class AsyncDendrite(
         Initializes AsyncDendrite with API keys and Playwright options.
 
         Args:
-            auth (Optional[Union[str, List[str]]]): The domains on which the browser should try and authenticate.
             dendrite_api_key (Optional[str]): The Dendrite API key. If not provided, it's fetched from the environment variables.
             openai_api_key (Optional[str]): Your own OpenAI API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
             anthropic_api_key (Optional[str]): The own Anthropic API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
@@ -112,15 +103,15 @@ class AsyncDendrite(
             MissingApiKeyError: If the Dendrite API key is not provided or found in the environment variables.
         """
 
-        api_config = APIConfig(
-            dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
-            openai_api_key=openai_api_key,
-            anthropic_api_key=anthropic_api_key,
-        )
+        # api_config = APIConfig(
+        #     dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
+        #     openai_api_key=openai_api_key,
+        #     anthropic_api_key=anthropic_api_key,
+        # )
 
         self._impl = self._get_impl(remote_config)
 
-        self.api_config = api_config
+        # self.api_config = api_config
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
 
@@ -131,8 +122,7 @@ class AsyncDendrite(
         self._upload_handler = EventSync(event_type=FileChooser)
         self._download_handler = EventSync(event_type=Download)
         self.closed = False
-        self._auth = auth
-        self._browser_api_client: BrowserAPIProtocol = BrowserAPIClient(api_config, self._id)
+        self._browser_api_client: LogicAPIProtocol = LocalProtocol()
 
     @property
     def pages(self) -> List[AsyncPage]:
@@ -151,7 +141,7 @@ class AsyncDendrite(
         active_page = await self.get_active_page()
         return active_page
 
-    def _get_browser_api_client(self) -> BrowserAPIProtocol:
+    def _get_logic_api(self) -> 'LogicAPIProtocol':
         return self._browser_api_client
 
     def _get_dendrite_browser(self) -> "AsyncDendrite":
@@ -167,11 +157,6 @@ class AsyncDendrite(
     def _get_impl(self, remote_provider: Optional[Providers]) -> ImplBrowser:
         # if remote_provider is None:)
         return get_impl(remote_provider)
-
-    async def _get_auth_session(self, domains: Union[str, list[str]]):
-        dto = AuthenticateDTO(domains=domains)
-        auth_session: AuthSession = await self._browser_api_client.authenticate(dto)
-        return auth_session
 
     async def get_active_page(self) -> AsyncPage:
         """
@@ -301,18 +286,13 @@ class AsyncDendrite(
             self._playwright, self._playwright_options
         )
 
-        if self._auth:
-            auth_session = await self._get_auth_session(self._auth)
-            self.browser_context = await browser.new_context(
-                storage_state=auth_session.to_storage_state(),
-                user_agent=auth_session.user_agent,
-            )
-        else:
-            self.browser_context = (
-                browser.contexts[0]
-                if len(browser.contexts) > 0
-                else await browser.new_context()
-            )
+        
+        
+        self.browser_context = (
+            browser.contexts[0]
+            if len(browser.contexts) > 0
+            else await browser.new_context()
+        )
 
         self._active_page_manager = PageManager(self, self.browser_context)
 
@@ -339,8 +319,7 @@ class AsyncDendrite(
         """
         Closes the browser and uploads authentication session data if available.
 
-        This method stops the Playwright instance, closes the browser context, and uploads any
-        stored authentication session data if applicable.
+        This method stops the Playwright instance, closes the browser context
 
         Returns:
             None
@@ -352,13 +331,6 @@ class AsyncDendrite(
         self.closed = True
         try:
             if self.browser_context:
-                if self._auth:
-                    auth_session = await self._get_auth_session(self._auth)
-                    storage_state = await self.browser_context.storage_state()
-                    dto = UploadAuthSessionDTO(
-                        auth_data=auth_session, storage_state=storage_state
-                    )
-                    await self._browser_api_client.upload_auth_session(dto)
                 await self._impl.stop_session()
                 await self.browser_context.close()
         except Error:

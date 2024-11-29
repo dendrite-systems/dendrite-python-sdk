@@ -1,13 +1,14 @@
 import asyncio
 import time
 
+from loguru import logger
 
+from dendrite.browser._common._exceptions.dendrite_exception import (
+    DendriteException,
+    PageConditionNotMet,
+)
 from dendrite.browser.async_api._core.mixin.ask import AskMixin
 from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite.browser._common._exceptions.dendrite_exception import PageConditionNotMet
-from dendrite.browser._common._exceptions.dendrite_exception import DendriteException
-
-from loguru import logger
 
 
 class WaitForMixin(AskMixin, DendritePageProtocol):

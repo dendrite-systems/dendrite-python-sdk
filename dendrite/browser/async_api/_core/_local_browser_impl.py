@@ -3,9 +3,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
 
+from playwright.async_api import Browser, Download, Playwright
+
 from dendrite.browser.async_api._core._impl_browser import ImplBrowser
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
-from playwright.async_api import Download, Browser, Playwright
+
 
 class LocalImpl(ImplBrowser):
     def __init__(self) -> None:

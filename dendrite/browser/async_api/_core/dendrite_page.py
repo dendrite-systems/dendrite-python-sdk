@@ -1,30 +1,13 @@
-import re
 import asyncio
 import pathlib
+import re
 import time
-
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Sequence, Union
 
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
+from playwright.async_api import Download, FilePayload, FrameLocator, Keyboard
 
-from playwright.async_api import (
-    FrameLocator,
-    Keyboard,
-    Download,
-    FilePayload,
-)
-
-
-from dendrite.browser.async_api._api.browser_api_client import BrowserAPIClient
 from dendrite.browser.async_api._core._js import GENERATE_DENDRITE_IDS_SCRIPT
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
 from dendrite.browser.async_api._core.dendrite_element import AsyncElement
@@ -36,23 +19,18 @@ from dendrite.browser.async_api._core.mixin.get_element import GetElementMixin
 from dendrite.browser.async_api._core.mixin.keyboard import KeyboardMixin
 from dendrite.browser.async_api._core.mixin.markdown import MarkdownMixin
 from dendrite.browser.async_api._core.mixin.wait_for import WaitForMixin
-from dendrite.browser.async_api._core.models.page_information import PageInformation
-from dendrite.logic.interfaces.async_api import BrowserAPIProtocol
 
+from dendrite.logic.interfaces.async_api import LogicAPIProtocol
+from dendrite.models.page_information import PageInformation
 
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
 
-
-from dendrite.browser.async_api._core._managers.screenshot_manager import ScreenshotManager
-from dendrite.browser._common._exceptions.dendrite_exception import (
-    DendriteException,
+from dendrite.browser._common._exceptions.dendrite_exception import DendriteException
+from dendrite.browser.async_api._core._managers.screenshot_manager import (
+    ScreenshotManager,
 )
-
-
-from dendrite.browser.async_api._core._utils import (
-    expand_iframes,
-)
+from dendrite.browser.async_api._core._utils import expand_iframes
 
 
 class AsyncPage(
@@ -76,7 +54,7 @@ class AsyncPage(
         self,
         page: PlaywrightPage,
         dendrite_browser: "AsyncDendrite",
-        browser_api_client: "BrowserAPIProtocol",
+        browser_api_client: "LogicAPIProtocol",
     ):
         self.playwright_page = page
         self.screenshot_manager = ScreenshotManager(page)
@@ -118,7 +96,7 @@ class AsyncPage(
     def _get_dendrite_browser(self) -> "AsyncDendrite":
         return self.dendrite_browser
 
-    def _get_browser_api_client(self) -> BrowserAPIProtocol:
+    def _get_logic_api(self) -> LogicAPIProtocol:
         return self._browser_api_client
 
     async def goto(

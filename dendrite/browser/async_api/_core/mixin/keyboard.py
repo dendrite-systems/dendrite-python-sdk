@@ -1,6 +1,7 @@
-from typing import Any, Union, Literal
-from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
+from typing import Literal, Union
+
 from dendrite.browser._common._exceptions.dendrite_exception import DendriteException
+from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
 
 
 class KeyboardMixin(DendritePageProtocol):

@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
 
+from playwright.async_api import Browser, Download, Playwright
+
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
-from playwright.async_api import Download, Browser, Playwright
 
 
 class ImplBrowser(ABC):
@@ -27,7 +28,6 @@ class ImplBrowser(ABC):
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        pass
 
     @abstractmethod
     async def start_browser(self, playwright: Playwright, pw_options: dict) -> Browser:
@@ -40,7 +40,6 @@ class ImplBrowser(ABC):
         Raises:
             Exception: If there is an issue starting the browser session.
         """
-        pass
 
     @abstractmethod
     async def configure_context(self, browser: "AsyncDendrite") -> None:
@@ -53,7 +52,6 @@ class ImplBrowser(ABC):
         Raises:
             Exception: If there is an issue configuring the browser context.
         """
-        pass
 
     @abstractmethod
     async def stop_session(self) -> None:
@@ -63,4 +61,3 @@ class ImplBrowser(ABC):
         Raises:
             Exception: If there is an issue stopping the browser session.
         """
-        pass

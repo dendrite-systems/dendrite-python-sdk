@@ -1,4 +1,5 @@
 from loguru import logger
+
 from ._core.dendrite_browser import AsyncDendrite
 from ._core.dendrite_element import AsyncElement
 from ._core.dendrite_page import AsyncPage

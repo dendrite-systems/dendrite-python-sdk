@@ -110,7 +110,6 @@ class IncorrectOutcomeError(BaseDendriteException):
     Inherits from BaseDendriteException.
     """
 
-    pass
 
 
 class BrowserNotLaunchedError(BaseDendriteException):

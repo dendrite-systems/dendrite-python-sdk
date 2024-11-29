@@ -1,8 +1,8 @@
 import inspect
 from typing import Any, Dict, Literal, Type, TypeVar, Union
-from pydantic import BaseModel
-from playwright.async_api import Page
 
+from playwright.async_api import Page
+from pydantic import BaseModel
 
 Interaction = Literal["click", "fill", "hover"]
 

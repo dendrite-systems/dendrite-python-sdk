@@ -1,20 +1,19 @@
-from typing import Optional, Union, List, TYPE_CHECKING
-from playwright.async_api import FrameLocator, ElementHandle, Error, Frame
+from typing import TYPE_CHECKING, List, Optional, Union
+
 from bs4 import BeautifulSoup
 from loguru import logger
+from playwright.async_api import ElementHandle, Error, Frame, FrameLocator
 
-from dendrite.browser.async_api._api.response.get_element_response import GetElementResponse
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
 from dendrite.browser.async_api._core.dendrite_element import AsyncElement
 from dendrite.browser.async_api._core.models.response import AsyncElementsResponse
+from dendrite.models.response.get_element_response import GetElementResponse
 
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_page import AsyncPage
 
-from dendrite.browser.async_api._core._js import (
-    GENERATE_DENDRITE_IDS_IFRAME_SCRIPT,
-)
-from dendrite.browser.async_api._dom.mild_strip import mild_strip_in_place
+from dendrite.browser.async_api._core._js import GENERATE_DENDRITE_IDS_IFRAME_SCRIPT
+from dendrite.logic.dom.strip import mild_strip_in_place
 
 
 async def expand_iframes(
@@ -36,8 +35,11 @@ async def expand_iframes(
 
     for frame in page.frames:
         if frame.parent_frame is None:
-            continue  # Skip the main frame
-        iframe_element = await frame.frame_element()
+            continue  # Skip the main frame 
+        try:
+            iframe_element = await frame.frame_element()
+        except Error as e:
+            continue
         iframe_id = await iframe_element.get_attribute("d-id")
         if iframe_id is None:
             continue

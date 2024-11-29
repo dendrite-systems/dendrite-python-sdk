@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+
 from dendrite.exceptions import MissingApiKeyError
 
 

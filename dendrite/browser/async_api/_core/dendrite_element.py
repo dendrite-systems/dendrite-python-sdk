@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import asyncio
 import base64
 import functools
@@ -8,21 +9,21 @@ from typing import TYPE_CHECKING, Optional
 from loguru import logger
 from playwright.async_api import Locator
 
-from dendrite.browser.async_api._api.browser_api_client import BrowserAPIClient
-from dendrite.browser._common._exceptions.dendrite_exception import IncorrectOutcomeError
-from dendrite.logic.interfaces.async_api import BrowserAPIProtocol
+from dendrite.browser._common._exceptions.dendrite_exception import (
+    IncorrectOutcomeError,
+)
+
+from dendrite.logic.interfaces.async_api import LogicAPIProtocol
 
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
-from dendrite.browser.async_api._core._managers.navigation_tracker import NavigationTracker
-from dendrite.browser.async_api._core.models.page_diff_information import (
-    PageDiffInformation,
+
+from dendrite.browser.async_api._core._managers.navigation_tracker import (
+    NavigationTracker,
 )
 from dendrite.browser.async_api._core._type_spec import Interaction
-from dendrite.browser.async_api._api.response.interaction_response import (
-    InteractionResponse,
-)
-from dendrite.browser.async_api._api.dto.make_interaction_dto import MakeInteractionDTO
+from dendrite.models.dto.make_interaction_dto import VerifyActionDTO
+from dendrite.models.response.interaction_response import InteractionResponse
 
 
 def perform_action(interaction_type: Interaction):
@@ -52,11 +53,11 @@ def perform_action(interaction_type: Interaction):
                 await func(self, *args, **kwargs)
                 return InteractionResponse(status="success", message="")
 
-            api_config = self._dendrite_browser.api_config
-
             page_before = await self._dendrite_browser.get_active_page()
             page_before_info = await page_before.get_page_information()
-
+            soup = await page_before._get_previous_soup() 
+            screenshot_before = page_before_info.screenshot_base64
+            tag_name = soup.find(attrs={"d-id": self.dendrite_id})
             # Call the original method here
             await func(
                 self,
@@ -64,29 +65,28 @@ def perform_action(interaction_type: Interaction):
                 *args,
                 **kwargs,
             )
-
+            
             await self._wait_for_page_changes(page_before.url)
 
             page_after = await self._dendrite_browser.get_active_page()
-            page_after_info = await page_after.get_page_information()
-            page_delta_information = PageDiffInformation(
-                page_before=page_before_info, page_after=page_after_info
-            )
+            screenshot_after = await page_after.screenshot_manager.take_full_page_screenshot()
+            
 
-            dto = MakeInteractionDTO(
+            dto = VerifyActionDTO(
                 url=page_before.url,
                 dendrite_id=self.dendrite_id,
                 interaction_type=interaction_type,
                 expected_outcome=expected_outcome,
-                page_delta_information=page_delta_information,
-                api_config=api_config,
+                screenshot_before=screenshot_before,
+                screenshot_after=screenshot_after,
+                tag_name = str(tag_name),
             )
-            res = await self._browser_api_client.make_interaction(dto)
+            res = await self._browser_api_client.verify_action(dto)
 
             if res.status == "failed":
                 raise IncorrectOutcomeError(
                     message=res.message,
-                    screenshot_base64=page_delta_information.page_after.screenshot_base64,
+                    screenshot_base64=screenshot_after
                 )
 
             return res
@@ -109,7 +109,7 @@ class AsyncElement:
         dendrite_id: str,
         locator: Locator,
         dendrite_browser: AsyncDendrite,
-        browser_api_client: BrowserAPIProtocol,
+        browser_api_client: LogicAPIProtocol,
     ):
         """
         Initialize a AsyncElement.

@@ -1,10 +1,8 @@
 from pathlib import Path
 from typing import Union
 
-
 from dendrite.browser.remote import Providers
 from dendrite.browser.remote.browserbase_config import BrowserbaseConfig
-
 
 try:
     import tomllib  # type: ignore

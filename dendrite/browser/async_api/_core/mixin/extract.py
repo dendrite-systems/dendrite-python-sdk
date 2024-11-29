@@ -1,11 +1,12 @@
 import asyncio
 import time
-from typing import Any, Optional, Type, overload, List
-from dendrite.browser.async_api._api.dto.extract_dto import ExtractDTO
-from dendrite.browser.async_api._api.response.cache_extract_response import (
-    CacheExtractResponse,
+from typing import Any, List, Optional, Type, overload
+
+from loguru import logger
+
+from dendrite.browser.async_api._core._managers.navigation_tracker import (
+    NavigationTracker,
 )
-from dendrite.browser.async_api._api.response.extract_response import ExtractResponse
 from dendrite.browser.async_api._core._type_spec import (
     JsonSchema,
     PydanticModel,
@@ -14,9 +15,8 @@ from dendrite.browser.async_api._core._type_spec import (
     to_json_schema,
 )
 from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite.browser.async_api._core._managers.navigation_tracker import NavigationTracker
-from loguru import logger
-
+from dendrite.models.dto.extract_dto import ExtractDTO
+from dendrite.models.response.extract_response import ExtractResponse
 
 CACHE_TIMEOUT = 5
 
@@ -133,21 +133,16 @@ class ExtractionMixin(DendritePageProtocol):
 
         # Check if a script exists in the cache
         if use_cache:
-            cache_available = await check_if_extract_cache_available(
-                self, prompt, json_schema
+            logger.info("Cache available, attempting to use cached extraction")
+            result = await attempt_extraction_with_backoff(
+                self,
+                prompt,
+                json_schema,
+                remaining_timeout=CACHE_TIMEOUT,
+                only_use_cache=True,
             )
-
-            if cache_available:
-                logger.info("Cache available, attempting to use cached extraction")
-                result = await attempt_extraction_with_backoff(
-                    self,
-                    prompt,
-                    json_schema,
-                    remaining_timeout=CACHE_TIMEOUT,
-                    only_use_cache=True,
-                )
-                if result:
-                    return convert_and_return_result(result, type_spec)
+            if result:
+                return convert_and_return_result(result, type_spec)
 
         logger.info(
             "Using extraction agent to perform extraction, since no cache was found or failed."
@@ -167,21 +162,6 @@ class ExtractionMixin(DendritePageProtocol):
         return None
 
 
-async def check_if_extract_cache_available(
-    obj: DendritePageProtocol, prompt: str, json_schema: Optional[JsonSchema]
-) -> bool:
-    page = await obj._get_page()
-    page_information = await page.get_page_information(include_screenshot=False)
-    dto = ExtractDTO(
-        page_information=page_information,
-        api_config=obj._get_dendrite_browser().api_config,
-        prompt=prompt,
-        return_data_json_schema=json_schema,
-    )
-    cache_response: CacheExtractResponse = (
-        await obj._get_browser_api_client().check_extract_cache(dto)
-    )
-    return cache_response.exists
 
 
 async def attempt_extraction_with_backoff(
@@ -207,7 +187,6 @@ async def attempt_extraction_with_backoff(
         )
         extract_dto = ExtractDTO(
             page_information=page_information,
-            api_config=obj._get_dendrite_browser().api_config,
             prompt=prompt,
             return_data_json_schema=json_schema,
             use_screenshot=True,
@@ -215,7 +194,7 @@ async def attempt_extraction_with_backoff(
             force_use_cache=only_use_cache,
         )
 
-        res = await obj._get_browser_api_client().extract(extract_dto)
+        res: ExtractResponse = await obj._get_logic_api().extract(extract_dto)
         request_duration = time.time() - request_start_time
 
         if res.status == "impossible":

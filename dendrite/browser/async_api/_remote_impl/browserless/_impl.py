@@ -1,17 +1,24 @@
 import json
 from typing import TYPE_CHECKING, Optional
-from dendrite.browser._common._exceptions.dendrite_exception import BrowserNotLaunchedError
+
+from dendrite.browser._common._exceptions.dendrite_exception import (
+    BrowserNotLaunchedError,
+)
 from dendrite.browser.async_api._core._impl_browser import ImplBrowser
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
 from dendrite.browser.remote.browserless_config import BrowserlessConfig
 
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
-from dendrite.browser.async_api._remote_impl.browserbase._client import BrowserbaseClient
-from playwright.async_api import Playwright
-from loguru import logger
+
 import urllib.parse
 
+from loguru import logger
+from playwright.async_api import Playwright
+
+from dendrite.browser.async_api._remote_impl.browserbase._client import (
+    BrowserbaseClient,
+)
 from dendrite.browser.async_api._remote_impl.browserbase._download import (
     AsyncBrowserbaseDownload,
 )

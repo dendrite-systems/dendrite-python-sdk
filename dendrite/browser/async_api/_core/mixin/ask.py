@@ -4,7 +4,7 @@ from typing import Optional, Type, overload
 
 from loguru import logger
 
-from dendrite.browser.async_api._api.dto.ask_page_dto import AskPageDTO
+from dendrite.browser._common._exceptions.dendrite_exception import DendriteException
 from dendrite.browser.async_api._core._type_spec import (
     JsonSchema,
     PydanticModel,
@@ -13,7 +13,7 @@ from dendrite.browser.async_api._core._type_spec import (
     to_json_schema,
 )
 from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite.browser._common._exceptions.dendrite_exception import DendriteException
+from dendrite.models.dto.ask_page_dto import AskPageDTO
 
 # The timeout interval between retries in milliseconds
 TIMEOUT_INTERVAL = [150, 450, 1000]
@@ -135,7 +135,6 @@ class AskMixin(DendritePageProtocol):
         Raises:
             DendriteException: If the request fails, the exception includes the failure message and a screenshot.
         """
-        api_config = self._get_dendrite_browser().api_config
         start_time = time.time()
         attempt_start = start_time
         attempt = -1
@@ -182,13 +181,12 @@ class AskMixin(DendritePageProtocol):
 
             dto = AskPageDTO(
                 page_information=page_information,
-                api_config=api_config,
                 prompt=entire_prompt,
                 return_schema=schema,
             )
 
             try:
-                res = await self._get_browser_api_client().ask_page(dto)
+                res = await self._get_logic_api().ask_page(dto)
                 logger.debug(f"Got response in {time.time() - attempt_start} seconds")
 
                 if res.status == "error":

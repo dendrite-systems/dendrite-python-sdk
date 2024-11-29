@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING, Protocol
 
-from dendrite.browser.async_api._api.browser_api_client import BrowserAPIClient
+from dendrite.logic.hosted._api.browser_api_client import BrowserAPIClient
+from dendrite.logic.interfaces.async_api import LocalProtocol
 
 if TYPE_CHECKING:
-    from dendrite.browser.async_api._core.dendrite_page import AsyncPage
     from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
+    from dendrite.browser.async_api._core.dendrite_page import AsyncPage
 
 
 class DendritePageProtocol(Protocol):
@@ -15,6 +16,6 @@ class DendritePageProtocol(Protocol):
 
     def _get_dendrite_browser(self) -> "AsyncDendrite": ...
 
-    def _get_browser_api_client(self) -> BrowserAPIClient: ...
+    def _get_logic_api(self) -> LocalProtocol: ...
 
     async def _get_page(self) -> "AsyncPage": ...

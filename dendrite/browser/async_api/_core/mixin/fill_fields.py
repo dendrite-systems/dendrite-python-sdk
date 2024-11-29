@@ -1,11 +1,10 @@
 import asyncio
 from typing import Any, Dict, Optional
-from dendrite.browser.async_api._api.response.interaction_response import (
-    InteractionResponse,
-)
+
+from dendrite.browser._common._exceptions.dendrite_exception import DendriteException
 from dendrite.browser.async_api._core.mixin.get_element import GetElementMixin
 from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite.browser._common._exceptions.dendrite_exception import DendriteException
+from dendrite.models.response.interaction_response import InteractionResponse
 
 
 class FillFieldsMixin(GetElementMixin, DendritePageProtocol):

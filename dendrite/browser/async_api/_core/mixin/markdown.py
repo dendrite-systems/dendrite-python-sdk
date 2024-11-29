@@ -1,11 +1,11 @@
-from typing import Optional
-from bs4 import BeautifulSoup
 import re
+from typing import Optional
+
+from bs4 import BeautifulSoup
+from markdownify import markdownify as md
 
 from dendrite.browser.async_api._core.mixin.extract import ExtractionMixin
 from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
-
-from markdownify import markdownify as md
 
 
 class MarkdownMixin(ExtractionMixin, DendritePageProtocol):

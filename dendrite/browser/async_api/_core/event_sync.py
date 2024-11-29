@@ -1,8 +1,8 @@
-import time
 import asyncio
-from typing import Generic, Optional, Type, TypeVar, Union, cast
-from playwright.async_api import Page, Download, FileChooser
+import time
+from typing import Generic, Optional, Type, TypeVar
 
+from playwright.async_api import Download, FileChooser, Page
 
 Events = TypeVar("Events", Download, FileChooser)
 

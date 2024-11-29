@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Union
+
 from playwright.async_api import Download
 
 

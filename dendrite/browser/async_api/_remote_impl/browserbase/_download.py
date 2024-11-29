@@ -1,13 +1,16 @@
-from pathlib import Path
 import re
 import shutil
-from typing import Union
 import zipfile
+from pathlib import Path
+from typing import Union
+
 from loguru import logger
 from playwright.async_api import Download
 
 from dendrite.browser.async_api._core.models.download_interface import DownloadInterface
-from dendrite.browser.async_api._remote_impl.browserbase._client import BrowserbaseClient
+from dendrite.browser.async_api._remote_impl.browserbase._client import (
+    BrowserbaseClient,
+)
 
 
 class AsyncBrowserbaseDownload(DownloadInterface):

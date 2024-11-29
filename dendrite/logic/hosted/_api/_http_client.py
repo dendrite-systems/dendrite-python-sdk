@@ -1,14 +1,17 @@
 import os
-from typing import Optional
+from typing import Any, Dict, Optional
+
 import httpx
 from loguru import logger
 
-from dendrite.browser.async_api._core.models.api_config import APIConfig
+from dendrite.models.api_config import APIConfig
+
 
 
 class HTTPClient:
     def __init__(self, api_config: APIConfig, session_id: Optional[str] = None):
         self.api_key = api_config.dendrite_api_key
+        self.api_config = api_config
         self.session_id = session_id
         self.base_url = self.resolve_base_url()
 
@@ -24,7 +27,7 @@ class HTTPClient:
         self,
         endpoint: str,
         params: Optional[dict] = None,
-        data: Optional[dict] = None,
+        data: Optional[Dict[str,Any]] = None,
         headers: Optional[dict] = None,
         method: str = "GET",
     ) -> httpx.Response:
@@ -39,6 +42,12 @@ class HTTPClient:
 
         async with httpx.AsyncClient(timeout=300) as client:
             try:
+
+                # inject api_config to data
+                if data:
+                    data["api_config"] = self.api_config.model_dump()
+                    
+
                 response = await client.request(
                     method, url, params=params, json=data, headers=headers
                 )

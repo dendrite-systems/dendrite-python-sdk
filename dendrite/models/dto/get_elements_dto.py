@@ -1,8 +1,8 @@
 from typing import Dict, Union
+
 from pydantic import BaseModel
 
 from dendrite.models.page_information import PageInformation
-
 
 
 class CheckSelectorCacheDTO(BaseModel):
