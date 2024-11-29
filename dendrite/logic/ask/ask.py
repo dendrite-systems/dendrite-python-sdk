@@ -4,6 +4,8 @@ from typing import List
 import json_repair
 from jsonschema import validate
 
+from openai.types.chat.chat_completion_content_part_param import ChatCompletionContentPartParam
+
 
 from dendrite.logic.llm.agent import Agent, Message
 from dendrite.logic.llm.config import llm_config
@@ -115,7 +117,7 @@ async def ask_page_action(
 
 def generate_ask_page_prompt(
     ask_page_dto: AskPageDTO, image_segments: list, scrolled_to_segment_i: int = 0
-) -> list:
+) -> List[ChatCompletionContentPartParam]:
     # Generate scroll down hint based on number of segments
     scroll_down_hint = (
         ""
@@ -143,7 +145,7 @@ You can keep scrolling down, noting important details, until you are ready to re
     )
 
     # Construct the main prompt content
-    content = [
+    content: List[ChatCompletionContentPartParam]= [
         {
             "type": "text",
             "text": f"""Please look at the page and return data that matches the requested schema and prompt.
@@ -184,20 +186,17 @@ Action Message:
 
 Here is a screenshot of the viewport:""",
         },
-        {
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": image_segments[scrolled_to_segment_i],
-            },
+        {"type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{image_segments[scrolled_to_segment_i]}"
+            }
         },
     ]
 
     return content
 
 
-def generate_scroll_prompt(image_segments: list, next_segment: int) -> list:
+def generate_scroll_prompt(image_segments: list, next_segment: int) -> List[ChatCompletionContentPartParam]:
     """
     Generates the prompt for scrolling to next segment.
 
@@ -219,13 +218,10 @@ def generate_scroll_prompt(image_segments: list, next_segment: int) -> list:
             "type": "text",
             "text": f"""You have scrolled down. You are viewing segment {next_segment+1}/{len(image_segments)}.{last_segment_reminder} Here is the new viewport:""",
         },
-        {
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": image_segments[next_segment],
-            },
+        {"type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{image_segments[next_segment]}"
+            }
         },
     ]
 

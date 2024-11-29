@@ -3,11 +3,13 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Literal, Optional
+from openai.types.chat.chat_completion_content_part_param import ChatCompletionContentPartParam
 
 from loguru import logger
 
 from dendrite.logic.llm.agent import Agent, Message
 from dendrite.models.page_information import PageInformation
+from dendrite.logic.llm.config import llm_config
 
 ScrollActionStatus = Literal["done", "scroll_down", "loading", "error"]
 
@@ -60,7 +62,7 @@ class ErrorRes(ScrollRes):
 
 
 class ScrollAgent(Agent):
-    def __init__(self, llm_config, page_information: PageInformation):
+    def __init__(self, page_information: PageInformation):
         super().__init__(llm_config.get("scroll_agent"))
         self.page_information = page_information
         self.choices: List[ScrollRes] = [
@@ -74,7 +76,7 @@ class ScrollAgent(Agent):
         combined_prompt: str,
         image_segments: List[str],
     ) -> ScrollResult:
-        messages = self.create_initial_message(combined_prompt, image_segments[0])
+        messages = [self.create_initial_message(combined_prompt, image_segments[0])]
         all_elements_to_inspect_html = []
         current_segment = 0
 
@@ -133,8 +135,8 @@ class ScrollAgent(Agent):
 
     def create_initial_message(
         self, combined_prompt: str, first_image: str
-    ) -> List[Message]:
-        content = [
+    ) -> Message:
+        content: List[ChatCompletionContentPartParam] = [
             {
                 "type": "text",
                 "text": f"""You are a web scraping agent that can code scripts to solve the web scraping tasks listed below for the webpage I'll specify. Before we start coding, we need to inspect the html of the page closer.
@@ -198,19 +200,16 @@ Important: Only output one json object per message.
 
 Below is a screenshot of the current page, if it looks blank or empty it could still be loading. If this is the case, don't guess what elements to inspect, respond with is loading.""",
             },
-            {
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": "image/jpeg",
-                    "data": first_image,
-                },
+            {"type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{first_image}"
+            }
             },
         ]
 
-        return [
-            {"role": "user", "content": content},
-        ]
+
+        msg: Message = {"role": "user", "content": content}
+        return msg
 
     def create_scroll_message(self, image: str) -> Message:
         return {

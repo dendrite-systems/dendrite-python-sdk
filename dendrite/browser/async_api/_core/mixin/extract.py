@@ -203,7 +203,7 @@ async def attempt_extraction_with_backoff(
 
         if res.status == "success":
             logger.success(
-                f"Extraction successful: '{res.message}'\nUsed cache: {res.used_cache}\nUsed script:\n\n{res.created_script}"
+                f"Extraction successful: '{res.message}'\nUsed cache: {res.used_cache}"
             )
             return res
 

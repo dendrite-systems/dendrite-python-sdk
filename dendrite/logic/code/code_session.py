@@ -118,9 +118,10 @@ class CodeSession:
             response += "Newly created variables:"
             for var_name, var_value in variables.items():
                 show_length = 600 if var_name == "response_data" else 300
+
                 try:
                     # Convert var_value to string, handling potential errors
-                    str_value = str(var_value)
+                    str_value = str(var_value) if var_value is not None else "None"
                 except Exception as e:
                     logger.error(f"Error converting to string for display: {e}")
                     str_value = f"<Error converting to string for display>"

@@ -2,9 +2,6 @@ from typing import Optional
 
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
-from pydantic import BaseModel
-
-from dendrite.logic.cache.file_cache import FileCache
 from dendrite.logic.config import config
 from dendrite.logic.dom.css import check_if_selector_successful, find_css_selector
 from dendrite.logic.dom.strip import remove_hidden_elements
@@ -13,9 +10,7 @@ from dendrite.logic.get_element.cached_selector import (
     get_selector_from_cache,
 )
 from dendrite.models.dto.get_elements_dto import GetElementsDTO
-from dendrite.models.page_information import PageInformation
 from dendrite.models.response.get_element_response import GetElementResponse
-from dendrite.models.selector import Selector
 
 from .hanifi_search import hanifi_search
 
@@ -23,7 +18,6 @@ from .hanifi_search import hanifi_search
 
 
 async def get_element(dto: GetElementsDTO) -> GetElementResponse:
-
     if isinstance(dto.prompt, str):
         return await process_prompt(dto.prompt, dto)
     raise ...
@@ -105,8 +99,13 @@ async def check_cache(
 
     if check_if_selector_successful(db_selectors.selector, soup, only_one):
         return GetElementResponse(
-            selectors=successful_selectors,
+            selectors=[db_selectors.selector],
             status="success",
             used_cache=True,
         )
 
+
+# async def get_cached_selector(dto: GetCachedSelectorDTO) -> Optional[Selector]:
+#     cache = config.element_cache
+#     db_selectors = await get_selector_from_cache(dto.url, dto.prompt, cache)
+#     return db_selectors 

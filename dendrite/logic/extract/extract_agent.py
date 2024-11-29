@@ -1,6 +1,9 @@
 import json
 import re
+import sys
 from typing import Any, List, Optional
+
+from loguru import logger
 
 from dendrite.logic.cache.utils import save_script
 from dendrite.logic.dom.strip import mild_strip
@@ -53,9 +56,7 @@ class ExtractAgent(Agent):
             extract_page_dto.page_information.screenshot_base64, segment_height=4000
         )
 
-        scroll_agent = ScrollAgent(
-            self.llm_config.get("scroll_agent"), self.page_information
-        )
+        scroll_agent = ScrollAgent(self.page_information)
         scroll_result = await scroll_agent.scroll_through_page(
             extract_page_dto.combined_prompt,
             image_segments=segments,
@@ -114,7 +115,11 @@ class ExtractAgent(Agent):
     async def code_script_from_found_expanded_html_tags(
         self, extract_page_dto: ExtractDTO, expanded_html, segments
     ):
-        # agent_logger.info("Starting code_script_from_found_expanded_html_tags method")
+        
+        agent_logger = logger.bind(scope="extract", step="generate_code") # agent_logger.info("Starting code_script_from_found_expanded_html_tags method")
+        agent_logger.remove()
+        fmt = "<green>{time: HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <level>{message}</level>"
+        agent_logger.add(sys.stderr, level="DEBUG", format=fmt)
         messages = []
 
         user_prompt = create_script_prompt_segmented_html(
@@ -141,7 +146,7 @@ class ExtractAgent(Agent):
 
         while iterations <= max_retries:
             iterations += 1
-            # agent_logger.info(f"Starting iteration {iterations}")
+            agent_logger.debug(f"Code generation | Iteration: {iterations}")
 
             text = await self.call_llm(messages)
             messages.append({"role": "assistant", "content": text})

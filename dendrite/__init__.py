@@ -1,18 +1,11 @@
-# import sys
-# from loguru import logger
-# from dendrite.browser.async_api import (
-#     AsyncDendrite,
-#     AsyncElement,
-#     AsyncPage,
-#     AsyncElementsResponse,
-# )
-
-# from dendrite.browser.sync_api import (
-#     Dendrite,
-#     Element,
-#     Page,
-#     ElementsResponse,
-# )
+import sys
+from loguru import logger
+from dendrite.browser.async_api import (
+    AsyncDendrite,
+    AsyncElement,
+    AsyncPage,
+    AsyncElementsResponse,
+)
 
 # logger.remove()
 
@@ -21,13 +14,9 @@
 # logger.add(sys.stderr, level="INFO", format=fmt)
 
 
-# __all__ = [
-#     "AsyncDendrite",
-#     "AsyncElement",
-#     "AsyncPage",
-#     "AsyncElementsResponse",
-#     "Dendrite",
-#     "Element",
-#     "Page",
-#     "ElementsResponse",
-# ]
+__all__ = [
+    "AsyncDendrite",
+    "AsyncElement",
+    "AsyncPage",
+    "AsyncElementsResponse",
+]
