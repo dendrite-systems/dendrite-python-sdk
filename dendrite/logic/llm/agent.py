@@ -210,13 +210,13 @@ class Agent:
 
     async def add_message(self, message: str) -> str:
         self.messages.append({"role": "user", "content": message})
-        
+
         text = await self.call_llm(self.messages)
 
         self.messages.append({"role": "assistant", "content": text})
 
         return text
-    
+
     async def call_llm(self, messages: List[Message]) -> str:
         res = await self.llm.acall(messages)
 

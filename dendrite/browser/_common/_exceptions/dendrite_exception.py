@@ -111,7 +111,6 @@ class IncorrectOutcomeError(BaseDendriteException):
     """
 
 
-
 class BrowserNotLaunchedError(BaseDendriteException):
     """
     Exception raised when the browser is not launched.

@@ -39,7 +39,7 @@ from dendrite.browser.async_api._core.mixin import (
     MarkdownMixin,
     ScreenshotMixin,
     WaitForMixin,
-    )
+)
 from dendrite.browser.remote import Providers
 from dendrite.logic.interfaces.async_api import LocalProtocol, LogicAPIProtocol
 
@@ -141,7 +141,7 @@ class AsyncDendrite(
         active_page = await self.get_active_page()
         return active_page
 
-    def _get_logic_api(self) -> 'LogicAPIProtocol':
+    def _get_logic_api(self) -> "LogicAPIProtocol":
         return self._browser_api_client
 
     def _get_dendrite_browser(self) -> "AsyncDendrite":
@@ -286,8 +286,6 @@ class AsyncDendrite(
             self._playwright, self._playwright_options
         )
 
-        
-        
         self.browser_context = (
             browser.contexts[0]
             if len(browser.contexts) > 0

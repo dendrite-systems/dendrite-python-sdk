@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class Selector(BaseModel):
     selector: str
     prompt: str

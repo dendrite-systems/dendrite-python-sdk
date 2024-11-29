@@ -28,7 +28,6 @@ from ..ask.image import segment_image
 from ..llm.config import llm_config
 
 
-
 class ExtractAgent(Agent):
     def __init__(
         self,
@@ -40,7 +39,6 @@ class ExtractAgent(Agent):
         self.messages = []
         self.generated_script: Optional[str] = None
         self.llm_config = llm_config
-
 
     def get_generated_script(self):
         return self.generated_script
@@ -92,8 +90,8 @@ class ExtractAgent(Agent):
             return await self.code_script_from_found_expanded_html_tags(
                 extract_page_dto, expanded_html, segments
             )
-        
-        raise Exception("Failed to extract data from the page") # TODO: skriv bättre
+
+        raise Exception("Failed to extract data from the page")  # TODO: skriv bättre
 
     def segment_large_tag(self, tag):
         segments = []
@@ -115,8 +113,10 @@ class ExtractAgent(Agent):
     async def code_script_from_found_expanded_html_tags(
         self, extract_page_dto: ExtractDTO, expanded_html, segments
     ):
-        
-        agent_logger = logger.bind(scope="extract", step="generate_code") # agent_logger.info("Starting code_script_from_found_expanded_html_tags method")
+
+        agent_logger = logger.bind(
+            scope="extract", step="generate_code"
+        )  # agent_logger.info("Starting code_script_from_found_expanded_html_tags method")
         agent_logger.remove()
         fmt = "<green>{time: HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <level>{message}</level>"
         agent_logger.add(sys.stderr, level="DEBUG", format=fmt)

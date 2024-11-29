@@ -4,7 +4,9 @@ from typing import List
 import json_repair
 from jsonschema import validate
 
-from openai.types.chat.chat_completion_content_part_param import ChatCompletionContentPartParam
+from openai.types.chat.chat_completion_content_part_param import (
+    ChatCompletionContentPartParam,
+)
 
 
 from dendrite.logic.llm.agent import Agent, Message
@@ -34,12 +36,13 @@ async def ask_page_action(
     while iteration < max_iterations:
         iteration += 1
 
-        
         text = await agent.call_llm(messages)
-        messages.append({
-            "role": "assistant",
-            "content": text,
-        })
+        messages.append(
+            {
+                "role": "assistant",
+                "content": text,
+            }
+        )
 
         json_pattern = r"```json(.*?)```"
 
@@ -145,7 +148,7 @@ You can keep scrolling down, noting important details, until you are ready to re
     )
 
     # Construct the main prompt content
-    content: List[ChatCompletionContentPartParam]= [
+    content: List[ChatCompletionContentPartParam] = [
         {
             "type": "text",
             "text": f"""Please look at the page and return data that matches the requested schema and prompt.
@@ -186,17 +189,20 @@ Action Message:
 
 Here is a screenshot of the viewport:""",
         },
-        {"type": "image_url",
+        {
+            "type": "image_url",
             "image_url": {
                 "url": f"data:image/jpeg;base64,{image_segments[scrolled_to_segment_i]}"
-            }
+            },
         },
     ]
 
     return content
 
 
-def generate_scroll_prompt(image_segments: list, next_segment: int) -> List[ChatCompletionContentPartParam]:
+def generate_scroll_prompt(
+    image_segments: list, next_segment: int
+) -> List[ChatCompletionContentPartParam]:
     """
     Generates the prompt for scrolling to next segment.
 
@@ -218,10 +224,11 @@ def generate_scroll_prompt(image_segments: list, next_segment: int) -> List[Chat
             "type": "text",
             "text": f"""You have scrolled down. You are viewing segment {next_segment+1}/{len(image_segments)}.{last_segment_reminder} Here is the new viewport:""",
         },
-        {"type": "image_url",
+        {
+            "type": "image_url",
             "image_url": {
                 "url": f"data:image/jpeg;base64,{image_segments[next_segment]}"
-            }
+            },
         },
     ]
 

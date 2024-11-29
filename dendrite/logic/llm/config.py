@@ -9,21 +9,34 @@ except ModuleNotFoundError:
 
 
 DEFAULT_LLM = {
-    "extract_agent": LLM("claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500),
+    "extract_agent": LLM(
+        "claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500
+    ),
     "scroll_agent": LLM("claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500),
-    "ask_page_agent": LLM("claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500),
+    "ask_page_agent": LLM(
+        "claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500
+    ),
     "segment_agent": LLM("gpt-4o", temperature=0, max_tokens=1500),
     "select_agent": LLM("claude-3-5-sonnet-20241022", temperature=0, max_tokens=1500),
-    "verify_action_agent": LLM("claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500),
+    "verify_action_agent": LLM(
+        "claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500
+    ),
 }
 
-class LLMConfig():
-    def __init__(self, default_agents: Optional[Dict[str, LLM]] = None, default_llm: Optional[LLM] = None):
+
+class LLMConfig:
+    def __init__(
+        self,
+        default_agents: Optional[Dict[str, LLM]] = None,
+        default_llm: Optional[LLM] = None,
+    ):
         self.registered_llms: Dict[str, LLM] = DEFAULT_LLM.copy()
         if default_agents:
             self.registered_llms.update(default_agents)
 
-        self.default_llm = default_llm or LLM("claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500)
+        self.default_llm = default_llm or LLM(
+            "claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500
+        )
 
     async def register_agent(self, agent: str, llm: LLM) -> None:
         """
@@ -51,7 +64,12 @@ class LLMConfig():
     def get(self, agent: str, default: LLM) -> LLM: ...
 
     @overload
-    def get(self, agent: str, default: Optional[LLM] = ..., use_default: Literal[False] = False) -> Optional[LLM]: ...
+    def get(
+        self,
+        agent: str,
+        default: Optional[LLM] = ...,
+        use_default: Literal[False] = False,
+    ) -> Optional[LLM]: ...
 
     def get(
         self,

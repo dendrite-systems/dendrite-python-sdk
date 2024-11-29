@@ -56,9 +56,7 @@ async def hanifi_search(
     expand_res = await get_expanded_dom(stripped_soup, prompt)
 
     if expand_res is None:
-        return [
-            Element(status="failed", reason="No element found when expanding HTML")
-        ]
+        return [Element(status="failed", reason="No element found when expanding HTML")]
 
     expanded, tags, flat_list = expand_res
 
@@ -92,9 +90,7 @@ async def hanifi_search(
             ]
         else:
             return [
-                Element(
-                    status=res.status, dendrite_id=res.d_id[0], reason=res.reason
-                )
+                Element(status=res.status, dendrite_id=res.d_id[0], reason=res.reason)
             ]
 
     return [Element(status=res.status, dendrite_id=None, reason=res.reason)]
@@ -108,9 +104,7 @@ async def get_relevant_tags(
     tasks: List[Coroutine[Any, Any, SegmentAgentReponseType]] = []
 
     for index, segment in enumerate(segments):
-        tasks.append(
-            extract_relevant_d_ids(prompt, segment, index)
-        )
+        tasks.append(extract_relevant_d_ids(prompt, segment, index))
 
     results: List[SegmentAgentReponseType] = await asyncio.gather(*tasks)
     if results is None:

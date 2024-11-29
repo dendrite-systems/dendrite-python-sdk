@@ -7,7 +7,6 @@ from loguru import logger
 from dendrite.models.api_config import APIConfig
 
 
-
 class HTTPClient:
     def __init__(self, api_config: APIConfig, session_id: Optional[str] = None):
         self.api_key = api_config.dendrite_api_key
@@ -27,7 +26,7 @@ class HTTPClient:
         self,
         endpoint: str,
         params: Optional[dict] = None,
-        data: Optional[Dict[str,Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
         headers: Optional[dict] = None,
         method: str = "GET",
     ) -> httpx.Response:
@@ -46,7 +45,6 @@ class HTTPClient:
                 # inject api_config to data
                 if data:
                     data["api_config"] = self.api_config.model_dump()
-                    
 
                 response = await client.request(
                     method, url, params=params, json=data, headers=headers

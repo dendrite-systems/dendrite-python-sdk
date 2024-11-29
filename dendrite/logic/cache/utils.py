@@ -1,5 +1,3 @@
-
-
 from datetime import datetime
 from typing import Optional
 from urllib.parse import urlparse
@@ -14,6 +12,7 @@ def save_script(code: str, prompt: str, url: str):
         url=url, domain=domain, script=code, created_at=datetime.now().isoformat()
     )
     extract_cache.ExtractCache.set({"prompt": prompt, "domain": domain}, script)
+
 
 def get_script(prompt: str, domain: str) -> Optional[Script]:
     return extract_cache.ExtractCache.get({"prompt": prompt, "domain": domain})

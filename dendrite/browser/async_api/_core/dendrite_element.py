@@ -55,7 +55,7 @@ def perform_action(interaction_type: Interaction):
 
             page_before = await self._dendrite_browser.get_active_page()
             page_before_info = await page_before.get_page_information()
-            soup = await page_before._get_previous_soup() 
+            soup = await page_before._get_previous_soup()
             screenshot_before = page_before_info.screenshot_base64
             tag_name = soup.find(attrs={"d-id": self.dendrite_id})
             # Call the original method here
@@ -65,12 +65,13 @@ def perform_action(interaction_type: Interaction):
                 *args,
                 **kwargs,
             )
-            
+
             await self._wait_for_page_changes(page_before.url)
 
             page_after = await self._dendrite_browser.get_active_page()
-            screenshot_after = await page_after.screenshot_manager.take_full_page_screenshot()
-            
+            screenshot_after = (
+                await page_after.screenshot_manager.take_full_page_screenshot()
+            )
 
             dto = VerifyActionDTO(
                 url=page_before.url,
@@ -79,14 +80,13 @@ def perform_action(interaction_type: Interaction):
                 expected_outcome=expected_outcome,
                 screenshot_before=screenshot_before,
                 screenshot_after=screenshot_after,
-                tag_name = str(tag_name),
+                tag_name=str(tag_name),
             )
             res = await self._browser_api_client.verify_action(dto)
 
             if res.status == "failed":
                 raise IncorrectOutcomeError(
-                    message=res.message,
-                    screenshot_base64=screenshot_after
+                    message=res.message, screenshot_base64=screenshot_after
                 )
 
             return res

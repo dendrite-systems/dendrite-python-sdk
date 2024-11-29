@@ -12,9 +12,7 @@ from dendrite.models.response.interaction_response import InteractionResponse
 
 class BrowserAPIClient(HTTPClient):
 
-    async def get_element(
-        self, dto: GetElementsDTO
-    ) -> GetElementResponse:
+    async def get_element(self, dto: GetElementsDTO) -> GetElementResponse:
         res = await self.send_request(
             "actions/get-interaction-selector", data=dto.model_dump(), method="POST"
         )

@@ -1,4 +1,3 @@
-
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import threading
@@ -48,11 +47,10 @@ def run_coroutine_sync(coroutine: Coroutine[Any, Any, T], timeout: float = 30) -
     else:
         return asyncio.run_coroutine_threadsafe(coroutine, loop).result()
 
+
 class LogicAPIProtocol(Protocol):
 
-    def get_element(
-        self, dto: GetElementsDTO
-    ) -> GetElementResponse: ...
+    def get_element(self, dto: GetElementsDTO) -> GetElementResponse: ...
 
     def verify_action(self, dto: VerifyActionDTO) -> InteractionResponse: ...
 
@@ -64,12 +62,12 @@ class LogicAPIProtocol(Protocol):
 class LocalProtocol(LogicAPIProtocol):
     def get_element(self, dto: GetElementsDTO) -> GetElementResponse:
         return run_coroutine_sync(get_element.get_element(dto))
-    
+
     def extract(self, dto: ExtractDTO) -> ExtractResponse:
         return run_coroutine_sync(extract.extract(dto))
-    
+
     def verify_action(self, dto: VerifyActionDTO) -> InteractionResponse:
         return run_coroutine_sync(verify_interaction.verify_action(dto))
-    
+
     def ask_page(self, dto: AskPageDTO) -> AskPageResponse:
         return run_coroutine_sync(ask.ask_page_action(dto))

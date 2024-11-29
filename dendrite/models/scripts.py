@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class Script(BaseModel):
     url: str
     domain: str

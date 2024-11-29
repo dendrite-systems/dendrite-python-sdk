@@ -35,20 +35,20 @@ async def expand_iframes(
 
     for frame in page.frames:
         if frame.parent_frame is None:
-            continue  # Skip the main frame 
+            continue  # Skip the main frame
         try:
             iframe_element = await frame.frame_element()
-        
+
             iframe_id = await iframe_element.get_attribute("d-id")
             if iframe_id is None:
                 continue
             iframe_path = await get_iframe_path(frame)
         except Error as e:
             continue
-        
+
         if iframe_path is None:
             continue
-        
+
         try:
             await frame.evaluate(
                 GENERATE_DENDRITE_IDS_IFRAME_SCRIPT, {"frame_path": iframe_path}

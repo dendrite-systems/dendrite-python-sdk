@@ -3,7 +3,9 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Literal, Optional
-from openai.types.chat.chat_completion_content_part_param import ChatCompletionContentPartParam
+from openai.types.chat.chat_completion_content_part_param import (
+    ChatCompletionContentPartParam,
+)
 
 from loguru import logger
 
@@ -131,11 +133,8 @@ class ScrollAgent(Agent):
         logger.error(error_message)
         messages.append({"role": "user", "content": error_message})
         raise Exception(error_message)
-    
 
-    def create_initial_message(
-        self, combined_prompt: str, first_image: str
-    ) -> Message:
+    def create_initial_message(self, combined_prompt: str, first_image: str) -> Message:
         content: List[ChatCompletionContentPartParam] = [
             {
                 "type": "text",
@@ -200,13 +199,11 @@ Important: Only output one json object per message.
 
 Below is a screenshot of the current page, if it looks blank or empty it could still be loading. If this is the case, don't guess what elements to inspect, respond with is loading.""",
             },
-            {"type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{first_image}"
-            }
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{first_image}"},
             },
         ]
-
 
         msg: Message = {"role": "user", "content": content}
         return msg

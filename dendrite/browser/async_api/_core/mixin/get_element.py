@@ -196,12 +196,10 @@ class GetElementMixin(DendritePageProtocol):
             Union[AsyncElement, List[AsyncElement], AsyncElementsResponse]: The retrieved element, list of elements, or response object.
         """
 
-
         start_time = time.time()
 
         # First, let's check if there is a cached selector
         page = await self._get_page()
-
 
         # If we have cached elements, attempt to use them with an exponentation backoff
         if use_cache == True:
@@ -238,8 +236,6 @@ class GetElementMixin(DendritePageProtocol):
             f"Failed to retrieve elements within the specified timeout of {timeout} seconds"
         )
         return None
-
-
 
 
 async def attempt_with_backoff(

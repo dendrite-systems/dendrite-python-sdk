@@ -162,8 +162,6 @@ class ExtractionMixin(DendritePageProtocol):
         return None
 
 
-
-
 async def attempt_extraction_with_backoff(
     obj: DendritePageProtocol,
     prompt: str,

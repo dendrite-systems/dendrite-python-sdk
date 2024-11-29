@@ -14,16 +14,14 @@ from dendrite.models.response.extract_response import ExtractResponse
 # from your_module import WebScrapingAgent, run_script_if_cached
 
 
-async def test_cache(
-    extract_dto: ExtractDTO
-) -> Optional[ExtractResponse]:
+async def test_cache(extract_dto: ExtractDTO) -> Optional[ExtractResponse]:
     try:
 
         cached_script_res = await get_working_cached_script(
-            extract_dto.combined_prompt,            
+            extract_dto.combined_prompt,
             extract_dto.page_information.raw_html,
             extract_dto.page_information.url,
-            extract_dto.return_data_json_schema
+            extract_dto.return_data_json_schema,
         )
 
         if cached_script_res is None:
@@ -51,7 +49,10 @@ class InMemoryLockManager:
     events = {}
     global_lock = asyncio.Lock()
 
-    def __init__(self, extract_page_dto: ExtractDTO,):
+    def __init__(
+        self,
+        extract_page_dto: ExtractDTO,
+    ):
         self.key = self.generate_key(extract_page_dto)
 
     def generate_key(self, extract_page_dto: ExtractDTO) -> str:
@@ -102,10 +103,7 @@ class InMemoryLockManager:
                 InMemoryLockManager.events.pop(self.key, None)
 
 
-
-async def extract(
-    extract_page_dto: ExtractDTO
-) -> ExtractResponse:
+async def extract(extract_page_dto: ExtractDTO) -> ExtractResponse:
     # Check cache usage flags
     if extract_page_dto.use_cache or extract_page_dto.force_use_cache:
         res = await test_cache(extract_page_dto)
@@ -137,12 +135,12 @@ async def extract(
         return res
 
 
-
-async def generate_script(extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager) -> ExtractResponse:
+async def generate_script(
+    extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager
+) -> ExtractResponse:
     try:
         extract_agent = ExtractAgent(
             extract_page_dto.page_information,
-
         )
         res = await extract_agent.write_and_run_script(extract_page_dto)
         await lock_manager.publish("done")
@@ -153,13 +151,16 @@ async def generate_script(extract_page_dto: ExtractDTO, lock_manager: InMemoryLo
     finally:
         await lock_manager.release_lock()
 
-async def wait_for_script_generation(extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager) -> Optional[ExtractResponse]:
-        event = await lock_manager.subscribe()
-        logger.info("Waiting for script to be generated")
-        notification_received = await lock_manager.wait_for_notification(event)
 
-        # If script was created after waiting
-        if notification_received:
-            res = await test_cache(extract_page_dto)
-            if res:
-                return res
+async def wait_for_script_generation(
+    extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager
+) -> Optional[ExtractResponse]:
+    event = await lock_manager.subscribe()
+    logger.info("Waiting for script to be generated")
+    notification_received = await lock_manager.wait_for_notification(event)
+
+    # If script was created after waiting
+    if notification_received:
+        res = await test_cache(extract_page_dto)
+        if res:
+            return res

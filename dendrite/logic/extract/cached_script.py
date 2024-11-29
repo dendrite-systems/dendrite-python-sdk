@@ -19,7 +19,7 @@ async def get_working_cached_script(
     if len(url) == 0:
         raise Exception("Domain must be specified")
 
-    scripts: List[Script] =  [get_script(prompt, domain) or ...]
+    scripts: List[Script] = [get_script(prompt, domain) or ...]
     logger.debug(
         f"Found {len(scripts)} scripts in cache | Prompt: {prompt} in domain: {domain}"
     )

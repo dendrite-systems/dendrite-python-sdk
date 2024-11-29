@@ -33,7 +33,6 @@ class TryRunScriptDTO(BaseModel):
     db_prompt: Optional[str] = None
     return_data_json_schema: Any
 
-
     @property
     def combined_prompt(self) -> str:
         json_schema_prompt = (

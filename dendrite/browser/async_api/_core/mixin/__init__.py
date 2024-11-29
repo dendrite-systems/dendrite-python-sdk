@@ -1,4 +1,3 @@
-
 from .ask import AskMixin
 from .click import ClickMixin
 from .extract import ExtractionMixin
@@ -21,4 +20,3 @@ __all__ = [
     "ScreenshotMixin",
     "WaitForMixin",
 ]
-

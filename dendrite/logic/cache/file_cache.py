@@ -10,7 +10,9 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class FileCache(Generic[T]):
-    def __init__(self, model_class: Type[T], filepath: Union[str, Path] = "./cache.json"):
+    def __init__(
+        self, model_class: Type[T], filepath: Union[str, Path] = "./cache.json"
+    ):
         self.filepath = Path(filepath)
         self.model_class = model_class
         self.lock = threading.RLock()
@@ -47,7 +49,7 @@ class FileCache(Generic[T]):
             }
             self.filepath.write_text(json.dumps(serializable_dict, indent=2))
 
-    def get(self, key: Union[str,Dict[str,str]]) -> Union[T, None]:
+    def get(self, key: Union[str, Dict[str, str]]) -> Union[T, None]:
         hashed_key = self.hash(key)
         return self.cache.get(hashed_key)
 

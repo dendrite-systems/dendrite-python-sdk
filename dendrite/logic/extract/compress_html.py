@@ -422,7 +422,6 @@ class CompressHTML:
         if len(str(self.root)) < 1500:
             return self.root.prettify()
 
-
         # print("time: ", end_time - start_time)
 
         # remove_double_nested(self.root)

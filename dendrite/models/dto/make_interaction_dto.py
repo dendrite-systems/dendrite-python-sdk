@@ -16,4 +16,3 @@ class VerifyActionDTO(BaseModel):
     expected_outcome: str
     screenshot_before: str
     screenshot_after: str
-

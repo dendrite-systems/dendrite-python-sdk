@@ -149,7 +149,6 @@ def strip_soup(soup: BeautifulSoup) -> BeautifulSoup:
     return stripped_soup
 
 
-
 def remove_hidden_elements(soup: BeautifulSoup):
     # data-hidden is added by DendriteBrowser when an element is not visible
     new_soup = copy.copy(soup)

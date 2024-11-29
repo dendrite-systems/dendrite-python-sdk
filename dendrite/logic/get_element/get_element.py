@@ -15,16 +15,13 @@ from dendrite.models.response.get_element_response import GetElementResponse
 from .hanifi_search import hanifi_search
 
 
-
-
 async def get_element(dto: GetElementsDTO) -> GetElementResponse:
     if isinstance(dto.prompt, str):
         return await process_prompt(dto.prompt, dto)
     raise ...
 
-async def process_prompt(
-   prompt: str, dto: GetElementsDTO
-) -> GetElementResponse:
+
+async def process_prompt(prompt: str, dto: GetElementsDTO) -> GetElementResponse:
 
     soup = BeautifulSoup(dto.page_information.raw_html, "lxml")
 
@@ -46,15 +43,18 @@ async def process_prompt(
             used_cache=False,
         )
 
-    return await get_new_element(soup, prompt, dto )
+    return await get_new_element(soup, prompt, dto)
 
-async def get_new_element(soup: BeautifulSoup, prompt: str, dto: GetElementsDTO) -> GetElementResponse:
+
+async def get_new_element(
+    soup: BeautifulSoup, prompt: str, dto: GetElementsDTO
+) -> GetElementResponse:
     soup_without_hidden_elements = remove_hidden_elements(soup)
     element = await hanifi_search(
-            soup_without_hidden_elements,
-            prompt,
-            dto.page_information.time_since_frame_navigated,
-        )
+        soup_without_hidden_elements,
+        prompt,
+        dto.page_information.time_since_frame_navigated,
+    )
     interactable = element[0]
 
     if interactable.status == "success":
@@ -108,4 +108,4 @@ async def check_cache(
 # async def get_cached_selector(dto: GetCachedSelectorDTO) -> Optional[Selector]:
 #     cache = config.element_cache
 #     db_selectors = await get_selector_from_cache(dto.url, dto.prompt, cache)
-#     return db_selectors 
+#     return db_selectors
