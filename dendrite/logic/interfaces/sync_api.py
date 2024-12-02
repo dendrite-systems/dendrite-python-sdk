@@ -59,7 +59,7 @@ class LogicAPIProtocol(Protocol):
     def ask_page(self, dto: AskPageDTO) -> AskPageResponse: ...
 
 
-class LocalProtocol(LogicAPIProtocol):
+class SyncProtocol(LogicAPIProtocol):
     def get_element(self, dto: GetElementsDTO) -> GetElementResponse:
         return run_coroutine_sync(get_element.get_element(dto))
 

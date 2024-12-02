@@ -28,7 +28,7 @@ class LogicAPIProtocol(Protocol):
     async def ask_page(self, dto: AskPageDTO) -> AskPageResponse: ...
 
 
-class LocalProtocol(LogicAPIProtocol):
+class AsyncProtocol(LogicAPIProtocol):
     async def get_element(self, dto: GetElementsDTO) -> GetElementResponse:
         return await get_element.get_element(dto)
 

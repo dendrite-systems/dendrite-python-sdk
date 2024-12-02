@@ -34,7 +34,7 @@ typing-extensions = "^4.12.0"
 loguru = "^0.7.2"
 httpx = "^0.27.2"
 markdownify = "^0.13.1"
-litellm = "^1.52.6"
+litellm = "^1.52.9"
 pillow = "^11.0.0"
 json-repair = "^0.30.1"
 
@@ -48,13 +48,15 @@ pylint-pydantic = "^0.3.2"
 flake8 = "^7.1.1"
 pytest = "^8.3.3"
 pytest-asyncio = "^0.24.0"
+autoflake = "^2.3.1"
+isort = "^5.13.2"
 
 [tool.pylint]
 load-plugins = "pylint_pydantic"
 
 [tool.poe.tasks]
 generate_sync = "python scripts/generate_sync.py"
-format_sync = "python -m black ./dendrite/sync_api/"
+format_sync = "python -m black ./dendrite//browser/sync_api/"
 build_sync = ["generate_sync", "format_sync"]
 test_sync = "pytest tests/tests_sync"
 

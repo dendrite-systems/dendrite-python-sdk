@@ -215,6 +215,21 @@ tests = ["cloudpickle", "hypothesis", "mypy (>=1.11.1)", "pympler", "pytest (>=4
 tests-mypy = ["mypy (>=1.11.1)", "pytest-mypy-plugins"]
 
 [[package]]
+name = "autoflake"
+version = "2.3.1"
+description = "Removes unused imports and unused variables"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "autoflake-2.3.1-py3-none-any.whl", hash = "sha256:3ae7495db9084b7b32818b4140e6dc4fc280b712fb414f5b8fe57b0a8e85a840"},
+    {file = "autoflake-2.3.1.tar.gz", hash = "sha256:c98b75dc5b0a86459c4f01a1d32ac7eb4338ec4317a4469515ff1e687ecd909e"},
+]
+
+[package.dependencies]
+pyflakes = ">=3.0.0"
+tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
+
+[[package]]
 name = "autopep8"
 version = "2.3.1"
 description = "A tool that automatically formats Python code to conform to the PEP 8 style guide"
@@ -1058,13 +1073,13 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "litellm"
-version = "1.52.6"
+version = "1.52.9"
 description = "Library to easily interface with LLM API providers"
 optional = false
 python-versions = "!=2.7.*,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,!=3.7.*,>=3.8"
 files = [
-    {file = "litellm-1.52.6-py3-none-any.whl", hash = "sha256:9b3e9fb51f7e2a3cc8b50997b346c55aae9435a138d9a656f18e262750a1bfe1"},
-    {file = "litellm-1.52.6.tar.gz", hash = "sha256:d67c653f97bd07f503b975c167de1e25632b7bc6bb3c008c46921e4acc81ec60"},
+    {file = "litellm-1.52.9-py3-none-any.whl", hash = "sha256:a1ef5561d220d77059a359da497f0ab04c721205c6795f151b07be5bbe51fe45"},
+    {file = "litellm-1.52.9.tar.gz", hash = "sha256:73a05fed76cfac4357ee4117f28608209db891223fb9c6e03dddfe1723666437"},
 ]
 
 [package.dependencies]
@@ -2781,4 +2796,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "80acd51d9be644348cf82ebcd258b260ea43a8a30b5d3025af70f75e5961c5b6"
+content-hash = "f08f549a61b2efdf0e4a859882fe6009ecc47d4cddff3fbdffec73e7ed5ad28a"

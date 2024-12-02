@@ -7,8 +7,16 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib  # type: ignore # tomllib is only included standard lib for python 3.11+
 
+AGENTS = Literal[
+    "extract_agent",
+    "scroll_agent",
+    "ask_page_agent",
+    "segment_agent",
+    "select_agent",
+    "verify_action_agent",
+]
 
-DEFAULT_LLM = {
+DEFAULT_LLM: Dict[str, LLM] = {
     "extract_agent": LLM(
         "claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500
     ),

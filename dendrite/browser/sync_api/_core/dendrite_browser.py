@@ -4,18 +4,16 @@ import re
 from abc import ABC
 from typing import Any, List, Optional, Sequence, Union
 from uuid import uuid4
-
 from loguru import logger
-from playwright.async_api import (
+from playwright.sync_api import (
     BrowserContext,
     Download,
     Error,
     FileChooser,
     FilePayload,
     Playwright,
-    async_playwright,
+    sync_playwright,
 )
-
 from dendrite.browser._common._exceptions.dendrite_exception import (
     BrowserNotLaunchedError,
     DendriteException,
@@ -23,13 +21,13 @@ from dendrite.browser._common._exceptions.dendrite_exception import (
 )
 from dendrite.browser._common.constants import STEALTH_ARGS
 from dendrite.models.api_config import APIConfig
-from dendrite.browser.async_api._core._impl_browser import ImplBrowser
-from dendrite.browser.async_api._core._impl_mapping import get_impl
-from dendrite.browser.async_api._core._managers.page_manager import PageManager
-from dendrite.browser.async_api._core._type_spec import PlaywrightPage
-from dendrite.browser.async_api._core.dendrite_page import AsyncPage
-from dendrite.browser.async_api._core.event_sync import EventSync
-from dendrite.browser.async_api._core.mixin import (
+from dendrite.browser.sync_api._core._impl_browser import ImplBrowser
+from dendrite.browser.sync_api._core._impl_mapping import get_impl
+from dendrite.browser.sync_api._core._managers.page_manager import PageManager
+from dendrite.browser.sync_api._core._type_spec import PlaywrightPage
+from dendrite.browser.sync_api._core.dendrite_page import Page
+from dendrite.browser.sync_api._core.event_sync import EventSync
+from dendrite.browser.sync_api._core.mixin import (
     AskMixin,
     ClickMixin,
     ExtractionMixin,
@@ -41,10 +39,10 @@ from dendrite.browser.async_api._core.mixin import (
     WaitForMixin,
 )
 from dendrite.browser.remote import Providers
-from dendrite.logic.interfaces import AsyncProtocol
+from dendrite.logic.interfaces import SyncProtocol
 
 
-class AsyncDendrite(
+class Dendrite(
     ScreenshotMixin,
     WaitForMixin,
     MarkdownMixin,
@@ -57,14 +55,14 @@ class AsyncDendrite(
     ABC,
 ):
     """
-    AsyncDendrite is a class that manages a browser instance using Playwright, allowing
+    Dendrite is a class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
     This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
     contexts, and provides methods for navigation, authentication, and other browser-related tasks.
 
     Attributes:
-        id (UUID): The unique identifier for the AsyncDendrite instance.
+        id (UUID): The unique identifier for the Dendrite instance.
         auth_data (Optional[AuthSession]): The authentication session data for the browser.
         dendrite_api_key (str): The API key for Dendrite, used for interactions with the Dendrite API.
         playwright_options (dict): Options for configuring the Playwright browser instance.
@@ -81,14 +79,11 @@ class AsyncDendrite(
 
     def __init__(
         self,
-        playwright_options: Any = {
-            "headless": False,
-            "args": STEALTH_ARGS,
-        },
+        playwright_options: Any = {"headless": False, "args": STEALTH_ARGS},
         remote_config: Optional[Providers] = None,
     ):
         """
-        Initializes AsyncDendrite with API keys and Playwright options.
+        Initializes Dendrite with API keys and Playwright options.
 
         Args:
             dendrite_api_key (Optional[str]): The Dendrite API key. If not provided, it's fetched from the environment variables.
@@ -99,19 +94,9 @@ class AsyncDendrite(
         Raises:
             MissingApiKeyError: If the Dendrite API key is not provided or found in the environment variables.
         """
-
-        # api_config = APIConfig(
-        #     dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
-        #     openai_api_key=openai_api_key,
-        #     anthropic_api_key=anthropic_api_key,
-        # )
-
         self._impl = self._get_impl(remote_config)
-
-        # self.api_config = api_config
         self.playwright: Optional[Playwright] = None
         self.browser_context: Optional[BrowserContext] = None
-
         self._id = uuid4().hex
         self._playwright_options = playwright_options
         self._active_page_manager: Optional[PageManager] = None
@@ -119,62 +104,56 @@ class AsyncDendrite(
         self._upload_handler = EventSync(event_type=FileChooser)
         self._download_handler = EventSync(event_type=Download)
         self.closed = False
-        self._browser_api_client: AsyncProtocol = AsyncProtocol()
+        self._browser_api_client: SyncProtocol = SyncProtocol()
 
     @property
-    def pages(self) -> List[AsyncPage]:
+    def pages(self) -> List[Page]:
         """
         Retrieves the list of active pages managed by the PageManager.
 
         Returns:
-            List[AsyncPage]: The list of active pages.
+            List[Page]: The list of active pages.
         """
         if self._active_page_manager:
             return self._active_page_manager.pages
         else:
             raise BrowserNotLaunchedError()
 
-    async def _get_page(self) -> AsyncPage:
-        active_page = await self.get_active_page()
+    def _get_page(self) -> Page:
+        active_page = self.get_active_page()
         return active_page
 
-    def _get_logic_api(self) -> AsyncProtocol:
+    def _get_logic_api(self) -> SyncProtocol:
         return self._browser_api_client
 
-    def _get_dendrite_browser(self) -> "AsyncDendrite":
+    def _get_dendrite_browser(self) -> "Dendrite":
         return self
 
-    async def __aenter__(self):
+    def __enter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        # Ensure cleanup is handled
-        await self.close()
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def _get_impl(self, remote_provider: Optional[Providers]) -> ImplBrowser:
-        # if remote_provider is None:)
         return get_impl(remote_provider)
 
-    async def get_active_page(self) -> AsyncPage:
+    def get_active_page(self) -> Page:
         """
         Retrieves the currently active page managed by the PageManager.
 
         Returns:
-            AsyncPage: The active page object.
+            Page: The active page object.
 
         Raises:
             Exception: If there is an issue retrieving the active page.
         """
+        active_page_manager = self._get_active_page_manager()
+        return active_page_manager.get_active_page()
 
-        active_page_manager = await self._get_active_page_manager()
-        return await active_page_manager.get_active_page()
-
-    async def new_tab(
-        self,
-        url: str,
-        timeout: Optional[float] = 15000,
-        expected_page: str = "",
-    ) -> AsyncPage:
+    def new_tab(
+        self, url: str, timeout: Optional[float] = 15000, expected_page: str = ""
+    ) -> Page:
         """
         Opens a new tab and navigates to the specified URL.
 
@@ -184,22 +163,22 @@ class AsyncDendrite(
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
-            AsyncPage: The page object after navigation.
+            Page: The page object after navigation.
 
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
-        return await self.goto(
+        return self.goto(
             url, new_tab=True, timeout=timeout, expected_page=expected_page
         )
 
-    async def goto(
+    def goto(
         self,
         url: str,
         new_tab: bool = False,
         timeout: Optional[float] = 15000,
         expected_page: str = "",
-    ) -> AsyncPage:
+    ) -> Page:
         """
         Navigates to the specified URL, optionally in a new tab
 
@@ -210,39 +189,34 @@ class AsyncDendrite(
             expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
 
         Returns:
-            AsyncPage: The page object after navigation.
+            Page: The page object after navigation.
 
         Raises:
             Exception: If there is an error during navigation or if the expected page type is not found.
         """
-        # Check if the URL has a protocol
-        if not re.match(r"^\w+://", url):
+        if not re.match("^\\w+://", url):
             url = f"https://{url}"
-
-        active_page_manager = await self._get_active_page_manager()
-
+        active_page_manager = self._get_active_page_manager()
         if new_tab:
-            active_page = await active_page_manager.new_page()
+            active_page = active_page_manager.new_page()
         else:
-            active_page = await active_page_manager.get_active_page()
+            active_page = active_page_manager.get_active_page()
         try:
             logger.info(f"Going to {url}")
-            await active_page.playwright_page.goto(url, timeout=timeout)
+            active_page.playwright_page.goto(url, timeout=timeout)
         except TimeoutError:
             logger.debug("Timeout when loading page but continuing anyways.")
         except Exception as e:
             logger.debug(f"Exception when loading page but continuing anyways. {e}")
-
         if expected_page != "":
             try:
                 prompt = f"We are checking if we have arrived on the expected type of page. If it is apparent that we have arrived on the wrong page, output an error. Here is the description: '{expected_page}'"
-                await active_page.ask(prompt, bool)
+                active_page.ask(prompt, bool)
             except DendriteException as e:
                 raise IncorrectOutcomeError(f"Incorrect navigation, reason: {e}")
-
         return active_page
 
-    async def scroll_to_bottom(
+    def scroll_to_bottom(
         self,
         timeout: float = 30000,
         scroll_increment: int = 1000,
@@ -254,14 +228,14 @@ class AsyncDendrite(
         Returns:
             None
         """
-        active_page = await self.get_active_page()
-        await active_page.scroll_to_bottom(
+        active_page = self.get_active_page()
+        active_page.scroll_to_bottom(
             timeout=timeout,
             scroll_increment=scroll_increment,
             no_progress_limit=no_progress_limit,
         )
 
-    async def _launch(self):
+    def _launch(self):
         """
         Launches the Playwright instance and sets up the browser context and page manager.
 
@@ -275,27 +249,16 @@ class AsyncDendrite(
             Exception: If there is an issue launching the browser or setting up the context.
         """
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
-        self._playwright = await async_playwright().start()
-
-        # browser = await self._playwright.chromium.launch(**self._playwright_options)
-
-        browser = await self._impl.start_browser(
-            self._playwright, self._playwright_options
-        )
-
+        self._playwright = sync_playwright().start()
+        browser = self._impl.start_browser(self._playwright, self._playwright_options)
         self.browser_context = (
-            browser.contexts[0]
-            if len(browser.contexts) > 0
-            else await browser.new_context()
+            browser.contexts[0] if len(browser.contexts) > 0 else browser.new_context()
         )
-
         self._active_page_manager = PageManager(self, self.browser_context)
+        self._impl.configure_context(self)
+        return (browser, self.browser_context, self._active_page_manager)
 
-        await self._impl.configure_context(self)
-
-        return browser, self.browser_context, self._active_page_manager
-
-    async def add_cookies(self, cookies):
+    def add_cookies(self, cookies):
         """
         Adds cookies to the current browser context.
 
@@ -307,10 +270,9 @@ class AsyncDendrite(
         """
         if not self.browser_context:
             raise DendriteException("Browser context not initialized")
+        self.browser_context.add_cookies(cookies)
 
-        await self.browser_context.add_cookies(cookies)
-
-    async def close(self):
+    def close(self):
         """
         Closes the browser and uploads authentication session data if available.
 
@@ -322,17 +284,16 @@ class AsyncDendrite(
         Raises:
             Exception: If there is an issue closing the browser or uploading session data.
         """
-
         self.closed = True
         try:
             if self.browser_context:
-                await self._impl.stop_session()
-                await self.browser_context.close()
+                self._impl.stop_session()
+                self.browser_context.close()
         except Error:
             pass
         try:
             if self._playwright:
-                await self._playwright.stop()
+                self._playwright.stop()
         except AttributeError:
             pass
         except Exception:
@@ -347,7 +308,7 @@ class AsyncDendrite(
         """
         return self.browser_context is not None
 
-    async def _get_active_page_manager(self) -> PageManager:
+    def _get_active_page_manager(self) -> PageManager:
         """
         Retrieves the active PageManager instance, launching the browser if necessary.
 
@@ -358,12 +319,11 @@ class AsyncDendrite(
             Exception: If there is an issue launching the browser or retrieving the PageManager.
         """
         if not self._active_page_manager:
-            _, _, active_page_manager = await self._launch()
+            (_, _, active_page_manager) = self._launch()
             return active_page_manager
-
         return self._active_page_manager
 
-    async def get_download(self, timeout: float) -> Download:
+    def get_download(self, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -373,11 +333,11 @@ class AsyncDendrite(
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        active_page = await self.get_active_page()
+        active_page = self.get_active_page()
         pw_page = active_page.playwright_page
-        return await self._get_download(pw_page, timeout)
+        return self._get_download(pw_page, timeout)
 
-    async def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
+    def _get_download(self, pw_page: PlaywrightPage, timeout: float) -> Download:
         """
         Retrieves the download event from the browser.
 
@@ -387,9 +347,9 @@ class AsyncDendrite(
         Raises:
             Exception: If there is an issue retrieving the download event.
         """
-        return await self._download_handler.get_data(pw_page, timeout=timeout)
+        return self._download_handler.get_data(pw_page, timeout=timeout)
 
-    async def upload_files(
+    def upload_files(
         self,
         files: Union[
             str,
@@ -411,12 +371,11 @@ class AsyncDendrite(
         Returns:
             None
         """
-        page = await self.get_active_page()
+        page = self.get_active_page()
+        file_chooser = self._get_filechooser(page.playwright_page, timeout)
+        file_chooser.set_files(files)
 
-        file_chooser = await self._get_filechooser(page.playwright_page, timeout)
-        await file_chooser.set_files(files)
-
-    async def _get_filechooser(
+    def _get_filechooser(
         self, pw_page: PlaywrightPage, timeout: float = 30000
     ) -> FileChooser:
         """
@@ -431,4 +390,4 @@ class AsyncDendrite(
         Raises:
             Exception: If there is an issue uploading files.
         """
-        return await self._upload_handler.get_data(pw_page, timeout=timeout)
+        return self._upload_handler.get_data(pw_page, timeout=timeout)

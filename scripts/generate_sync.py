@@ -279,8 +279,8 @@ def get_uncommitted_diff(folder):
 
 
 if __name__ == "__main__":
-    source_dir = "dendrite/async_api"
-    target_dir = "dendrite/sync_api"
+    source_dir = "dendrite/browser/async_api"
+    target_dir = "dendrite/browser/sync_api"
     renames = {
         "AsyncBrowserbaseDownload": "BrowserbaseDownload",
         "AsyncBrowserbaseBrowser": "BrowserbaseBrowser",
@@ -289,6 +289,7 @@ if __name__ == "__main__":
         "AsyncPage": "Page",
         "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",
         "AsyncElementsResponse": "ElementsResponse",
+        "AsyncProtocol": "SyncProtocol",
     }
 
     if check_for_uncommitted_changes(target_dir):

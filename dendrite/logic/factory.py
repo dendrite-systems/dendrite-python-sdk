@@ -1,6 +1,6 @@
 # from typing import Literal, Optional
 
-# from dendrite.logic.interfaces.async_api import LogicAPIProtocol
+# from dendrite.logic.interfaces import AsyncProtocol
 
 
 # class BrowserAPIFactory:

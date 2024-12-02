@@ -7,6 +7,13 @@ from dendrite.browser.async_api import (
     AsyncElementsResponse,
 )
 
+from dendrite.browser.sync_api import (
+    Dendrite,
+    Element,
+    Page,
+    ElementsResponse,
+)
+
 # logger.remove()
 
 # fmt = "<green>{time: HH:mm:ss.SSS}</green> | <level>{level: <8}</level>- <level>{message}</level>"
@@ -19,4 +26,8 @@ __all__ = [
     "AsyncElement",
     "AsyncPage",
     "AsyncElementsResponse",
+    "Dendrite",
+    "Element",
+    "Page",
+    "ElementsResponse",
 ]
