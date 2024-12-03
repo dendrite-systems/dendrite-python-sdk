@@ -6,6 +6,7 @@ from dendrite.browser.sync_api._core._type_spec import PlaywrightPage
 from dendrite.browser.sync_api._core.dendrite_element import Element
 from dendrite.browser.sync_api._core.models.response import ElementsResponse
 from dendrite.models.response.get_element_response import GetElementResponse
+from dendrite.models.selector import Selector
 
 if TYPE_CHECKING:
     from dendrite.browser.sync_api._core.dendrite_page import Page
@@ -81,24 +82,12 @@ def _get_all_elements_from_selector_soup(
 
 
 def get_elements_from_selectors_soup(
-    page: "Page", soup: BeautifulSoup, res: GetElementResponse, only_one: bool
-) -> Union[Optional[Element], List[Element], ElementsResponse]:
-    if isinstance(res.selectors, dict):
-        result = {}
-        for key, selectors in res.selectors.items():
-            for selector in selectors:
-                dendrite_elements = _get_all_elements_from_selector_soup(
-                    selector, soup, page
-                )
-                if len(dendrite_elements) > 0:
-                    result[key] = dendrite_elements[0]
-                    break
-        return ElementsResponse(result)
-    elif isinstance(res.selectors, list):
-        for selector in reversed(res.selectors):
-            dendrite_elements = _get_all_elements_from_selector_soup(
-                selector, soup, page
-            )
-            if len(dendrite_elements) > 0:
-                return dendrite_elements[0] if only_one else dendrite_elements
+    page: "Page", soup: BeautifulSoup, selectors: List[Selector], only_one: bool
+) -> Union[Optional[Element], List[Element]]:
+    for selector in reversed(selectors):
+        dendrite_elements = _get_all_elements_from_selector_soup(
+            selector.selector, soup, page
+        )
+        if len(dendrite_elements) > 0:
+            return dendrite_elements[0] if only_one else dendrite_elements
     return None

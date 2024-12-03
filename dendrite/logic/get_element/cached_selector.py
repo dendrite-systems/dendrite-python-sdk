@@ -1,15 +1,9 @@
 from datetime import datetime
-from typing import Optional, Type
+from typing import Optional
 from urllib.parse import urlparse
-
-from bs4 import BeautifulSoup
-from loguru import logger
-from pydantic import BaseModel
-
 
 from dendrite.logic.cache.file_cache import FileCache
 from dendrite.models.selector import Selector
-from dendrite.logic.config import config
 
 
 async def get_selector_from_cache(
@@ -20,8 +14,9 @@ async def get_selector_from_cache(
     return cache.get({"netloc": netloc, "prompt": prompt})
 
 
-async def add_selector_to_cache(prompt: str, bs4_selector: str, url: str) -> None:
-    cache = config.element_cache
+async def add_selector_to_cache(
+    prompt: str, bs4_selector: str, url: str, cache: FileCache[Selector]
+) -> None:
     created_at = datetime.now().isoformat()
     netloc = urlparse(url).netloc
     selector: Selector = Selector(

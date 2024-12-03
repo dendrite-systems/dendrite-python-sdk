@@ -1,13 +1,14 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import threading
-from typing import Any, Coroutine, Protocol, TypeVar
+from typing import Any, Coroutine, List, Protocol, TypeVar
 
-from dendrite.browser.async_api._core.models.authentication import AuthSession
+from dendrite.logic.config import Config
 from dendrite.logic.get_element import get_element
 from dendrite.models.dto.ask_page_dto import AskPageDTO
+from dendrite.models.dto.cached_selector_dto import CachedSelectorDTO
 from dendrite.models.dto.extract_dto import ExtractDTO
-from dendrite.models.dto.get_elements_dto import CheckSelectorCacheDTO, GetElementsDTO
+from dendrite.models.dto.get_elements_dto import GetElementsDTO
 from dendrite.models.dto.make_interaction_dto import VerifyActionDTO
 from dendrite.models.response.ask_page_response import AskPageResponse
 
@@ -18,6 +19,7 @@ from dendrite.models.response.interaction_response import InteractionResponse
 from dendrite.logic.ask import ask
 from dendrite.logic.extract import extract
 from dendrite.logic import verify_interaction
+from dendrite.models.selector import Selector
 
 
 T = TypeVar("T")
@@ -60,14 +62,21 @@ class LogicAPIProtocol(Protocol):
 
 
 class SyncProtocol(LogicAPIProtocol):
+
+    def __init__(self, config: Config):
+        self._config = config
+
     def get_element(self, dto: GetElementsDTO) -> GetElementResponse:
-        return run_coroutine_sync(get_element.get_element(dto))
+        return run_coroutine_sync(get_element.get_element(dto, self._config))
+
+    def get_cached_selectors(self, dto: CachedSelectorDTO) -> List[Selector]:
+        return run_coroutine_sync(get_element.get_cached_selector(dto, self._config))
 
     def extract(self, dto: ExtractDTO) -> ExtractResponse:
-        return run_coroutine_sync(extract.extract(dto))
+        return run_coroutine_sync(extract.extract(dto, self._config))
 
     def verify_action(self, dto: VerifyActionDTO) -> InteractionResponse:
-        return run_coroutine_sync(verify_interaction.verify_action(dto))
+        return run_coroutine_sync(verify_interaction.verify_action(dto, self._config))
 
     def ask_page(self, dto: AskPageDTO) -> AskPageResponse:
-        return run_coroutine_sync(ask.ask_page_action(dto))
+        return run_coroutine_sync(ask.ask_page_action(dto, self._config))

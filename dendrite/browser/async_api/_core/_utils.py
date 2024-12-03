@@ -8,6 +8,7 @@ from dendrite.browser.async_api._core._type_spec import PlaywrightPage
 from dendrite.browser.async_api._core.dendrite_element import AsyncElement
 from dendrite.browser.async_api._core.models.response import AsyncElementsResponse
 from dendrite.models.response.get_element_response import GetElementResponse
+from dendrite.models.selector import Selector
 
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_page import AsyncPage
@@ -102,27 +103,16 @@ async def _get_all_elements_from_selector_soup(
 async def get_elements_from_selectors_soup(
     page: "AsyncPage",
     soup: BeautifulSoup,
-    res: GetElementResponse,
+    selectors: List[Selector],
     only_one: bool,
-) -> Union[Optional[AsyncElement], List[AsyncElement], AsyncElementsResponse]:
-    if isinstance(res.selectors, dict):
-        result = {}
-        for key, selectors in res.selectors.items():
-            for selector in selectors:
-                dendrite_elements = await _get_all_elements_from_selector_soup(
-                    selector, soup, page
-                )
-                if len(dendrite_elements) > 0:
-                    result[key] = dendrite_elements[0]
-                    break
-        return AsyncElementsResponse(result)
-    elif isinstance(res.selectors, list):
-        for selector in reversed(res.selectors):
-            dendrite_elements = await _get_all_elements_from_selector_soup(
-                selector, soup, page
-            )
+) -> Union[Optional[AsyncElement], List[AsyncElement]]:
 
-            if len(dendrite_elements) > 0:
-                return dendrite_elements[0] if only_one else dendrite_elements
+    for selector in reversed(selectors):
+        dendrite_elements = await _get_all_elements_from_selector_soup(
+            selector.selector, soup, page
+        )
+
+        if len(dendrite_elements) > 0:
+            return dendrite_elements[0] if only_one else dendrite_elements
 
     return None

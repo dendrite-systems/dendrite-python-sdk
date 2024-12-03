@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from dendrite.browser._common.types import Status
 from dendrite.logic.llm.agent import Agent
-from dendrite.logic.llm.config import llm_config
+from dendrite.logic.llm.config import LLMConfig
 
 from ..hanifi_segment import SelectedTag
 from .prompts import SELECT_PROMPT
@@ -24,6 +24,7 @@ async def select_best_tag(
     tags: List[SelectedTag],
     prompt: str,
     time_since_frame_navigated: Optional[float],
+    llm_config: LLMConfig,
     return_several: bool = False,
 ) -> Tuple[int, int, Optional[SelectAgentResponse]]:
 

@@ -2,11 +2,6 @@ from typing import Dict, Literal, Optional, overload
 
 from dendrite.logic.llm.agent import LLM
 
-try:
-    import tomllib  # type: ignore
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore # tomllib is only included standard lib for python 3.11+
-
 AGENTS = Literal[
     "extract_agent",
     "scroll_agent",
@@ -107,7 +102,3 @@ class LLMConfig:
             return self.default_llm
 
         return None
-
-
-# Create a single instance
-llm_config = LLMConfig()

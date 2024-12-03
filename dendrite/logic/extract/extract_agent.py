@@ -6,6 +6,7 @@ from typing import Any, List, Optional
 from loguru import logger
 
 from dendrite.logic.cache.utils import save_script
+from dendrite.logic.config import Config
 from dendrite.logic.dom.strip import mild_strip
 from dendrite.logic.extract.prompts import (
     LARGE_HTML_CHAR_TRUNCATE_LEN,
@@ -25,20 +26,16 @@ from bs4 import BeautifulSoup
 from dendrite.models.response.extract_response import ExtractResponse
 from ..code.code_session import CodeSession
 from ..ask.image import segment_image
-from ..llm.config import llm_config
 
 
 class ExtractAgent(Agent):
-    def __init__(
-        self,
-        page_information: PageInformation,
-    ) -> None:
-        super().__init__(llm_config.get("extract_agent"))
+    def __init__(self, page_information: PageInformation, config: Config) -> None:
+        super().__init__(config.llm_config.get("extract_agent"))
         self.page_information = page_information
         self.soup = BeautifulSoup(page_information.raw_html, "lxml")
         self.messages = []
         self.generated_script: Optional[str] = None
-        self.llm_config = llm_config
+        self.config = config
 
     def get_generated_script(self):
         return self.generated_script
@@ -48,13 +45,13 @@ class ExtractAgent(Agent):
     ) -> ExtractResponse:
         mild_soup = mild_strip(self.soup)
 
-        search_terms = []
-
         segments = segment_image(
             extract_page_dto.page_information.screenshot_base64, segment_height=4000
         )
 
-        scroll_agent = ScrollAgent(self.page_information)
+        scroll_agent = ScrollAgent(
+            self.page_information, llm_config=self.config.llm_config
+        )
         scroll_result = await scroll_agent.scroll_through_page(
             extract_page_dto.combined_prompt,
             image_segments=segments,
@@ -80,8 +77,7 @@ class ExtractAgent(Agent):
                 + "\n- ".join(scroll_result.element_to_inspect_html)
             )
             expanded = await get_expanded_dom(
-                mild_soup,
-                combined_prompt,
+                mild_soup, combined_prompt, self.config.llm_config
             )
             if expanded:
                 expanded_html = expanded[0]

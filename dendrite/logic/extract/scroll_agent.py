@@ -10,8 +10,8 @@ from openai.types.chat.chat_completion_content_part_param import (
 from loguru import logger
 
 from dendrite.logic.llm.agent import Agent, Message
+from dendrite.logic.llm.config import LLMConfig
 from dendrite.models.page_information import PageInformation
-from dendrite.logic.llm.config import llm_config
 
 ScrollActionStatus = Literal["done", "scroll_down", "loading", "error"]
 
@@ -64,7 +64,7 @@ class ErrorRes(ScrollRes):
 
 
 class ScrollAgent(Agent):
-    def __init__(self, page_information: PageInformation):
+    def __init__(self, page_information: PageInformation, llm_config: LLMConfig):
         super().__init__(llm_config.get("scroll_agent"))
         self.page_information = page_information
         self.choices: List[ScrollRes] = [

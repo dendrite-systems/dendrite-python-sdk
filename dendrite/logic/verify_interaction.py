@@ -3,14 +3,14 @@ from typing import List
 
 from bs4 import BeautifulSoup
 
+from dendrite.logic.config import Config
 from dendrite.logic.llm.agent import LLM, Agent, Message
-from dendrite.logic.llm.config import llm_config
 from dendrite.models.dto.make_interaction_dto import VerifyActionDTO
 from dendrite.models.response.interaction_response import InteractionResponse
 
 
 async def verify_action(
-    make_interaction_dto: VerifyActionDTO,
+    make_interaction_dto: VerifyActionDTO, config: Config
 ) -> InteractionResponse:
 
     if (
@@ -77,7 +77,7 @@ async def verify_action(
     ]
 
     default = LLM(model="gpt-4o", max_tokens=150)
-    llm = Agent(llm_config.get("verify_action", default))
+    llm = Agent(config.llm_config.get("verify_action", default))
 
     res = await llm.call_llm(messages)
     try:

@@ -14,6 +14,8 @@ from dendrite.browser.sync_api import (
     ElementsResponse,
 )
 
+from dendrite.logic.config import Config
+
 # logger.remove()
 
 # fmt = "<green>{time: HH:mm:ss.SSS}</green> | <level>{level: <8}</level>- <level>{message}</level>"
@@ -30,4 +32,5 @@ __all__ = [
     "Element",
     "Page",
     "ElementsResponse",
+    "Config",
 ]

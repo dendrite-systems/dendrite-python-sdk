@@ -22,7 +22,6 @@ from dendrite.browser._common._exceptions.dendrite_exception import (
     IncorrectOutcomeError,
 )
 from dendrite.browser._common.constants import STEALTH_ARGS
-from dendrite.models.api_config import APIConfig
 from dendrite.browser.async_api._core._impl_browser import ImplBrowser
 from dendrite.browser.async_api._core._impl_mapping import get_impl
 from dendrite.browser.async_api._core._managers.page_manager import PageManager
@@ -41,6 +40,7 @@ from dendrite.browser.async_api._core.mixin import (
     WaitForMixin,
 )
 from dendrite.browser.remote import Providers
+from dendrite.logic.config import Config
 from dendrite.logic.interfaces import AsyncProtocol
 
 
@@ -86,6 +86,7 @@ class AsyncDendrite(
             "args": STEALTH_ARGS,
         },
         remote_config: Optional[Providers] = None,
+        config: Optional[Config] = None,
     ):
         """
         Initializes AsyncDendrite with API keys and Playwright options.
@@ -119,7 +120,8 @@ class AsyncDendrite(
         self._upload_handler = EventSync(event_type=FileChooser)
         self._download_handler = EventSync(event_type=Download)
         self.closed = False
-        self._browser_api_client: AsyncProtocol = AsyncProtocol()
+        self._config = config or Config()
+        self._browser_api_client: AsyncProtocol = AsyncProtocol(self._config)
 
     @property
     def pages(self) -> List[AsyncPage]:

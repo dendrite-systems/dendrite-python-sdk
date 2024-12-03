@@ -1,13 +1,27 @@
 import time
 import time
-from typing import Dict, List, Literal, Optional, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Union,
+    overload,
+)
+from bs4 import BeautifulSoup
 from loguru import logger
-from dendrite.browser.sync_api._core._utils import get_elements_from_selectors_soup
+from dendrite.browser.sync_api._core._utils import _get_all_elements_from_selector_soup
 from dendrite.browser.sync_api._core.dendrite_element import Element
+
+if TYPE_CHECKING:
+    from dendrite.browser.sync_api._core.dendrite_page import Page
 from dendrite.browser.sync_api._core.models.response import ElementsResponse
 from dendrite.browser.sync_api._core.protocol.page_protocol import DendritePageProtocol
-from dendrite.models.dto.get_elements_dto import CheckSelectorCacheDTO, GetElementsDTO
-from dendrite.models.response.get_element_response import GetElementResponse
+from dendrite.models.dto.cached_selector_dto import CachedSelectorDTO
+from dendrite.models.dto.get_elements_dto import GetElementsDTO
 
 CACHE_TIMEOUT = 5
 
@@ -179,32 +193,25 @@ class GetElementMixin(DendritePageProtocol):
         Returns:
             Union[Element, List[Element], ElementsResponse]: The retrieved element, list of elements, or response object.
         """
+        if isinstance(prompt_or_elements, Dict):
+            return None
         start_time = time.time()
         page = self._get_page()
-        if use_cache == True:
-            logger.debug("Attempting to use cached selectors")
-            res = attempt_with_backoff(
-                self,
-                prompt_or_elements,
-                only_one,
-                remaining_timeout=CACHE_TIMEOUT,
-                only_use_cache=True,
+        soup = page._get_soup()
+        if use_cache:
+            cached_elements = self._try_cached_selectors(
+                page, soup, prompt_or_elements, only_one
             )
-            if res:
-                return res
-            else:
-                logger.debug(
-                    f"After attempting to use cached selectors several times without success, let's find the elements using the find element agent."
-                )
+            if cached_elements:
+                return cached_elements
         logger.info(
             "Proceeding to use the find element agent to find the requested elements."
         )
-        res = attempt_with_backoff(
+        res = try_get_element(
             self,
             prompt_or_elements,
             only_one,
             remaining_timeout=timeout - (time.time() - start_time),
-            only_use_cache=False,
         )
         if res:
             return res
@@ -213,35 +220,94 @@ class GetElementMixin(DendritePageProtocol):
         )
         return None
 
+    def _try_cached_selectors(
+        self, page: "Page", soup: BeautifulSoup, prompt: str, only_one: bool
+    ) -> Union[Optional[Element], List[Element]]:
+        """
+        Attempts to retrieve elements using cached selectors with exponential backoff.
 
-def attempt_with_backoff(
+        Args:
+            page: The current page object
+            soup: The BeautifulSoup object of the current page
+            prompt: The prompt to search for
+            only_one: Whether to return only one element
+
+        Returns:
+            The found elements if successful, None otherwise
+        """
+        dto = CachedSelectorDTO(url=page.url, prompt=prompt)
+        selectors = self._get_logic_api().get_cached_selectors(dto)
+        if len(selectors) == 0:
+            logger.debug("No cached selectors found")
+            return None
+        logger.debug("Attempting to use cached selectors with backoff")
+        str_selectors = list(map(lambda x: x.selector, selectors))
+
+        def try_cached_selectors():
+            return get_elements_from_selectors_soup(page, soup, str_selectors, only_one)
+
+        return _attempt_with_backoff_helper(
+            "cached_selectors", try_cached_selectors, timeout=CACHE_TIMEOUT
+        )
+
+
+def _attempt_with_backoff_helper(
+    operation_name: str,
+    operation: Callable,
+    timeout: float,
+    backoff_intervals: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0],
+) -> Optional[Any]:
+    """
+    Generic helper function that implements exponential backoff for operations.
+
+    Args:
+        operation_name: Name of the operation for logging
+        operation: Async function to execute
+        timeout: Maximum time to spend attempting the operation
+        backoff_intervals: List of timeouts between attempts
+
+    Returns:
+        The result of the operation if successful, None otherwise
+    """
+    total_elapsed_time = 0
+    start_time = time.time()
+    for i, current_timeout in enumerate(backoff_intervals):
+        if total_elapsed_time >= timeout:
+            logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
+            return None
+        request_start_time = time.time()
+        result = operation()
+        request_duration = time.time() - request_start_time
+        if result:
+            return result
+        sleep_duration = max(0, current_timeout - request_duration)
+        logger.info(
+            f"{operation_name} attempt {i + 1} failed. Sleeping for {sleep_duration:.2f} seconds"
+        )
+        time.sleep(sleep_duration)
+        total_elapsed_time = time.time() - start_time
+    logger.error(
+        f"All {operation_name} attempts failed after {total_elapsed_time:.2f} seconds"
+    )
+    return None
+
+
+def try_get_element(
     obj: DendritePageProtocol,
     prompt_or_elements: Union[str, Dict[str, str]],
     only_one: bool,
     remaining_timeout: float,
-    only_use_cache: bool = False,
 ) -> Union[Optional[Element], List[Element], ElementsResponse]:
-    TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
-    total_elapsed_time = 0
-    start_time = time.time()
-    for current_timeout in TIMEOUT_INTERVAL:
-        if total_elapsed_time >= remaining_timeout:
-            logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
-            return None
-        request_start_time = time.time()
+
+    def _try_get_element():
         page = obj._get_page()
-        page_information = page.get_page_information(
-            include_screenshot=not only_use_cache
-        )
+        page_information = page.get_page_information()
         dto = GetElementsDTO(
             page_information=page_information,
             prompt=prompt_or_elements,
-            use_cache=only_use_cache,
             only_one=only_one,
-            force_use_cache=only_use_cache,
         )
         res = obj._get_logic_api().get_element(dto)
-        request_duration = time.time() - request_start_time
         if res.status == "impossible":
             logger.error(
                 f"Impossible to get elements for '{prompt_or_elements}'. Reason: {res.message}"
@@ -249,38 +315,22 @@ def attempt_with_backoff(
             return None
         if res.status == "success":
             logger.success(f"d[id]: {res.d_id} Selectors:{res.selectors}")
-            response = get_elements_from_selectors_soup(
-                page, page._get_previous_soup(), res, only_one
-            )
-            if response:
-                return response
-        sleep_duration = max(0, current_timeout - request_duration)
-        logger.info(
-            f"Failed to get elements for prompt:\n\n'{prompt_or_elements}'\n\nStatus: {res.status}\n\nMessage: {res.message}\n\nSleeping for {sleep_duration:.2f} seconds"
-        )
-        time.sleep(sleep_duration)
-        total_elapsed_time = time.time() - start_time
-    logger.error(f"All attempts failed after {total_elapsed_time:.2f} seconds")
-    return None
+            if res.selectors is not None:
+                return get_elements_from_selectors_soup(
+                    page, page._get_previous_soup(), res.selectors, only_one
+                )
+        return None
+
+    return _attempt_with_backoff_helper(
+        "find_element_agent", _try_get_element, remaining_timeout
+    )
 
 
-def get_elements_from_selectors(
-    obj: DendritePageProtocol, res: GetElementResponse, only_one: bool
-) -> Union[Optional[Element], List[Element], ElementsResponse]:
-    if isinstance(res.selectors, dict):
-        result = {}
-        for key, selectors in res.selectors.items():
-            for selector in selectors:
-                page = obj._get_page()
-                dendrite_elements = page._get_all_elements_from_selector(selector)
-                if len(dendrite_elements) > 0:
-                    result[key] = dendrite_elements[0]
-                    break
-        return ElementsResponse(result)
-    elif isinstance(res.selectors, list):
-        for selector in reversed(res.selectors):
-            page = obj._get_page()
-            dendrite_elements = page._get_all_elements_from_selector(selector)
-            if len(dendrite_elements) > 0:
-                return dendrite_elements[0] if only_one else dendrite_elements
+def get_elements_from_selectors_soup(
+    page: "Page", soup: BeautifulSoup, selectors: List[str], only_one: bool
+) -> Union[Optional[Element], List[Element]]:
+    for selector in reversed(selectors):
+        dendrite_elements = _get_all_elements_from_selector_soup(selector, soup, page)
+        if len(dendrite_elements) > 0:
+            return dendrite_elements[0] if only_one else dendrite_elements
     return None

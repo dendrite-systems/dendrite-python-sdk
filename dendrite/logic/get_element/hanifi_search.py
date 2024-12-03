@@ -3,8 +3,9 @@ from typing import Any, Coroutine, List, Optional, Tuple, Union
 
 from bs4 import BeautifulSoup, Tag
 
+from dendrite.logic.config import Config
 from dendrite.logic.dom.strip import strip_soup
-from dendrite.logic.llm.config import llm_config
+from dendrite.logic.llm.config import LLMConfig
 
 from .agents import segment_agent, select_agent
 from .agents.segment_agent import (
@@ -18,11 +19,11 @@ from .models import Element
 
 
 async def get_expanded_dom(
-    soup: BeautifulSoup, prompt: str
+    soup: BeautifulSoup, prompt: str, llm_config: LLMConfig
 ) -> Optional[Tuple[str, List[SegmentAgentReponseType], List[SelectedTag]]]:
 
     new_nodes = hanifi_segment(soup, 6000, 3)
-    tags = await get_relevant_tags(prompt, new_nodes)
+    tags = await get_relevant_tags(prompt, new_nodes, llm_config)
 
     succesful_d_ids = [
         (tag.d_id, tag.index, tag.reason)
@@ -48,12 +49,13 @@ async def get_expanded_dom(
 async def hanifi_search(
     soup: BeautifulSoup,
     prompt: str,
+    config: Config,
     time_since_frame_navigated: Optional[float] = None,
     return_several: bool = False,
 ) -> List[Element]:
 
     stripped_soup = strip_soup(soup)
-    expand_res = await get_expanded_dom(stripped_soup, prompt)
+    expand_res = await get_expanded_dom(stripped_soup, prompt, config.llm_config)
 
     if expand_res is None:
         return [Element(status="failed", reason="No element found when expanding HTML")]
@@ -76,6 +78,7 @@ async def hanifi_search(
         flat_list,
         prompt,
         time_since_frame_navigated,
+        config.llm_config,
         return_several,
     )
 
@@ -99,12 +102,13 @@ async def hanifi_search(
 async def get_relevant_tags(
     prompt: str,
     segments: List[List[str]],
+    llm_config: LLMConfig,
 ) -> List[SegmentAgentReponseType]:
 
     tasks: List[Coroutine[Any, Any, SegmentAgentReponseType]] = []
 
     for index, segment in enumerate(segments):
-        tasks.append(extract_relevant_d_ids(prompt, segment, index))
+        tasks.append(extract_relevant_d_ids(prompt, segment, index, llm_config))
 
     results: List[SegmentAgentReponseType] = await asyncio.gather(*tasks)
     if results is None:

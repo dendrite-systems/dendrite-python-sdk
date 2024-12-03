@@ -5,10 +5,8 @@ from typing import Annotated, List, Literal, Union
 from annotated_types import Len
 from loguru import logger
 from pydantic import BaseModel, ValidationError
-
 from dendrite.logic.llm.agent import Agent
-from dendrite.logic.llm.config import llm_config
-
+from dendrite.logic.llm.config import LLMConfig
 from .prompts import SEGMENT_PROMPT
 
 
@@ -83,9 +81,7 @@ def parse_segment_output(text: str, index: int) -> SegmentAgentReponseType:
 
 
 async def extract_relevant_d_ids(
-    prompt: str,
-    segments: List[str],
-    index: int,
+    prompt: str, segments: List[str], index: int, llm_config: LLMConfig
 ) -> SegmentAgentReponseType:
     agent = Agent(llm_config.get("segment_agent"), system_prompt=SEGMENT_PROMPT)
     message = ""

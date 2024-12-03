@@ -9,22 +9,20 @@ from openai.types.chat.chat_completion_content_part_param import (
 )
 
 
+from dendrite.logic.config import Config
 from dendrite.logic.llm.agent import Agent, Message
-from dendrite.logic.llm.config import llm_config
 from dendrite.models.dto.ask_page_dto import AskPageDTO
 from dendrite.models.response.ask_page_response import AskPageResponse
 
 from .image import segment_image
 
 
-async def ask_page_action(
-    ask_page_dto: AskPageDTO,
-) -> AskPageResponse:
+async def ask_page_action(ask_page_dto: AskPageDTO, config: Config) -> AskPageResponse:
     image_segments = segment_image(
         ask_page_dto.page_information.screenshot_base64, segment_height=2000
     )
 
-    agent = Agent(llm_config.get("ask_page_agent"))
+    agent = Agent(config.llm_config.get("ask_page_agent"))
     scrolled_to_segment_i = 0
     content = generate_ask_page_prompt(ask_page_dto, image_segments)
     messages: List[Message] = [

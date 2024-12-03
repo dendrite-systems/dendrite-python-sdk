@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from loguru import logger
 
+from dendrite.logic.config import Config
 from dendrite.logic.extract.cached_script import get_working_cached_script
 from dendrite.logic.extract.extract_agent import ExtractAgent
 from dendrite.models.dto.extract_dto import ExtractDTO
@@ -103,7 +104,7 @@ class InMemoryLockManager:
                 InMemoryLockManager.events.pop(self.key, None)
 
 
-async def extract(extract_page_dto: ExtractDTO) -> ExtractResponse:
+async def extract(extract_page_dto: ExtractDTO, config: Config) -> ExtractResponse:
     # Check cache usage flags
     if extract_page_dto.use_cache or extract_page_dto.force_use_cache:
         res = await test_cache(extract_page_dto)
@@ -121,27 +122,23 @@ async def extract(extract_page_dto: ExtractDTO) -> ExtractResponse:
     lock_acquired = await lock_manager.acquire_lock()
 
     if lock_acquired:
-        return await generate_script(extract_page_dto, lock_manager)
+        return await generate_script(extract_page_dto, lock_manager, config)
     else:
         res = await wait_for_script_generation(extract_page_dto, lock_manager)
 
         if res:
             return res
         # Else create a working script since page is different
-        extract_agent = ExtractAgent(
-            extract_page_dto.page_information,
-        )
+        extract_agent = ExtractAgent(extract_page_dto.page_information, config=config)
         res = await extract_agent.write_and_run_script(extract_page_dto)
         return res
 
 
 async def generate_script(
-    extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager
+    extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager, config: Config
 ) -> ExtractResponse:
     try:
-        extract_agent = ExtractAgent(
-            extract_page_dto.page_information,
-        )
+        extract_agent = ExtractAgent(extract_page_dto.page_information, config=config)
         res = await extract_agent.write_and_run_script(extract_page_dto)
         await lock_manager.publish("done")
         return res
