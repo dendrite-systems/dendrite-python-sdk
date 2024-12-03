@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List, Optional, Union, cast
 
 import litellm
@@ -228,6 +229,8 @@ class Agent:
         text = choices[0].message.content
 
         if text is None:
-            logger.error("No text content in the response")
+            logger.error(
+                f"No text content in the response | response: {res} ",
+            )
             raise Exception("No text content in the response")
         return text

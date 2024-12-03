@@ -1,7 +1,7 @@
 import json
 import re
 import sys
-from typing import Any, List, Optional
+from typing import List, Union
 
 from loguru import logger
 
@@ -34,11 +34,8 @@ class ExtractAgent(Agent):
         self.page_information = page_information
         self.soup = BeautifulSoup(page_information.raw_html, "lxml")
         self.messages = []
-        self.generated_script: Optional[str] = None
+        self.current_segment = 0
         self.config = config
-
-    def get_generated_script(self):
-        return self.generated_script
 
     async def write_and_run_script(
         self, extract_page_dto: ExtractDTO
@@ -84,7 +81,7 @@ class ExtractAgent(Agent):
 
         if expanded_html:
             return await self.code_script_from_found_expanded_html_tags(
-                extract_page_dto, expanded_html, segments
+                extract_page_dto, expanded_html
             )
 
         raise Exception("Failed to extract data from the page")  # TODO: skriv bättre
@@ -107,7 +104,7 @@ class ExtractAgent(Agent):
         return segments
 
     async def code_script_from_found_expanded_html_tags(
-        self, extract_page_dto: ExtractDTO, expanded_html, segments
+        self, extract_page_dto: ExtractDTO, expanded_html
     ):
 
         agent_logger = logger.bind(
@@ -137,11 +134,7 @@ class ExtractAgent(Agent):
         iterations = 0
         max_retries = 10
 
-        generated_script: str = ""
-        response_data: Any | None = None
-
-        while iterations <= max_retries:
-            iterations += 1
+        for iterations in range(max_retries):
             agent_logger.debug(f"Code generation | Iteration: {iterations}")
 
             text = await self.call_llm(messages)
@@ -150,133 +143,154 @@ class ExtractAgent(Agent):
             json_pattern = r"```json(.*?)```"
             code_pattern = r"```python(.*?)```"
 
-            if text:
-                json_matches = re.findall(json_pattern, text, re.DOTALL)
-                code_matches = re.findall(code_pattern, text, re.DOTALL)
+            if text is None:
+                content = "Error: Failed to generate content."
+                messages.append({"role": "user", "content": content})
+                continue
 
-                if len(json_matches) + len(code_matches) > 1:
-                    content = "Error: Please output only one action at a time (either JSON or Python code, not both)."
-                    messages.append({"role": "user", "content": content})
+            json_matches = re.findall(json_pattern, text, re.DOTALL)
+            code_matches = re.findall(code_pattern, text, re.DOTALL)
+
+            if len(json_matches) + len(code_matches) > 1:
+                content = "Error: Please output only one action at a time (either JSON or Python code, not both)."
+                messages.append({"role": "user", "content": content})
+                continue
+
+            if code_matches:
+                self.generated_script = code_matches[0].strip()
+                result = await self._handle_code_match(
+                    code_matches[0].strip(),
+                    messages,
+                    iterations,
+                    max_retries,
+                    extract_page_dto,
+                    agent_logger,
+                )
+
+                messages.extend(result)
+                continue
+
+            elif json_matches:
+                result = self._handle_json_match(json_matches[0], expanded_html)
+                if isinstance(result, ExtractResponse):
+                    save_script(
+                        self.generated_script,
+                        extract_page_dto.combined_prompt,
+                        self.page_information.url,
+                    )
+                    return result
+                elif isinstance(result, list):
+                    messages.extend(result)
                     continue
-
-                for code_match in code_matches:
-                    # agent_logger.debug("Processing code match")
-                    generated_script = code_match.strip()
-                    temp_code_session = CodeSession()
-                    try:
-                        variables = temp_code_session.exec_code(
-                            generated_script,
-                            self.soup,
-                            self.page_information.raw_html,
-                        )
-                        # agent_logger.debug("Code execution successful")
-                    except Exception as e:
-                        # agent_logger.error(f"Code execution failed: {str(e)}")
-                        content = f"Error: {str(e)}"
-                        messages.append({"role": "user", "content": content})
-                        continue
-
-                    try:
-                        if "response_data" in variables:
-                            response_data = variables["response_data"]
-                            # agent_logger.debug(f"Response data: {response_data}")
-
-                            if extract_page_dto.return_data_json_schema != None:
-                                temp_code_session.validate_response(
-                                    extract_page_dto.return_data_json_schema,
-                                    response_data,
-                                )
-
-                            llm_readable_exec_res = (
-                                temp_code_session.llm_readable_exec_res(
-                                    variables,
-                                    extract_page_dto.combined_prompt,
-                                    iterations,
-                                    max_retries,
-                                )
-                            )
-
-                            messages.append(
-                                {"role": "user", "content": llm_readable_exec_res}
-                            )
-                            continue
-                        else:
-                            content = (
-                                f"Error: You need to add the variable 'response_data'"
-                            )
-                            messages.append(
-                                {
-                                    "role": "user",
-                                    "content": content,
-                                }
-                            )
-                            continue
-                    except Exception as e:
-                        llm_readable_exec_res = temp_code_session.llm_readable_exec_res(
-                            variables,
-                            extract_page_dto.combined_prompt,
-                            iterations,
-                            max_retries,
-                        )
-                        content = f"Error: Failed to validate `response_data`. Exception: {e}. {llm_readable_exec_res}"
-                        messages.append(
-                            {
-                                "role": "user",
-                                "content": content,
-                            }
-                        )
-                        continue
-
-                for json_match in json_matches:
-                    # agent_logger.debug("Processing JSON match")
-                    extracted_json = json_match.strip()
-                    data_dict = json.loads(extracted_json)
-                    current_segment = 0
-                    if "request_more_html" in data_dict:
-                        # agent_logger.info("Processing element indexes")
-                        try:
-                            current_segment += 1
-                            content = f"""Here is more of the HTML:\n```html\n{expanded_html[LARGE_HTML_CHAR_TRUNCATE_LEN*current_segment:LARGE_HTML_CHAR_TRUNCATE_LEN*(current_segment+1)]}\n```"""
-                            if len(expanded_html) > LARGE_HTML_CHAR_TRUNCATE_LEN * (
-                                current_segment + 1
-                            ):
-                                content += "\nThere is still more HTML to see. You can request more if needed."
-                            else:
-                                content += "\nThis is the end of the HTML content."
-                            messages.append({"role": "user", "content": content})
-                            continue
-                        except Exception as e:
-                            # agent_logger.error(
-                            #     f"Error processing element indexes: {str(e)}"
-                            # )
-                            content = f"Error: {str(e)}"
-                            messages.append({"role": "user", "content": content})
-                            continue
-                    elif "error" in data_dict:
-                        # agent_logger.error(f"Error in data_dict: {data_dict['error']}")
-                        raise Exception(data_dict["error"])
-                    elif "success" in data_dict:
-                        # agent_logger.info("Script generation successful")
-
-                        self.generated_script = generated_script
-                        save_script(
-                            self.generated_script,
-                            extract_page_dto.combined_prompt,
-                            self.page_information.url,
-                        )
-
-                        # agent_logger.debug(f"Response data: {response_data}")
-                        return ExtractResponse(
-                            status="success",
-                            message=data_dict["success"],
-                            return_data=response_data,
-                            created_script=self.get_generated_script(),
-                        )
+            else:
+                # If neither code nor json matches found, send error message
+                content = "Error: Could not find valid code or JSON in the assistant's response."
+                messages.append({"role": "user", "content": content})
+                continue
 
         # agent_logger.warning("Failed to create script after retrying several times")
         return ExtractResponse(
             status="failed",
             message="Failed to create script after retrying several times.",
             return_data=None,
-            created_script=self.get_generated_script(),
+            created_script=self.generated_script,
         )
+
+    async def _handle_code_match(
+        self,
+        generated_script: str,
+        messages: List[Message],
+        iterations,
+        max_retries,
+        extract_page_dto: ExtractDTO,
+        agent_logger,
+    ) -> List[Message]:
+        temp_code_session = CodeSession()
+
+        try:
+            variables = temp_code_session.exec_code(
+                generated_script, self.soup, self.page_information.raw_html
+            )
+
+            if "response_data" not in variables:
+                return [
+                    {
+                        "role": "user",
+                        "content": "Error: You need to add the variable 'response_data'",
+                    }
+                ]
+
+            self.response_data = variables["response_data"]
+
+            if extract_page_dto.return_data_json_schema:
+                temp_code_session.validate_response(
+                    extract_page_dto.return_data_json_schema, self.response_data
+                )
+
+            llm_readable_exec_res = temp_code_session.llm_readable_exec_res(
+                variables,
+                extract_page_dto.combined_prompt,
+                iterations,
+                max_retries,
+            )
+
+            return [{"role": "user", "content": llm_readable_exec_res}]
+
+        except Exception as e:
+            return [{"role": "user", "content": f"Error: {str(e)}"}]
+
+    def _handle_json_match(
+        self, json_str: str, expanded_html: str
+    ) -> Union[ExtractResponse, List[Message]]:
+        try:
+            data_dict = json.loads(json_str)
+
+            if "request_more_html" in data_dict:
+                return self._handle_more_html_request(expanded_html)
+
+            if "error" in data_dict:
+                raise Exception(data_dict["error"])
+
+            if "success" in data_dict:
+                return ExtractResponse(
+                    status="success",
+                    message=data_dict["success"],
+                    return_data=self.response_data,
+                    created_script=self.generated_script,
+                )
+            return [
+                {
+                    "role": "user",
+                    "content": "Error: JSON response does not specify a valid action.",
+                }
+            ]
+
+        except Exception as e:
+            return [{"role": "user", "content": f"Error: {str(e)}"}]
+
+    def _handle_more_html_request(self, expanded_html: str) -> List[Message]:
+
+        if LARGE_HTML_CHAR_TRUNCATE_LEN * (self.current_segment + 1) >= len(
+            expanded_html
+        ):
+            return [{"role": "user", "content": "There is no more HTML to show."}]
+
+        self.current_segment += 1
+        start = LARGE_HTML_CHAR_TRUNCATE_LEN * self.current_segment
+        end = min(
+            LARGE_HTML_CHAR_TRUNCATE_LEN * (self.current_segment + 1),
+            len(expanded_html),
+        )
+
+        content = (
+            f"""Here is more of the HTML:\n```html\n{expanded_html[start:end]}\n```"""
+        )
+
+        if len(expanded_html) > end:
+            content += (
+                "\nThere is still more HTML to see. You can request more if needed."
+            )
+        else:
+            content += "\nThis is the end of the HTML content."
+
+        return [{"role": "user", "content": content}]
