@@ -6,6 +6,7 @@ from typing import Any, Coroutine, List, Protocol, TypeVar
 from dendrite.logic.config import Config
 from dendrite.logic.get_element import get_element
 from dendrite.models.dto.ask_page_dto import AskPageDTO
+from dendrite.models.dto.cached_extract_dto import CachedExtractDTO
 from dendrite.models.dto.cached_selector_dto import CachedSelectorDTO
 from dendrite.models.dto.extract_dto import ExtractDTO
 from dendrite.models.dto.get_elements_dto import GetElementsDTO
@@ -19,6 +20,7 @@ from dendrite.models.response.interaction_response import InteractionResponse
 from dendrite.logic.ask import ask
 from dendrite.logic.extract import extract
 from dendrite.logic import verify_interaction
+from dendrite.models.scripts import Script
 from dendrite.models.selector import Selector
 
 
@@ -71,6 +73,9 @@ class SyncProtocol(LogicAPIProtocol):
 
     def get_cached_selectors(self, dto: CachedSelectorDTO) -> List[Selector]:
         return run_coroutine_sync(get_element.get_cached_selector(dto, self._config))
+
+    def get_cached_scripts(self, dto: CachedExtractDTO) -> List[Script]:
+        return run_coroutine_sync(extract.get_cached_scripts(dto, self._config))
 
     def extract(self, dto: ExtractDTO) -> ExtractResponse:
         return run_coroutine_sync(extract.extract(dto, self._config))

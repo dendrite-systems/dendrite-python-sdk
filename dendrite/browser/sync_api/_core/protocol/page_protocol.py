@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, Protocol
-from dendrite.logic.hosted._api.browser_api_client import BrowserAPIClient
 from dendrite.logic.interfaces import SyncProtocol
 
 if TYPE_CHECKING:

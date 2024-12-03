@@ -14,5 +14,6 @@ def save_script(code: str, prompt: str, url: str):
     extract_cache.ExtractCache.set({"prompt": prompt, "domain": domain}, script)
 
 
-def get_script(prompt: str, domain: str) -> Optional[Script]:
+def get_script(prompt: str, url: str) -> Optional[Script]:
+    domain = urlparse(url).netloc
     return extract_cache.ExtractCache.get({"prompt": prompt, "domain": domain})

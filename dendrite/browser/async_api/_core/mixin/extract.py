@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import Any, List, Optional, Type, overload
+from typing import Any, Callable, List, Optional, Type, overload
 
 from loguru import logger
 
@@ -15,8 +15,11 @@ from dendrite.browser.async_api._core._type_spec import (
     to_json_schema,
 )
 from dendrite.browser.async_api._core.protocol.page_protocol import DendritePageProtocol
+from dendrite.logic.code.code_session import execute
+from dendrite.models.dto.cached_extract_dto import CachedExtractDTO
 from dendrite.models.dto.extract_dto import ExtractDTO
 from dendrite.models.response.extract_response import ExtractResponse
+from dendrite.models.scripts import Script
 
 CACHE_TIMEOUT = 5
 
@@ -115,7 +118,6 @@ class ExtractionMixin(DendritePageProtocol):
         Raises:
             TimeoutError: If the extraction process exceeds the specified timeout.
         """
-
         logger.info(f"Starting extraction with prompt: {prompt}")
 
         json_schema = None
@@ -131,28 +133,21 @@ class ExtractionMixin(DendritePageProtocol):
         navigation_tracker = NavigationTracker(page)
         navigation_tracker.start_nav_tracking()
 
-        # Check if a script exists in the cache
+        # First try using cached extraction if enabled
         if use_cache:
-            logger.info("Cache available, attempting to use cached extraction")
-            result = await attempt_extraction_with_backoff(
-                self,
-                prompt,
-                json_schema,
-                remaining_timeout=CACHE_TIMEOUT,
-                only_use_cache=True,
-            )
-            if result:
-                return convert_and_return_result(result, type_spec)
+            logger.info("Testing cache")
+            cached_result = await self._try_cached_extraction(prompt, json_schema)
+            if cached_result:
+                return convert_and_return_result(cached_result, type_spec)
 
+        # If cache failed or disabled, proceed with extraction agent
         logger.info(
             "Using extraction agent to perform extraction, since no cache was found or failed."
         )
-        result = await attempt_extraction_with_backoff(
-            self,
+        result = await self._extract_with_agent(
             prompt,
             json_schema,
-            remaining_timeout=timeout - (time.time() - start_time),
-            only_use_cache=False,
+            timeout - (time.time() - start_time),
         )
 
         if result:
@@ -161,59 +156,141 @@ class ExtractionMixin(DendritePageProtocol):
         logger.error(f"Extraction failed after {time.time() - start_time:.2f} seconds")
         return None
 
+    async def _try_cached_extraction(
+        self,
+        prompt: str,
+        json_schema: Optional[JsonSchema],
+    ) -> Optional[ExtractResponse]:
+        """
+        Attempts to extract data using cached scripts with exponential backoff.
 
-async def attempt_extraction_with_backoff(
-    obj: DendritePageProtocol,
-    prompt: str,
-    json_schema: Optional[JsonSchema],
-    remaining_timeout: float = 180.0,
-    only_use_cache: bool = False,
-) -> Optional[ExtractResponse]:
-    TIMEOUT_INTERVAL: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0]
+        Args:
+            prompt: The prompt describing what to extract
+            json_schema: Optional JSON schema for type validation
+
+        Returns:
+            ExtractResponse if successful, None otherwise
+        """
+        page = await self._get_page()
+        dto = CachedExtractDTO(url=page.url, prompt=prompt)
+        scripts = await self._get_logic_api().get_cached_scripts(dto)
+        logger.debug(f"Found {len(scripts)} scripts in cache, {scripts}")
+        if len(scripts) == 0:
+            logger.debug(
+                f"No scripts found in cache for prompt: {prompt} in domain: {page.url}"
+            )
+            return None
+
+        async def try_cached_extract():
+            page = await self._get_page()
+            soup = await page._get_soup()
+            for script in scripts:
+                res = await test_script(script, str(soup), json_schema)
+                if res is not None:
+                    return ExtractResponse(
+                        status="success",
+                        message="Re-used a preexisting script from cache with the same specifications.",
+                        return_data=res,
+                        created_script=script.script,
+                    )
+
+            return None
+
+        return await _attempt_with_backoff_helper(
+            "cached_extraction",
+            try_cached_extract,
+            CACHE_TIMEOUT,
+        )
+
+    async def _extract_with_agent(
+        self,
+        prompt: str,
+        json_schema: Optional[JsonSchema],
+        remaining_timeout: float,
+    ) -> Optional[ExtractResponse]:
+        """
+        Attempts to extract data using the extraction agent with exponential backoff.
+
+        Args:
+            prompt: The prompt describing what to extract
+            json_schema: Optional JSON schema for type validation
+            remaining_timeout: Maximum time to spend on extraction
+
+        Returns:
+            ExtractResponse if successful, None otherwise
+        """
+
+        async def try_extract_with_agent():
+            page = await self._get_page()
+            page_information = await page.get_page_information(include_screenshot=True)
+            extract_dto = ExtractDTO(
+                page_information=page_information,
+                prompt=prompt,
+                return_data_json_schema=json_schema,
+                use_screenshot=True,
+            )
+
+            res: ExtractResponse = await self._get_logic_api().extract(extract_dto)
+
+            if res.status == "impossible":
+                logger.error(f"Impossible to extract data. Reason: {res.message}")
+                return None
+
+            if res.status == "success":
+                logger.success(f"Extraction successful: '{res.message}'")
+                return res
+
+            return None
+
+        return await _attempt_with_backoff_helper(
+            "extraction_agent",
+            try_extract_with_agent,
+            remaining_timeout,
+        )
+
+
+async def _attempt_with_backoff_helper(
+    operation_name: str,
+    operation: Callable,
+    timeout: float,
+    backoff_intervals: List[float] = [0.15, 0.45, 1.0, 2.0, 4.0, 8.0],
+) -> Optional[Any]:
+    """
+    Generic helper function that implements exponential backoff for operations.
+
+    Args:
+        operation_name: Name of the operation for logging
+        operation: Async function to execute
+        timeout: Maximum time to spend attempting the operation
+        backoff_intervals: List of timeouts between attempts
+
+    Returns:
+        The result of the operation if successful, None otherwise
+    """
     total_elapsed_time = 0
     start_time = time.time()
 
-    for current_timeout in TIMEOUT_INTERVAL:
-        if total_elapsed_time >= remaining_timeout:
+    for i, current_timeout in enumerate(backoff_intervals):
+        if total_elapsed_time >= timeout:
             logger.error(f"Timeout reached after {total_elapsed_time:.2f} seconds")
             return None
 
         request_start_time = time.time()
-        page = await obj._get_page()
-        page_information = await page.get_page_information(
-            include_screenshot=not only_use_cache
-        )
-        extract_dto = ExtractDTO(
-            page_information=page_information,
-            prompt=prompt,
-            return_data_json_schema=json_schema,
-            use_screenshot=True,
-            use_cache=only_use_cache,
-            force_use_cache=only_use_cache,
-        )
-
-        res: ExtractResponse = await obj._get_logic_api().extract(extract_dto)
+        result = await operation()
         request_duration = time.time() - request_start_time
 
-        if res.status == "impossible":
-            logger.error(f"Impossible to extract data. Reason: {res.message}")
-            return None
-
-        if res.status == "success":
-            logger.success(
-                f"Extraction successful: '{res.message}'\nUsed cache: {res.used_cache}"
-            )
-            return res
+        if result:
+            return result
 
         sleep_duration = max(0, current_timeout - request_duration)
         logger.info(
-            f"Extraction attempt failed. Status: {res.status}\nMessage: {res.message}\nSleeping for {sleep_duration:.2f} seconds"
+            f"{operation_name} attempt {i+1} failed. Sleeping for {sleep_duration:.2f} seconds"
         )
         await asyncio.sleep(sleep_duration)
         total_elapsed_time = time.time() - start_time
 
     logger.error(
-        f"All extraction attempts failed after {total_elapsed_time:.2f} seconds"
+        f"All {operation_name} attempts failed after {total_elapsed_time:.2f} seconds"
     )
     return None
 
@@ -228,3 +305,16 @@ def convert_and_return_result(
 
     logger.info("Extraction process completed successfully")
     return converted_res
+
+
+async def test_script(
+    script: Script,
+    raw_html: str,
+    return_data_json_schema: Any,
+) -> Optional[Any]:
+
+    try:
+        res = execute(script.script, raw_html, return_data_json_schema)
+        return res
+    except Exception as e:
+        logger.debug(f"Script failed with error: {str(e)} ")

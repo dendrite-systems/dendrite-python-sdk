@@ -14,14 +14,13 @@ async def get_working_cached_script(
     url: str,
     return_data_json_schema: Any,
 ) -> Optional[Tuple[Script, Any]]:
-    domain = urlparse(url).netloc
 
     if len(url) == 0:
         raise Exception("Domain must be specified")
 
-    scripts: List[Script] = [get_script(prompt, domain) or ...]
+    scripts: List[Script] = [get_script(prompt, url) or ...]
     logger.debug(
-        f"Found {len(scripts)} scripts in cache | Prompt: {prompt} in domain: {domain}"
+        f"Found {len(scripts)} scripts in cache | Prompt: {prompt} in domain: {url}"
     )
 
     for script in scripts:
@@ -30,7 +29,7 @@ async def get_working_cached_script(
             return script, res
         except Exception as e:
             logger.debug(
-                f"Script failed with error: {str(e)} | Prompt: {prompt} in domain: {domain}"
+                f"Script failed with error: {str(e)} | Prompt: {prompt} in domain: {url}"
             )
             continue
 
@@ -38,5 +37,5 @@ async def get_working_cached_script(
         return None
 
     raise Exception(
-        f"No working script found in cache even though {len(scripts)} scripts were available | Prompt: '{prompt}' in domain: '{domain}'"
+        f"No working script found in cache even though {len(scripts)} scripts were available | Prompt: '{prompt}' in domain: '{url}'"
     )

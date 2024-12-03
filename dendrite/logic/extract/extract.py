@@ -1,18 +1,23 @@
 import asyncio
 import hashlib
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 
 from loguru import logger
 
+from dendrite.logic.cache.utils import get_script
 from dendrite.logic.config import Config
 from dendrite.logic.extract.cached_script import get_working_cached_script
 from dendrite.logic.extract.extract_agent import ExtractAgent
+from dendrite.models.dto.cached_extract_dto import CachedExtractDTO
 from dendrite.models.dto.extract_dto import ExtractDTO
 from dendrite.models.response.extract_response import ExtractResponse
+from dendrite.models.scripts import Script
 
-# Assuming you have these imports
-# from your_module import WebScrapingAgent, run_script_if_cached
+
+async def get_cached_scripts(dto: CachedExtractDTO, config: Config) -> List[Script]:
+    script = get_script(dto.prompt, dto.url)
+    return [script] if script else []
 
 
 async def test_cache(extract_dto: ExtractDTO) -> Optional[ExtractResponse]:
@@ -33,7 +38,6 @@ async def test_cache(extract_dto: ExtractDTO) -> Optional[ExtractResponse]:
             status="success",
             message="Re-used a preexisting script from cache with the same specifications.",
             return_data=script_exec_res,
-            used_cache=True,
             created_script=script.script,
         )
 
@@ -105,19 +109,7 @@ class InMemoryLockManager:
 
 
 async def extract(extract_page_dto: ExtractDTO, config: Config) -> ExtractResponse:
-    # Check cache usage flags
-    if extract_page_dto.use_cache or extract_page_dto.force_use_cache:
-        res = await test_cache(extract_page_dto)
-        if res:
-            return res
 
-    if extract_page_dto.force_use_cache:
-        return ExtractResponse(
-            status="failed",
-            message="No script available in cache that matches this prompt.",
-        )
-
-    # Proceed with lock acquisition and processing
     lock_manager = InMemoryLockManager(extract_page_dto)
     lock_acquired = await lock_manager.acquire_lock()
 
