@@ -4,6 +4,9 @@ import re
 from abc import ABC
 from typing import Any, List, Optional, Sequence, Union
 from uuid import uuid4
+import shutil
+import tempfile
+import uuid
 
 from loguru import logger
 from playwright.async_api import (
@@ -42,6 +45,7 @@ from dendrite.browser.async_api._core.mixin import (
 from dendrite.browser.remote import Providers
 from dendrite.logic.config import Config
 from dendrite.logic.interfaces import AsyncProtocol
+from ._utils import get_chrome_user_data_dir, chrome_profile_exists
 
 
 class AsyncDendrite(
@@ -87,6 +91,7 @@ class AsyncDendrite(
         },
         remote_config: Optional[Providers] = None,
         config: Optional[Config] = None,
+        use_chrome_profile: bool = False,
     ):
         """
         Initializes AsyncDendrite with API keys and Playwright options.
@@ -96,6 +101,9 @@ class AsyncDendrite(
             openai_api_key (Optional[str]): Your own OpenAI API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
             anthropic_api_key (Optional[str]): The own Anthropic API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
             playwright_options (Any): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
+            remote_config (Optional[Providers]): Remote browser provider configuration
+            config (Optional[Config]): Configuration object
+            use_chrome_profile (bool): Whether to try using the existing Chrome profile. Defaults to False.
 
         Raises:
             MissingApiKeyError: If the Dendrite API key is not provided or found in the environment variables.
@@ -122,6 +130,8 @@ class AsyncDendrite(
         self.closed = False
         self._config = config or Config()
         self._browser_api_client: AsyncProtocol = AsyncProtocol(self._config)
+        self._use_chrome_profile = use_chrome_profile
+        self._temp_profile_dir = None
 
     @property
     def pages(self) -> List[AsyncPage]:
@@ -140,10 +150,12 @@ class AsyncDendrite(
         active_page = await self.get_active_page()
         return active_page
 
-    def _get_logic_api(self) -> AsyncProtocol:
+    @property
+    def logic_engine(self) -> AsyncProtocol:
         return self._browser_api_client
 
-    def _get_dendrite_browser(self) -> "AsyncDendrite":
+    @property
+    def dendrite_browser(self) -> "AsyncDendrite":
         return self
 
     async def __aenter__(self):
@@ -279,20 +291,27 @@ class AsyncDendrite(
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self._playwright = await async_playwright().start()
 
-        # browser = await self._playwright.chromium.launch(**self._playwright_options)
+        browser = None
+        # Create temporary copy of Chrome profile if requested
+        if self._use_chrome_profile and chrome_profile_exists():
+            original_dir = get_chrome_user_data_dir()
 
-        browser = await self._impl.start_browser(
-            self._playwright, self._playwright_options
-        )
+            context_options = {**self._playwright_options}
 
-        self.browser_context = (
-            browser.contexts[0]
-            if len(browser.contexts) > 0
-            else await browser.new_context()
-        )
+            self.browser_context = await self._impl.start_browser(
+                self._playwright, context_options, "browser_profiles/my_google_profile"
+            )
+        else:
+            browser = await self._impl.start_browser(
+                self._playwright, self._playwright_options
+            )
+            self.browser_context = (
+                browser.contexts[0]
+                if len(browser.contexts) > 0
+                else await browser.new_context()
+            )
 
         self._active_page_manager = PageManager(self, self.browser_context)
-
         await self._impl.configure_context(self)
 
         return browser, self.browser_context, self._active_page_manager
@@ -314,7 +333,7 @@ class AsyncDendrite(
 
     async def close(self):
         """
-        Closes the browser and uploads authentication session data if available.
+        Closes the browser and cleans up temporary profile directory if it exists.
 
         This method stops the Playwright instance, closes the browser context
 
@@ -335,10 +354,15 @@ class AsyncDendrite(
         try:
             if self._playwright:
                 await self._playwright.stop()
-        except AttributeError:
+        except (AttributeError, Exception):
             pass
-        except Exception:
-            pass
+
+        # Clean up temporary profile directory
+        if self._temp_profile_dir and os.path.exists(self._temp_profile_dir):
+            try:
+                shutil.rmtree(self._temp_profile_dir)
+            except Exception as e:
+                logger.warning(f"Failed to remove temporary profile directory: {e}")
 
     def _is_launched(self):
         """
@@ -434,3 +458,60 @@ class AsyncDendrite(
             Exception: If there is an issue uploading files.
         """
         return await self._upload_handler.get_data(pw_page, timeout=timeout)
+
+    async def setup_auth(
+        self,
+        url: str,
+        message: str = "Please log in to the website. Once done, press Enter to continue...",
+        profile_name: str = "default",
+    ) -> None:
+        """
+        Launches a browser session for user login and saves the profile data.
+
+        Args:
+            profile_name (str): Name for the profile to be saved
+            url (str): URL to navigate to for login
+            message (str): Custom message to show while waiting for user input
+
+        Returns:
+            None
+        """
+        # Create profiles directory if it doesn't exist
+        profiles_dir = self._config.auth_session_path
+        profile_path = profiles_dir / profile_name
+        profiles_dir.mkdir(exist_ok=True)
+
+        # Launch browser with temporary profile
+
+        try:
+            # Start Playwright
+            self._playwright = await async_playwright().start()
+
+            # Launch persistent context
+            context_options = {
+                "headless": False,  # Always show browser for login
+                "args": STEALTH_ARGS,
+            }
+
+            self.browser_context = (
+                await self._playwright.chromium.launch_persistent_context(
+                    user_data_dir=profile_path,
+                    ignore_default_args=["--enable-automation"],
+                    channel="chrome",
+                    **context_options,
+                )
+            )
+
+            # Set up page manager
+            self._active_page_manager = PageManager(self, self.browser_context)
+
+            # Navigate to login page
+            await self.goto(url)
+
+            # Wait for user to complete login
+            print(message)
+            input()
+
+        finally:
+            # Clean up
+            await self.close()

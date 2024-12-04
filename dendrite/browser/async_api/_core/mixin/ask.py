@@ -186,7 +186,7 @@ class AskMixin(DendritePageProtocol):
             )
 
             try:
-                res = await self._get_logic_api().ask_page(dto)
+                res = await self.logic_engine.ask_page(dto)
                 logger.debug(f"Got response in {time.time() - attempt_start} seconds")
 
                 if res.status == "error":

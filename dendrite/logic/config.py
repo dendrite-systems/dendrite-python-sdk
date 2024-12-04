@@ -9,10 +9,13 @@ from dendrite.models.selector import Selector
 class Config:
     def __init__(
         self,
-        cache_path: Optional[Union[str, Path]] = None,
+        root_path: Union[str, Path] = ".dendrite",
+        cache_path: Union[str, Path] = "cache",
+        auth_session_path: Union[str, Path] = "auth",
         llm_config: Optional[LLMConfig] = None,
     ):
-        self.cache_path = Path(cache_path) if cache_path else Path("./.dendrite/cache")
+        self.cache_path = root_path / Path(cache_path)
         self.llm_config = llm_config or LLMConfig()
         self.extract_cache = FileCache(Script, self.cache_path / "extract.json")
         self.element_cache = FileCache(Selector, self.cache_path / "get_element.json")
+        self.auth_session_path = root_path / Path(auth_session_path)

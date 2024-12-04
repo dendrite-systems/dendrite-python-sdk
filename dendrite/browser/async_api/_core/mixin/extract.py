@@ -173,7 +173,7 @@ class ExtractionMixin(DendritePageProtocol):
         """
         page = await self._get_page()
         dto = CachedExtractDTO(url=page.url, prompt=prompt)
-        scripts = await self._get_logic_api().get_cached_scripts(dto)
+        scripts = await self.logic_engine.get_cached_scripts(dto)
         logger.debug(f"Found {len(scripts)} scripts in cache, {scripts}")
         if len(scripts) == 0:
             logger.debug(
@@ -230,7 +230,7 @@ class ExtractionMixin(DendritePageProtocol):
                 use_screenshot=True,
             )
 
-            res: ExtractResponse = await self._get_logic_api().extract(extract_dto)
+            res: ExtractResponse = await self.logic_engine.extract(extract_dto)
 
             if res.status == "impossible":
                 logger.error(f"Impossible to extract data. Reason: {res.message}")

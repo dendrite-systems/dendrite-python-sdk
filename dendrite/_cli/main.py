@@ -1,6 +1,9 @@
 import argparse
 import subprocess
 import sys
+import asyncio
+from dendrite.browser.async_api import AsyncDendrite
+from dendrite.logic.config import Config
 
 
 def run_playwright_install():
@@ -17,14 +20,36 @@ def run_playwright_install():
         sys.exit(1)
 
 
+async def setup_auth(url: str, profile_name: str):
+    try:
+        async with AsyncDendrite() as browser:
+            await browser.setup_auth(
+                url=url,
+                profile_name=profile_name,
+                message="Please log in to the website. Once done, press Enter to continue..."
+            )
+        print(f"Authentication profile '{profile_name}' has been saved successfully.")
+    except Exception as e:
+        print(f"Error during authentication setup: {e}")
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Dendrite SDK CLI tool")
-    parser.add_argument("command", choices=["install"], help="Command to execute")
+    parser.add_argument("command", choices=["install", "auth"], help="Command to execute")
+    
+    # Add auth-specific arguments
+    parser.add_argument("--url", help="URL to navigate to for authentication")
+    parser.add_argument("--profile", default="default", help="Name for the authentication profile (default: 'default')")
 
     args = parser.parse_args()
 
     if args.command == "install":
         run_playwright_install()
+    elif args.command == "auth":
+        if not args.url:
+            parser.error("The --url argument is required for the auth command")
+        asyncio.run(setup_auth(args.url, args.profile))
 
 
 if __name__ == "__main__":

@@ -58,10 +58,10 @@ class AsyncPage(
     ):
         self.playwright_page = page
         self.screenshot_manager = ScreenshotManager(page)
-        self.dendrite_browser = dendrite_browser
         self._browser_api_client = browser_api_client
         self._last_main_frame_url = page.url
         self._last_frame_navigated_timestamp = time.time()
+        self._dendrite_browser = dendrite_browser
 
         self.playwright_page.on("framenavigated", self._on_frame_navigated)
 
@@ -69,6 +69,10 @@ class AsyncPage(
         if frame is self.playwright_page.main_frame:
             self._last_main_frame_url = frame.url
             self._last_frame_navigated_timestamp = time.time()
+
+    @property
+    def dendrite_browser(self) -> "AsyncDendrite":
+        return self._dendrite_browser
 
     @property
     def url(self):
@@ -93,10 +97,8 @@ class AsyncPage(
     async def _get_page(self) -> "AsyncPage":
         return self
 
-    def _get_dendrite_browser(self) -> "AsyncDendrite":
-        return self.dendrite_browser
-
-    def _get_logic_api(self) -> AsyncProtocol:
+    @property
+    def logic_engine(self) -> AsyncProtocol:
         return self._browser_api_client
 
     async def goto(

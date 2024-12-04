@@ -17,6 +17,17 @@ class PageManager:
         self.browser_context = browser_context
         self.dendrite_browser: AsyncDendrite = dendrite_browser
 
+        # Handle existing pages in the context
+        existing_pages = browser_context.pages
+        if existing_pages:
+            for page in existing_pages:
+                client = self.dendrite_browser.logic_engine
+                dendrite_page = AsyncPage(page, self.dendrite_browser, client)
+                self.pages.append(dendrite_page)
+                # Set the first existing page as active
+                if self.active_page is None:
+                    self.active_page = dendrite_page
+
         browser_context.on("page", self._page_on_open_handler)
 
     async def new_page(self) -> AsyncPage:
@@ -26,7 +37,7 @@ class PageManager:
         if self.active_page and new_page == self.active_page.playwright_page:
             return self.active_page
 
-        client = self.dendrite_browser._get_logic_api()
+        client = self.dendrite_browser.logic_engine
         dendrite_page = AsyncPage(new_page, self.dendrite_browser, client)
         self.pages.append(dendrite_page)
         self.active_page = dendrite_page
@@ -76,7 +87,7 @@ class PageManager:
         page.on("download", self._page_on_download_handler)
         page.on("filechooser", self._page_on_filechooser_handler)
 
-        client = self.dendrite_browser._get_logic_api()
+        client = self.dendrite_browser.logic_engine
         dendrite_page = AsyncPage(page, self.dendrite_browser, client)
         self.pages.append(dendrite_page)
         self.active_page = dendrite_page

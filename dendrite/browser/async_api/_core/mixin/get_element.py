@@ -214,6 +214,7 @@ class GetElementMixin(DendritePageProtocol):
         if isinstance(prompt_or_elements, Dict):
             return None
 
+        logger.info(f"Getting element for prompt: '{prompt_or_elements}'")
         start_time = time.time()
         page = await self._get_page()
         soup = await page._get_soup()
@@ -263,7 +264,7 @@ class GetElementMixin(DendritePageProtocol):
             The found elements if successful, None otherwise
         """
         dto = CachedSelectorDTO(url=page.url, prompt=prompt)
-        selectors = await self._get_logic_api().get_cached_selectors(dto)
+        selectors = await self.logic_engine.get_cached_selectors(dto)
 
         if len(selectors) == 0:
             logger.debug("No cached selectors found")
@@ -345,7 +346,7 @@ async def try_get_element(
             prompt=prompt_or_elements,
             only_one=only_one,
         )
-        res = await obj._get_logic_api().get_element(dto)
+        res = await obj.logic_engine.get_element(dto)
 
         if res.status == "impossible":
             logger.error(
