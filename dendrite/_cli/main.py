@@ -1,7 +1,8 @@
 import argparse
+import asyncio
 import subprocess
 import sys
-import asyncio
+
 from dendrite.browser.async_api import AsyncDendrite
 from dendrite.logic.config import Config
 

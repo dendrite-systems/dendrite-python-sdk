@@ -3,11 +3,9 @@ from typing import List
 
 import json_repair
 from jsonschema import validate
-
 from openai.types.chat.chat_completion_content_part_param import (
     ChatCompletionContentPartParam,
 )
-
 
 from dendrite.logic.config import Config
 from dendrite.logic.llm.agent import Agent, Message

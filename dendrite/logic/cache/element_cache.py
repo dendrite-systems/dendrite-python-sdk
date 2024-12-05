@@ -1,4 +1,5 @@
-from typing import Generic, TypeVar, TypedDict
+from typing import Generic, TypedDict, TypeVar
+
 from pydantic import BaseModel
 
 from dendrite.logic.cache.file_cache import FileCache

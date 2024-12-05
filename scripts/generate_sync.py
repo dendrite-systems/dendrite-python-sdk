@@ -289,7 +289,7 @@ if __name__ == "__main__":
         "AsyncPage": "Page",
         "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",
         "AsyncElementsResponse": "ElementsResponse",
-        "AsyncProtocol": "SyncProtocol",
+        "AsyncLogicEngine": "LogicEngine",
     }
 
     if check_for_uncommitted_changes(target_dir):

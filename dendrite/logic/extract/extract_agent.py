@@ -3,8 +3,9 @@ import re
 import sys
 from typing import List, Union
 
-from dendrite import logger
+from bs4 import BeautifulSoup
 
+from dendrite import logger
 from dendrite.logic.cache.utils import save_script
 from dendrite.logic.config import Config
 from dendrite.logic.dom.strip import mild_strip
@@ -12,20 +13,16 @@ from dendrite.logic.extract.prompts import (
     LARGE_HTML_CHAR_TRUNCATE_LEN,
     create_script_prompt_segmented_html,
 )
-
 from dendrite.logic.extract.scroll_agent import ScrollAgent
-from dendrite.logic.llm.agent import Agent
 from dendrite.logic.get_element.hanifi_search import get_expanded_dom
+from dendrite.logic.llm.agent import Agent, Message
 from dendrite.logic.llm.token_count import token_count
 from dendrite.models.dto.extract_dto import ExtractDTO
 from dendrite.models.page_information import PageInformation
-from dendrite.logic.llm.agent import Message
-
-from bs4 import BeautifulSoup
-
 from dendrite.models.response.extract_response import ExtractResponse
-from ..code.code_session import CodeSession
+
 from ..ask.image import segment_image
+from ..code.code_session import CodeSession
 
 
 class ExtractAgent(Agent):

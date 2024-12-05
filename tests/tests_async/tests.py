@@ -1,4 +1,5 @@
 import pytest
+
 from dendrite import AsyncDendrite
 
 

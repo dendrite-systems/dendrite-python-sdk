@@ -1,13 +1,8 @@
 import pytest
-import asyncio
-
 import pytest_asyncio
-from dendrite.browser.async_api._core.dendrite_browser import (
-    AsyncDendrite,
-)
-from dendrite.browser.remote import (
-    BrowserbaseConfig,
-)  # Import your class here
+
+from dendrite import AsyncDendrite
+from dendrite.remote import BrowserbaseConfig  # Import your class here
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -18,9 +13,6 @@ async def dendrite_browser():
     The fixture has a session scope, so it will only be initialized once for the entire test session.
     """
     async with AsyncDendrite(
-        openai_api_key="your_openai_api_key",
-        dendrite_api_key="your_dendrite_api_key",
-        anthropic_api_key="your_anthropic_api_key",
         playwright_options={"headless": True},
     ) as browser:
         yield browser  # Provide the browser to tests
@@ -34,9 +26,6 @@ async def browserbase():
     The fixture has a session scope, so it will only be initialized once for the entire test session.
     """
     async with AsyncDendrite(
-        openai_api_key="your_openai_api_key",
-        dendrite_api_key="your_dendrite_api_key",
-        anthropic_api_key="your_anthropic_api_key",
         playwright_options={"headless": True},
         remote_config=BrowserbaseConfig(),
     ) as browser:

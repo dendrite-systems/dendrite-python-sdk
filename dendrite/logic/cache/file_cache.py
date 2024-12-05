@@ -2,7 +2,7 @@ import json
 import threading
 from hashlib import md5
 from pathlib import Path
-from typing import Dict, Generic, Type, TypeVar, Union, Any, Mapping
+from typing import Any, Dict, Generic, Mapping, Type, TypeVar, Union
 
 from pydantic import BaseModel
 

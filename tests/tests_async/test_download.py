@@ -1,8 +1,8 @@
-import asyncio
 import os
+
 import pytest
 
-from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
+from dendrite import AsyncDendrite
 
 pytest_plugins = ("pytest_asyncio",)
 

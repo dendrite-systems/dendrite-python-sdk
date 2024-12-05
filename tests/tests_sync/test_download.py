@@ -1,6 +1,7 @@
 # content of test_tmp_path.py
 import os
-from dendrite.browser.sync_api import Dendrite
+
+from dendrite import Dendrite
 
 
 def test_download(dendrite_browser: Dendrite, tmp_path):

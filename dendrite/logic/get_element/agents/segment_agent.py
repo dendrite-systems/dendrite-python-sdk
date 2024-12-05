@@ -5,8 +5,10 @@ from typing import Annotated, List, Literal, Union
 from annotated_types import Len
 from loguru import logger
 from pydantic import BaseModel, ValidationError
+
 from dendrite.logic.llm.agent import Agent
 from dendrite.logic.llm.config import LLMConfig
+
 from .prompts import SEGMENT_PROMPT
 
 

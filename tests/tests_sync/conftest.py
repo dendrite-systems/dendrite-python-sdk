@@ -1,5 +1,6 @@
 import pytest
-from dendrite.browser.sync_api import Dendrite
+
+from dendrite import Dendrite
 
 
 @pytest.fixture(scope="session")
@@ -10,9 +11,6 @@ def dendrite_browser():
     The fixture has a session scope, so it will only be initialized once for the entire test session.
     """
     browser = Dendrite(
-        openai_api_key="your_openai_api_key",
-        dendrite_api_key="your_dendrite_api_key",
-        anthropic_api_key="your_anthropic_api_key",
         playwright_options={"headless": True},
     )  # Launch the browser
 

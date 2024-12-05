@@ -3,11 +3,11 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Literal, Optional
+
+from loguru import logger
 from openai.types.chat.chat_completion_content_part_param import (
     ChatCompletionContentPartParam,
 )
-
-from loguru import logger
 
 from dendrite.logic.llm.agent import Agent, Message
 from dendrite.logic.llm.config import LLMConfig

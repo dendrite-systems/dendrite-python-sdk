@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import Optional, Union
+
+from playwright.async_api import StorageState
+
 from dendrite.logic.cache.file_cache import FileCache
 from dendrite.logic.llm.config import LLMConfig
 from dendrite.models.scripts import Script
 from dendrite.models.selector import Selector
-
-from playwright.async_api import StorageState
 
 
 class Config:

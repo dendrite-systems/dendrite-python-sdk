@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from bs4 import BeautifulSoup, Tag
 from loguru import logger
+
 from dendrite.logic.config import Config
 from dendrite.logic.dom.css import check_if_selector_successful, find_css_selector
 from dendrite.logic.dom.strip import remove_hidden_elements
