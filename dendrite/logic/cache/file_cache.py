@@ -2,11 +2,11 @@ import json
 import threading
 from hashlib import md5
 from pathlib import Path
-from typing import Dict, Generic, Type, TypeVar, Union
+from typing import Dict, Generic, Type, TypeVar, Union, Any, Mapping
 
 from pydantic import BaseModel
 
-T = TypeVar("T", bound=BaseModel)
+T = TypeVar("T", bound=Union[BaseModel, Mapping[Any, Any]])
 
 
 class FileCache(Generic[T]):
@@ -32,21 +32,32 @@ class FileCache(Generic[T]):
                 json_string = self.filepath.read_text()
                 raw_dict = json.loads(json_string)
 
-                # Convert each entry back to the model class
-                self.cache = {
-                    k: self.model_class.model_validate_json(json.dumps(v))
-                    for k, v in raw_dict.items()
-                }
+                # Convert each entry based on model_class type
+                self.cache = {}
+                for k, v in raw_dict.items():
+                    if issubclass(self.model_class, BaseModel):
+                        self.cache[k] = self.model_class.model_validate_json(
+                            json.dumps(v)
+                        )
+                    else:
+                        # For any Mapping type (dict, TypedDict, etc)
+                        self.cache[k] = v
             except (json.JSONDecodeError, FileNotFoundError):
                 self.cache = {}
 
     def _save_cache(self, cache_dict: Dict[str, T]) -> None:
         """Save cache to file"""
         with self.lock:
-            # Convert models to dict before saving
-            serializable_dict = {
-                k: json.loads(v.model_dump_json()) for k, v in cache_dict.items()
-            }
+            # Convert entries based on their type
+            serializable_dict = {}
+            for k, v in cache_dict.items():
+                if isinstance(v, BaseModel):
+                    serializable_dict[k] = json.loads(v.model_dump_json())
+                elif isinstance(v, Mapping):
+                    serializable_dict[k] = dict(v)  # Convert any Mapping to dict
+                else:
+                    raise ValueError(f"Unsupported type for cache value: {type(v)}")
+
             self.filepath.write_text(json.dumps(serializable_dict, indent=2))
 
     def get(self, key: Union[str, Dict[str, str]]) -> Union[T, None]:

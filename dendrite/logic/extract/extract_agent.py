@@ -3,7 +3,7 @@ import re
 import sys
 from typing import List, Union
 
-from loguru import logger
+from dendrite import logger
 
 from dendrite.logic.cache.utils import save_script
 from dendrite.logic.config import Config
@@ -107,13 +107,7 @@ class ExtractAgent(Agent):
         self, extract_page_dto: ExtractDTO, expanded_html
     ):
 
-        agent_logger = logger.bind(
-            scope="extract", step="generate_code"
-        )  # agent_logger.info("Starting code_script_from_found_expanded_html_tags method")
-        agent_logger.remove()
-        fmt = "<green>{time: HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <level>{message}</level>"
-        agent_logger.add(sys.stderr, level="DEBUG", format=fmt)
-        messages = []
+        agent_logger = logger.bind(scope="extract", step="generate_code")
 
         user_prompt = create_script_prompt_segmented_html(
             extract_page_dto.combined_prompt,

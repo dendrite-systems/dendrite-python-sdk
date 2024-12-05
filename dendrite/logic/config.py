@@ -5,6 +5,8 @@ from dendrite.logic.llm.config import LLMConfig
 from dendrite.models.scripts import Script
 from dendrite.models.selector import Selector
 
+from playwright.async_api import StorageState
+
 
 class Config:
     def __init__(
@@ -18,4 +20,7 @@ class Config:
         self.llm_config = llm_config or LLMConfig()
         self.extract_cache = FileCache(Script, self.cache_path / "extract.json")
         self.element_cache = FileCache(Selector, self.cache_path / "get_element.json")
+        self.storage_cache = FileCache(
+            StorageState, self.cache_path / "storage_state.json"
+        )
         self.auth_session_path = root_path / Path(auth_session_path)

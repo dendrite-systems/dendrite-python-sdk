@@ -5,7 +5,13 @@ from typing_extensions import Literal
 if TYPE_CHECKING:
     from dendrite.browser.async_api._core.dendrite_browser import AsyncDendrite
 
-from playwright.async_api import Browser, Download, Playwright, BrowserContext
+from playwright.async_api import (
+    Browser,
+    Download,
+    Playwright,
+    BrowserContext,
+    StorageState,
+)
 
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
 
@@ -30,35 +36,21 @@ class ImplBrowser(ABC):
             Exception: If there is an issue retrieving the download event.
         """
 
-    @overload
-    @abstractmethod
-    async def start_browser(
-        self, playwright: Playwright, pw_options: dict, user_data_dir: str
-    ) -> BrowserContext: ...
-
-    @overload
-    @abstractmethod
-    async def start_browser(
-        self, playwright: Playwright, pw_options: dict, user_data_dir: None = None
-    ) -> Browser: ...
-
     @abstractmethod
     async def start_browser(
         self,
         playwright: Playwright,
         pw_options: dict,
-        user_data_dir: Optional[str] = None,
-    ) -> Union[Browser, BrowserContext]:
+    ) -> Browser:
         """
         Starts the browser session.
 
         Args:
             playwright: The playwright instance
             pw_options: Playwright launch options
-            user_data_dir: Optional path to Chrome user data directory for persistent context
 
         Returns:
-            Union[Browser, BrowserContext]: Either a Browser instance or BrowserContext for persistent sessions
+            Browser: A Browser instance
         """
 
     @abstractmethod

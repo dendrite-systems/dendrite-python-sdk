@@ -4,19 +4,15 @@ import re
 from abc import ABC
 from typing import Any, List, Optional, Sequence, Union
 from uuid import uuid4
-import shutil
-import tempfile
-import uuid
 
 from loguru import logger
 from playwright.async_api import (
-    BrowserContext,
     Download,
     Error,
     FileChooser,
     FilePayload,
-    Playwright,
     async_playwright,
+    StorageState,
 )
 
 from dendrite.browser._common._exceptions.dendrite_exception import (
@@ -29,6 +25,7 @@ from dendrite.browser.async_api._core._impl_browser import ImplBrowser
 from dendrite.browser.async_api._core._impl_mapping import get_impl
 from dendrite.browser.async_api._core._managers.page_manager import PageManager
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
+from dendrite.browser.async_api._core._utils import get_domain_w_suffix
 from dendrite.browser.async_api._core.dendrite_page import AsyncPage
 from dendrite.browser.async_api._core.event_sync import EventSync
 from dendrite.browser.async_api._core.mixin import (
@@ -45,7 +42,6 @@ from dendrite.browser.async_api._core.mixin import (
 from dendrite.browser.remote import Providers
 from dendrite.logic.config import Config
 from dendrite.logic.interfaces import AsyncProtocol
-from ._utils import get_chrome_user_data_dir, chrome_profile_exists
 
 
 class AsyncDendrite(
@@ -91,47 +87,30 @@ class AsyncDendrite(
         },
         remote_config: Optional[Providers] = None,
         config: Optional[Config] = None,
-        use_chrome_profile: bool = False,
+        auth: Optional[Union[List[str], str]] = None,
     ):
         """
-        Initializes AsyncDendrite with API keys and Playwright options.
+        Initialize AsyncDendrite with optional domain authentication.
 
         Args:
-            dendrite_api_key (Optional[str]): The Dendrite API key. If not provided, it's fetched from the environment variables.
-            openai_api_key (Optional[str]): Your own OpenAI API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
-            anthropic_api_key (Optional[str]): The own Anthropic API key, provide it, along with other custom API keys, if you wish to use Dendrite without paying for a license.
-            playwright_options (Any): Options for configuring Playwright. Defaults to running in non-headless mode with stealth arguments.
-            remote_config (Optional[Providers]): Remote browser provider configuration
-            config (Optional[Config]): Configuration object
-            use_chrome_profile (bool): Whether to try using the existing Chrome profile. Defaults to False.
-
-        Raises:
-            MissingApiKeyError: If the Dendrite API key is not provided or found in the environment variables.
+            playwright_options: Options for configuring Playwright
+            remote_config: Remote browser provider configuration
+            config: Configuration object
+            auth: List of domains or single domain to load authentication state for
         """
-
-        # api_config = APIConfig(
-        #     dendrite_api_key=dendrite_api_key or os.environ.get("DENDRITE_API_KEY"),
-        #     openai_api_key=openai_api_key,
-        #     anthropic_api_key=anthropic_api_key,
-        # )
-
         self._impl = self._get_impl(remote_config)
-
-        # self.api_config = api_config
-        self.playwright: Optional[Playwright] = None
-        self.browser_context: Optional[BrowserContext] = None
+        self._playwright_options = playwright_options
+        self._config = config or Config()
+        auth_url = [auth] if isinstance(auth, str) else auth or []
+        self._auth_domains = [get_domain_w_suffix(url) for url in auth_url]
 
         self._id = uuid4().hex
-        self._playwright_options = playwright_options
         self._active_page_manager: Optional[PageManager] = None
         self._user_id: Optional[str] = None
         self._upload_handler = EventSync(event_type=FileChooser)
         self._download_handler = EventSync(event_type=Download)
         self.closed = False
-        self._config = config or Config()
         self._browser_api_client: AsyncProtocol = AsyncProtocol(self._config)
-        self._use_chrome_profile = use_chrome_profile
-        self._temp_profile_dir = None
 
     @property
     def pages(self) -> List[AsyncPage]:
@@ -291,20 +270,24 @@ class AsyncDendrite(
         os.environ["PW_TEST_SCREENSHOT_NO_FONTS_READY"] = "1"
         self._playwright = await async_playwright().start()
 
-        browser = None
-        # Create temporary copy of Chrome profile if requested
-        if self._use_chrome_profile and chrome_profile_exists():
-            original_dir = get_chrome_user_data_dir()
+        # Get and merge storage states for authenticated domains
+        storage_states = []
+        for domain in self._auth_domains:
+            state = await self._get_domain_storage_state(domain)
 
-            context_options = {**self._playwright_options}
+            if state:
+                storage_states.append(state)
 
-            self.browser_context = await self._impl.start_browser(
-                self._playwright, context_options, "browser_profiles/my_google_profile"
-            )
+        # Launch browser
+        browser = await self._impl.start_browser(
+            self._playwright, self._playwright_options
+        )
+
+        # Create context with merged storage state if available
+        if storage_states:
+            merged_state = await self._merge_storage_states(storage_states)
+            self.browser_context = await browser.new_context(storage_state=merged_state)
         else:
-            browser = await self._impl.start_browser(
-                self._playwright, self._playwright_options
-            )
             self.browser_context = (
                 browser.contexts[0]
                 if len(browser.contexts) > 0
@@ -333,36 +316,35 @@ class AsyncDendrite(
 
     async def close(self):
         """
-        Closes the browser and cleans up temporary profile directory if it exists.
+        Closes the browser and updates storage states for authenticated domains before cleanup.
 
-        This method stops the Playwright instance, closes the browser context
+        This method updates the storage states for authenticated domains, stops the Playwright
+        instance, and closes the browser context.
 
         Returns:
             None
 
         Raises:
-            Exception: If there is an issue closing the browser or uploading session data.
+            Exception: If there is an issue closing the browser or updating session data.
         """
-
         self.closed = True
+
         try:
-            if self.browser_context:
+            if self.browser_context and self._auth_domains:
+                # Update storage state for each authenticated domain
+                for domain in self._auth_domains:
+                    await self.save_auth(domain)
+
                 await self._impl.stop_session()
                 await self.browser_context.close()
         except Error:
             pass
+
         try:
             if self._playwright:
                 await self._playwright.stop()
         except (AttributeError, Exception):
             pass
-
-        # Clean up temporary profile directory
-        if self._temp_profile_dir and os.path.exists(self._temp_profile_dir):
-            try:
-                shutil.rmtree(self._temp_profile_dir)
-            except Exception as e:
-                logger.warning(f"Failed to remove temporary profile directory: {e}")
 
     def _is_launched(self):
         """
@@ -459,50 +441,69 @@ class AsyncDendrite(
         """
         return await self._upload_handler.get_data(pw_page, timeout=timeout)
 
+    async def save_auth(self, url: str) -> None:
+        """
+        Save authentication state for a specific domain.
+
+        Args:
+            domain (str): Domain to save authentication for (e.g., "github.com")
+        """
+        if not self.browser_context:
+            raise DendriteException("Browser context not initialized")
+
+        domain = get_domain_w_suffix(url)
+
+        # Get current storage state
+        storage_state = await self.browser_context.storage_state()
+
+        # Filter storage state for specific domain
+        filtered_state = {
+            "origins": [
+                origin
+                for origin in storage_state.get("origins", [])
+                if domain in origin.get("origin", "")
+            ],
+            "cookies": [
+                cookie
+                for cookie in storage_state.get("cookies", [])
+                if domain in cookie.get("domain", "")
+            ],
+        }
+
+        # Save to cache
+        self._config.storage_cache.set(
+            {"domain": domain}, StorageState(**filtered_state)
+        )
+
     async def setup_auth(
         self,
         url: str,
         message: str = "Please log in to the website. Once done, press Enter to continue...",
-        profile_name: str = "default",
     ) -> None:
         """
-        Launches a browser session for user login and saves the profile data.
+        Set up authentication for a specific URL.
 
         Args:
-            profile_name (str): Name for the profile to be saved
             url (str): URL to navigate to for login
-            message (str): Custom message to show while waiting for user input
-
-        Returns:
-            None
+            message (str): Message to show while waiting for user input
         """
-        # Create profiles directory if it doesn't exist
-        profiles_dir = self._config.auth_session_path
-        profile_path = profiles_dir / profile_name
-        profiles_dir.mkdir(exist_ok=True)
+        # Extract domain from URL
+        # domain = urlparse(url).netloc
+        # if not domain:
+        #     domain = urlparse(f"https://{url}").netloc
 
-        # Launch browser with temporary profile
+        domain = get_domain_w_suffix(url)
 
         try:
             # Start Playwright
             self._playwright = await async_playwright().start()
 
-            # Launch persistent context
-            context_options = {
-                "headless": False,  # Always show browser for login
-                "args": STEALTH_ARGS,
-            }
-
-            self.browser_context = (
-                await self._playwright.chromium.launch_persistent_context(
-                    user_data_dir=profile_path,
-                    ignore_default_args=["--enable-automation"],
-                    channel="chrome",
-                    **context_options,
-                )
+            # Launch browser with normal context
+            browser = await self._impl.start_browser(
+                self._playwright, {**self._playwright_options, "headless": False}
             )
 
-            # Set up page manager
+            self.browser_context = await browser.new_context()
             self._active_page_manager = PageManager(self, self.browser_context)
 
             # Navigate to login page
@@ -512,6 +513,38 @@ class AsyncDendrite(
             print(message)
             input()
 
+            # Save the storage state for this domain
+            await self.save_auth(domain)
+
         finally:
             # Clean up
             await self.close()
+
+    async def _get_domain_storage_state(self, domain: str) -> Optional[StorageState]:
+        """Get storage state for a specific domain"""
+        return self._config.storage_cache.get({"domain": domain})
+
+    async def _merge_storage_states(self, states: List[StorageState]) -> StorageState:
+        """Merge multiple storage states into one"""
+        merged = {"origins": [], "cookies": []}
+        seen_origins = set()
+        seen_cookies = set()
+
+        for state in states:
+            # Merge origins
+            for origin in state.get("origins", []):
+                origin_key = origin.get("origin", "")
+                if origin_key not in seen_origins:
+                    merged["origins"].append(origin)
+                    seen_origins.add(origin_key)
+
+            # Merge cookies
+            for cookie in state.get("cookies", []):
+                cookie_key = (
+                    f"{cookie.get('name')}:{cookie.get('domain')}:{cookie.get('path')}"
+                )
+                if cookie_key not in seen_cookies:
+                    merged["cookies"].append(cookie)
+                    seen_cookies.add(cookie_key)
+
+        return StorageState(**merged)

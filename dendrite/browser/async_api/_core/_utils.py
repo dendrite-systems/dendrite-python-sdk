@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 from bs4 import BeautifulSoup
 from loguru import logger
 from playwright.async_api import ElementHandle, Error, Frame, FrameLocator
+import tldextract
 
 from dendrite.browser.async_api._core._type_spec import PlaywrightPage
 from dendrite.browser.async_api._core.dendrite_element import AsyncElement
@@ -16,38 +17,13 @@ if TYPE_CHECKING:
 from dendrite.browser.async_api._core._js import GENERATE_DENDRITE_IDS_IFRAME_SCRIPT
 from dendrite.logic.dom.strip import mild_strip_in_place
 
-import os
-import platform
-from pathlib import Path
 
+def get_domain_w_suffix(url: str) -> str:
+    parsed_url = tldextract.extract(url)
+    if parsed_url.suffix == "":
+        raise ValueError(f"Invalid URL: {url}")
 
-def get_chrome_user_data_dir() -> str:
-    """
-    Get the default Chrome user data directory based on the operating system.
-
-    Returns:
-        str: Path to Chrome user data directory
-    """
-    system = platform.system()
-    home = Path.home()
-
-    if system == "Windows":
-        return str(Path(os.getenv("LOCALAPPDATA", "")) / "Google/Chrome/User Data")
-    elif system == "Darwin":  # macOS
-        return str(home / "Library/Application Support/Google/Chrome/")
-    elif system == "Linux":
-        return str(home / ".config/google-chrome")
-    else:
-        raise NotImplementedError(f"Unsupported operating system: {system}")
-
-
-def chrome_profile_exists() -> bool:
-    """Check if a Chrome profile exists in the default location."""
-    try:
-        user_data_dir = get_chrome_user_data_dir()
-        return Path(user_data_dir).exists()
-    except:
-        return False
+    return f"{parsed_url.domain}.{parsed_url.suffix}"
 
 
 async def expand_iframes(

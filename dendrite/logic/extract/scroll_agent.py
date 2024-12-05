@@ -73,6 +73,8 @@ class ScrollAgent(Agent):
             ErrorRes(),
         ]
 
+        self.logger = logger.bind(agent="scroll_agent")
+
     async def scroll_through_page(
         self,
         combined_prompt: str,
