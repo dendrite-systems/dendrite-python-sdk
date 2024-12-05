@@ -1,19 +1,21 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 
-from dendrite.logic.cache import extract_cache
+from dendrite.logic.cache.file_cache import FileCache
 from dendrite.models.scripts import Script
 
 
-def save_script(code: str, prompt: str, url: str):
+def save_script(code: str, prompt: str, url: str, cache: FileCache[Script]):
     domain = urlparse(url).netloc
     script = Script(
         url=url, domain=domain, script=code, created_at=datetime.now().isoformat()
     )
-    extract_cache.ExtractCache.set({"prompt": prompt, "domain": domain}, script)
+    cache.append({"prompt": prompt, "domain": domain}, script)
 
 
-def get_script(prompt: str, url: str) -> Optional[Script]:
+def get_scripts(
+    prompt: str, url: str, cache: FileCache[Script]
+) -> Optional[List[Script]]:
     domain = urlparse(url).netloc
-    return extract_cache.ExtractCache.get({"prompt": prompt, "domain": domain})
+    return cache.get({"prompt": prompt, "domain": domain})

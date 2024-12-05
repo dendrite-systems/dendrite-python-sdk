@@ -6,7 +6,7 @@ from loguru import logger
 from dendrite.logic.config import Config
 from dendrite.logic.dom.css import check_if_selector_successful, find_css_selector
 from dendrite.logic.dom.strip import remove_hidden_elements
-from dendrite.logic.get_element.cached_selector import (
+from dendrite.logic.get_element.cache import (
     add_selector_to_cache,
     get_selector_from_cache,
 )
@@ -82,7 +82,7 @@ async def get_cached_selector(dto: CachedSelectorDTO, config: Config) -> List[Se
     if db_selectors is None:
         return []
 
-    return [db_selectors]
+    return db_selectors
 
 
 # async def check_cache(

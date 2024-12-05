@@ -186,7 +186,9 @@ class GetElementMixin(DendritePageProtocol):
             return None
 
         logger.debug("Attempting to use cached selectors with backoff")
-        str_selectors = list(map(lambda x: x.selector, selectors))
+        # Take at most the last 5 selectors
+        recent_selectors = selectors[-min(5, len(selectors)) :]
+        str_selectors = list(map(lambda x: x.selector, recent_selectors))
 
         async def try_cached_selectors():
             return await get_elements_from_selectors_soup(

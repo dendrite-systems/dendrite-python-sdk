@@ -141,6 +141,7 @@ class ExtractionMixin(DendritePageProtocol):
     ) -> Optional[ExtractResponse]:
         """
         Attempts to extract data using cached scripts with exponential backoff.
+        Only tries up to 5 most recent scripts.
 
         Args:
             prompt: The prompt describing what to extract
@@ -162,7 +163,8 @@ class ExtractionMixin(DendritePageProtocol):
         def try_cached_extract():
             page = self._get_page()
             soup = page._get_soup()
-            for script in scripts:
+            recent_scripts = scripts[-min(5, len(scripts)) :]
+            for script in recent_scripts:
                 res = test_script(script, str(soup), json_schema)
                 if res is not None:
                     return ExtractResponse(

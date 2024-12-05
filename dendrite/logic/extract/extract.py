@@ -5,9 +5,8 @@ from urllib.parse import urlparse
 
 from loguru import logger
 
-from dendrite.logic.cache.utils import get_script
 from dendrite.logic.config import Config
-from dendrite.logic.extract.cached_script import get_working_cached_script
+from dendrite.logic.extract.cache import get_scripts, get_working_cached_script
 from dendrite.logic.extract.extract_agent import ExtractAgent
 from dendrite.models.dto.cached_extract_dto import CachedExtractDTO
 from dendrite.models.dto.extract_dto import ExtractDTO
@@ -16,11 +15,12 @@ from dendrite.models.scripts import Script
 
 
 async def get_cached_scripts(dto: CachedExtractDTO, config: Config) -> List[Script]:
-    script = get_script(dto.prompt, dto.url)
-    return [script] if script else []
+    return get_scripts(dto.prompt, dto.url, config.extract_cache) or []
 
 
-async def test_cache(extract_dto: ExtractDTO) -> Optional[ExtractResponse]:
+async def test_cache(
+    extract_dto: ExtractDTO, config: Config
+) -> Optional[ExtractResponse]:
     try:
 
         cached_script_res = await get_working_cached_script(
@@ -28,6 +28,7 @@ async def test_cache(extract_dto: ExtractDTO) -> Optional[ExtractResponse]:
             extract_dto.page_information.raw_html,
             extract_dto.page_information.url,
             extract_dto.return_data_json_schema,
+            config,
         )
 
         if cached_script_res is None:
@@ -116,7 +117,7 @@ async def extract(extract_page_dto: ExtractDTO, config: Config) -> ExtractRespon
     if lock_acquired:
         return await generate_script(extract_page_dto, lock_manager, config)
     else:
-        res = await wait_for_script_generation(extract_page_dto, lock_manager)
+        res = await wait_for_script_generation(extract_page_dto, lock_manager, config)
 
         if res:
             return res
@@ -142,7 +143,7 @@ async def generate_script(
 
 
 async def wait_for_script_generation(
-    extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager
+    extract_page_dto: ExtractDTO, lock_manager: InMemoryLockManager, config: Config
 ) -> Optional[ExtractResponse]:
     event = await lock_manager.subscribe()
     logger.info("Waiting for script to be generated")
@@ -150,6 +151,6 @@ async def wait_for_script_generation(
 
     # If script was created after waiting
     if notification_received:
-        res = await test_cache(extract_page_dto)
+        res = await test_cache(extract_page_dto, config)
         if res:
             return res

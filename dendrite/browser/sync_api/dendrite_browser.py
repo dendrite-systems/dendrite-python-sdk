@@ -462,7 +462,7 @@ class Dendrite(
 
     def _get_domain_storage_state(self, domain: str) -> Optional[StorageState]:
         """Get storage state for a specific domain"""
-        return self._config.storage_cache.get({"domain": domain})
+        return self._config.storage_cache.get({"domain": domain}, index=0)
 
     def _merge_storage_states(self, states: List[StorageState]) -> StorageState:
         """Merge multiple storage states into one"""

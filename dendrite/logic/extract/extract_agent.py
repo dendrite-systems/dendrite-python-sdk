@@ -6,9 +6,10 @@ from typing import List, Union
 from bs4 import BeautifulSoup
 
 from dendrite import logger
-from dendrite.logic.cache.utils import save_script
+
 from dendrite.logic.config import Config
 from dendrite.logic.dom.strip import mild_strip
+from dendrite.logic.extract.cache import save_script
 from dendrite.logic.extract.prompts import (
     LARGE_HTML_CHAR_TRUNCATE_LEN,
     create_script_prompt_segmented_html,
@@ -168,6 +169,7 @@ class ExtractAgent(Agent):
                         self.generated_script,
                         extract_page_dto.combined_prompt,
                         self.page_information.url,
+                        cache=self.config.extract_cache,
                     )
                     return result
                 elif isinstance(result, list):

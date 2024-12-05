@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 
 from dendrite.logic.cache.file_cache import FileCache
@@ -8,7 +8,7 @@ from dendrite.models.selector import Selector
 
 async def get_selector_from_cache(
     url: str, prompt: str, cache: FileCache[Selector]
-) -> Optional[Selector]:
+) -> Optional[List[Selector]]:
     netloc = urlparse(url).netloc
 
     return cache.get({"netloc": netloc, "prompt": prompt})
@@ -27,4 +27,4 @@ async def add_selector_to_cache(
         created_at=created_at,
     )
 
-    cache.set({"netloc": netloc, "prompt": prompt}, selector)
+    cache.append({"netloc": netloc, "prompt": prompt}, selector)

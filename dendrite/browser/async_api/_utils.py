@@ -70,7 +70,6 @@ async def expand_iframes(
             mild_strip_in_place(frame_tree)
             merge_iframe_to_page(iframe_id, page_soup, frame_tree)
         except Error as e:
-            logger.debug(f"Error processing frame {iframe_id}: {e}")
             continue
 
 
