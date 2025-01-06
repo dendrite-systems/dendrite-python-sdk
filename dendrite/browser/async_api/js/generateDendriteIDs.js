@@ -36,7 +36,7 @@ const segs = function elmSegs(elm) {
 
 var getXPathForElement = (element) => {
     return segs(element).join('/');
-}
+}    
 
 // Create a Map to store used hashes and their counters
 const usedHashes = new Map();
