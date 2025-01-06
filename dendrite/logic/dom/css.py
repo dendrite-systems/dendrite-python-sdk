@@ -5,8 +5,19 @@ from loguru import logger
 
 
 def find_css_selector(ele: Tag, soup: BeautifulSoup) -> str:
-    if ele is None:
-        return ""
+    logger.debug(f"Finding selector for element: {ele.name} with attrs: {ele.attrs}")
+
+    # Add this debug block
+    final_selector = ""  # Track the selector being built
+    matches = []  # Track matching elements
+
+    def debug_selector(selector: str) -> None:
+        nonlocal matches
+        try:
+            matches = soup.select(selector)
+            logger.debug(f"Selector '{selector}' matched {len(matches)} elements")
+        except Exception as e:
+            logger.error(f"Invalid selector '{selector}': {e}")
 
     # Check for inherently unique elements
     if ele.name in ["html", "head", "body"]:

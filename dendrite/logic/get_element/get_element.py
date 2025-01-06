@@ -47,7 +47,10 @@ async def get_new_element(
         if interactable.dendrite_id is None:
             interactable.status = "failed"
             interactable.reason = "No d-id found returned from agent"
-        tag = soup.find(attrs={"d-id": interactable.dendrite_id})
+        print(interactable.dendrite_id)
+        tag = soup_without_hidden_elements.find(
+            attrs={"d-id": interactable.dendrite_id}
+        )
         if isinstance(tag, Tag):
             selector = find_css_selector(tag, soup)
             cache = config.element_cache

@@ -92,7 +92,7 @@ async def extract_relevant_d_ids(
             f"""###### SEGMENT ######\n\n{segment}\n\n###### SEGMENT END ######\n\n"""
         )
 
-    message += f"Can you get the d_ids of the elements that match the following description:\n\n{prompt} element\n\nIf you've selected an element you should NOT select another element that is a child of the element you've selected. It is important that you follow this."
+    message += f"Can you get the d_id of the elements that match the following description:\n\n{prompt} element\n\nIf you've selected an element you should NOT select another element that is a child of the element you've selected. It is important that you follow this."
     message += """\nOutput how you think. Think step by step. if there are multiple candidate elements return all of them. Don't make up d-id for elements if they are not present/don't match the description. Limit your reasoning to 2-3 sentences\nOnly include the json block – don't output an array, only ONE object."""
 
     max_retries = 3
