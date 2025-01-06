@@ -1,10 +1,10 @@
-import os
 import ast
-import shutil
 import logging
+import os
+import shutil
 import subprocess
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -138,7 +138,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
                 alias = ast.alias(name="time", asname=alias.asname)
             elif alias.name.startswith("dendrite"):
                 new_name = alias.name.replace(
-                    "dendrite.async_api", "dendrite.sync_api", 1
+                    "dendrite.browser.async_api", "dendrite.browser.sync_api", 1
                 )
                 alias = ast.alias(name=new_name, asname=alias.asname)
             new_names.append(alias)
@@ -160,7 +160,7 @@ class AsyncToSyncTransformer(ast.NodeTransformer):
             node.module = "time"
         elif node.module and node.module.startswith("dendrite"):
             node.module = node.module.replace(
-                "dendrite.async_api", "dendrite.sync_api", 1
+                "dendrite.browser.async_api", "dendrite.browser.sync_api", 1
             )
         return node
 
@@ -279,8 +279,8 @@ def get_uncommitted_diff(folder):
 
 
 if __name__ == "__main__":
-    source_dir = "dendrite/async_api"
-    target_dir = "dendrite/sync_api"
+    source_dir = "dendrite/browser/async_api"
+    target_dir = "dendrite/browser/sync_api"
     renames = {
         "AsyncBrowserbaseDownload": "BrowserbaseDownload",
         "AsyncBrowserbaseBrowser": "BrowserbaseBrowser",
@@ -289,6 +289,7 @@ if __name__ == "__main__":
         "AsyncPage": "Page",
         "AsyncDendriteRemoteBrowser": "DendriteRemoteBrowser",
         "AsyncElementsResponse": "ElementsResponse",
+        "AsyncLogicEngine": "LogicEngine",
     }
 
     if check_for_uncommitted_changes(target_dir):

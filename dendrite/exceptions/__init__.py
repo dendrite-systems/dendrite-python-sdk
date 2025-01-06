@@ -1,11 +1,11 @@
-from .._common._exceptions.dendrite_exception import (
+from ..browser._common._exceptions.dendrite_exception import (
     BaseDendriteException,
+    BrowserNotLaunchedError,
     DendriteException,
     IncorrectOutcomeError,
     InvalidAuthSessionError,
     MissingApiKeyError,
     PageConditionNotMet,
-    BrowserNotLaunchedError,
 )
 
 __all__ = [
