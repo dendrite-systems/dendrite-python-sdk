@@ -1,10 +1,10 @@
-> **Notice:** The Dendrite SDK is not under active development from us. However, the project will remain fully open source so that you and others can learn from and build upon our work. Feel free to fork, study, or adapt this code for your own projects as you wish – reach out to us on Discord if you have questions!
-
 <p align="center">
   <a href="https://dendrite.systems"><img src="https://img.shields.io/badge/Website-dendrite.systems-blue?style=for-the-badge&logo=google-chrome" alt="Dendrite Homepage"></a>
   <a href="https://docs.dendrite.systems"><img src="https://img.shields.io/badge/Docs-docs.dendrite.systems-orange?style=for-the-badge&logo=bookstack" alt="Docs"></a>
   <a href="https://discord.gg/ETPBdXU3kx"><img src="https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
 </p>
+
+> **Notice:** The Dendrite SDK is not under active development anymore. However, the project will remain fully open source so that you and others can learn from it. Feel free to fork, study, or adapt this code for your own projects as you wish – reach out to us on Discord if you have questions! We love chatting about web AI agents. 🤖
 
 ## What is Dendrite?
 
@@ -19,7 +19,9 @@
 
 #### A simple outlook integration
 
-With Dendrite, it's easy to create web interaction tools for your agent.
+With Dendrite it's easy to create web interaction tools for your agent.
+
+Here's how you can send an email:
 
 ```python
 from dendrite import AsyncDendrite
@@ -51,13 +53,24 @@ if __name__ == "__main__":
 
 ```
 
-To authenticate on outlook, run the command below:
+You'll need to add your own Anthropic key or [configure which LLMs to use yourself](https://docs.dendrite.systems/concepts/config).
 
-```bash
-dendrite auth --url outlook.live.com
+
+```.env
+ANTHROPIC_API_KEY=sk-...
 ```
 
-A browser will open and you'll be able to login. After you've logged in, press enter in your terminal to save the cookies locally, so that they can be used in your code.
+To **authenticate** on any web service with Dendrite, follow these steps:
+
+1. Run the authentication command
+
+  ```bash
+  dendrite auth --url outlook.live.com
+  ```
+
+2. This command will open a browser that you'll be able to login with.
+
+3. After you've logged in, press enter in your terminal. This will save your cookies locally so that they can be used in your code.
 
 Read more about authentication [in our docs](https://docs.dendrite.systems/examples/authentication).
 
@@ -69,15 +82,11 @@ pip install dendrite && dendrite install
 
 #### Simple navigation and interaction
 
-Initialize the Dendrite client and start doing web interactions without boilerplate.
-
-[Get your API key here](https://dendrite.systems/app)
-
 ```python
 from dendrite import AsyncDendrite
 
 async def main():
-    client = AsyncDendrite(dendrite_api_key="sk...")
+    client = AsyncDendrite()
 
     await client.goto("https://google.com")
     await client.fill("Search field", "Hello world")
@@ -94,7 +103,7 @@ In the example above, we simply go to Google, populate the search field with "He
 
 ### Get any page as markdown
 
-This is a simple example of how to get any page as markdown.
+This is a simple example of how to get any page as markdown, great for feeding to an LLM.
 
 ```python
 from dendrite import AsyncDendrite
@@ -119,6 +128,56 @@ if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
 ```
+
+### Get Company Data from Y Combinator
+
+The classic web data extraction test, made easy:
+
+```python
+from dendrite import AsyncDendrite
+import pprint
+import asyncio
+
+
+async def main():
+    browser = AsyncDendrite()
+
+    # Navigate
+    await browser.goto("https://www.ycombinator.com/companies")
+
+    # Find and fill the search field with "AI agent"
+    await browser.fill(
+        "Search field", value="AI agent"
+    )  # Element selector cached since before
+    await browser.press("Enter")
+
+    # Extract startups with natural language description
+    # Once created by our agent, the same script will be cached and reused
+    startups = await browser.extract(
+        "All companies. Return a list of dicts with name, location, description and url"
+    )
+    pprint.pprint(startups, indent=2)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+```
+
+returns 
+```
+[ { 'description': 'Book accommodations around the world.',
+    'location': 'San Francisco, CA, USA',
+    'name': 'Airbnb',
+    'url': 'https://www.ycombinator.com/companies/airbnb'},
+  { 'description': 'Digital Analytics Platform',
+    'location': 'San Francisco, CA, USA',
+    'name': 'Amplitude',
+    'url': 'https://www.ycombinator.com/companies/amplitude'},
+...
+] }
+```
+
 
 ### Extract Data from Google Analytics
 
