@@ -19,7 +19,7 @@ DEFAULT_LLM: Dict[str, LLM] = {
     "ask_page_agent": LLM(
         "claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500
     ),
-    "segment_agent": LLM("gpt-4o", temperature=0, max_tokens=1500),
+    "segment_agent": LLM("claude-3-haiku-20240307", temperature=0, max_tokens=1500),
     "select_agent": LLM("claude-3-5-sonnet-20241022", temperature=0, max_tokens=1500),
     "verify_action_agent": LLM(
         "claude-3-5-sonnet-20241022", temperature=0.3, max_tokens=1500
