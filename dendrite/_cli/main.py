@@ -21,14 +21,13 @@ def run_playwright_install():
         sys.exit(1)
 
 
-async def setup_auth(url: str, profile_name: str):
+async def setup_auth(url: str):
     try:
         async with AsyncDendrite() as browser:
             await browser.setup_auth(
                 url=url,
                 message="Please log in to the website. Once done, press Enter to continue...",
             )
-        print(f"Authentication profile '{profile_name}' has been saved successfully.")
     except Exception as e:
         print(f"Error during authentication setup: {e}")
         sys.exit(1)
@@ -42,11 +41,6 @@ def main():
 
     # Add auth-specific arguments
     parser.add_argument("--url", help="URL to navigate to for authentication")
-    parser.add_argument(
-        "--profile",
-        default="default",
-        help="Name for the authentication profile (default: 'default')",
-    )
 
     args = parser.parse_args()
 
@@ -55,7 +49,7 @@ def main():
     elif args.command == "auth":
         if not args.url:
             parser.error("The --url argument is required for the auth command")
-        asyncio.run(setup_auth(args.url, args.profile))
+        asyncio.run(setup_auth(args.url))
 
 
 if __name__ == "__main__":
