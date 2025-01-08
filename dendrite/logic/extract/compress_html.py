@@ -3,7 +3,7 @@ import time
 from collections import Counter
 from typing import List, Optional, Tuple, TypedDict, Union
 
-from bs4 import BeautifulSoup, NavigableString, PageElement
+from bs4 import BeautifulSoup, NavigableString, PageElement, Tag
 from bs4.element import Tag
 
 from dendrite.logic.dom.truncate import (
@@ -385,19 +385,16 @@ class CompressHTML:
                 #     child.replace_with(
                 #         f"[...{', '.join(next_element_tags)} tags collapsed for readability...]")
 
-        def remove_double_nested(soup):
-            for tag in soup.find_all(True):
+        def remove_double_nested(soup: Union[BeautifulSoup, Tag]) -> Union[BeautifulSoup, Tag]:
+            for tag in soup.find_all():
                 # If a tag only contains a single child of the same type
-                if len(tag.find_all(True, recursive=False)) == 1 and isinstance(
-                    tag.contents[0], Tag
-                ):
+                children = tag.find_all(recursive=False)
+                if len(children) == 1 and tag.contents and isinstance(tag.contents[0], Tag):
                     child_tag = tag.contents[0]
                     # move the contents of the child tag up to the parent
                     tag.clear()
                     tag.extend(child_tag.contents)
-                    if len(tag.find_all(True, recursive=False)) == 1 and isinstance(
-                        tag.contents[0], Tag
-                    ):
+                    if len(tag.find_all(recursive=False)) == 1 and tag.contents and isinstance(tag.contents[0], Tag):
                         remove_double_nested(tag)
 
             return soup
