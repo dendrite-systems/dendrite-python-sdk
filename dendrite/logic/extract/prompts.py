@@ -42,7 +42,7 @@ Task: '{question}'
 
 Every element with the attribute is-compressed="true" can be de-compressed. Compressed elements may contain hidden elements such as anchor tags and buttons, so it's really important that relevant element to the task are expanded.
 
-You'll get max {max_iterations} interations to explore the HTML DOM Tree.
+You'll get max {max_iterations} interactions to explore the HTML DOM Tree.
 
 You are currently on iteration {iterations}. Try to expand the DOM in relevant places at least three times.
 
