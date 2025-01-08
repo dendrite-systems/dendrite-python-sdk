@@ -49,7 +49,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DENDRITE_API_KEY:  ${{secrets.DENDRITE_API_KEY}}
       BROWSERBASE_API_KEY: ${{ secrets.BROWSERBASE_API_KEY }} 
       BROWSERBASE_PROJECT_ID: ${{ secrets.BROWSERBASE_PROJECT_ID }} 
     steps:

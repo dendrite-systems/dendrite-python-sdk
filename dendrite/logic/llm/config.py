@@ -28,11 +28,32 @@ DEFAULT_LLM: Dict[str, LLM] = {
 
 
 class LLMConfig:
+    """
+    Configuration class for Language Learning Models (LLMs) in Dendrite.
+
+    This class manages the registration and retrieval of different LLM agents used
+    throughout the system. It maintains a registry of LLM configurations for various
+    agents and provides a default configuration when needed.
+
+    Attributes:
+        registered_llms (Dict[str, LLM]): Dictionary mapping agent names to their LLM configurations
+        default_llm (LLM): Default LLM configuration used when no specific agent is found
+    """
+
     def __init__(
         self,
         default_agents: Optional[Dict[str, LLM]] = None,
         default_llm: Optional[LLM] = None,
     ):
+        """
+        Initialize the LLMConfig with optional default configurations.
+
+        Args:
+            default_agents (Optional[Dict[str, LLM]]): Dictionary of agent names to LLM
+                configurations to override the default agents. Defaults to None.
+            default_llm (Optional[LLM]): Default LLM configuration to use when no
+                specific agent is found. If None, uses Claude 3 Sonnet with default settings.
+        """
         self.registered_llms: Dict[str, LLM] = DEFAULT_LLM.copy()
         if default_agents:
             self.registered_llms.update(default_agents)
@@ -43,20 +64,22 @@ class LLMConfig:
 
     async def register_agent(self, agent: str, llm: LLM) -> None:
         """
-        Register an LLM agent by name.
+        Register a single LLM agent configuration.
 
         Args:
-            agent: The name of the agent to register
-            llm: The LLM agent to register
+            agent (str): The name of the agent to register
+            llm (LLM): The LLM configuration to associate with the agent
         """
         self.registered_llms[agent] = llm
 
     async def register(self, agents: Dict[str, LLM]) -> None:
         """
-        Register multiple LLM agents at once. Overrides if an agent has already been registered
+        Register multiple LLM agent configurations at once.
+
+        This method will override any existing agent configurations with the same names.
 
         Args:
-            agents: A dictionary of agent names to LLM agents
+            agents (Dict[str, LLM]): Dictionary mapping agent names to their LLM configurations
         """
         self.registered_llms.update(agents)
 
@@ -81,15 +104,23 @@ class LLMConfig:
         use_default: bool = True,
     ) -> Optional[LLM]:
         """
-        Get an LLM agent by name, optionally falling back to default if not found.
+        Get an LLM configuration by agent name.
+
+        This method attempts to retrieve an LLM configuration in the following order:
+        1. From the registered agents
+        2. From the provided default parameter
+        3. From the instance's default_llm (if use_default is True)
 
         Args:
-            agent: The name of the agent to retrieve
-            default: Optional specific default LLM to use if agent not found
-            use_default: If True, use self.default_llm when agent not found and default is None
+            agent (str): The name of the agent whose configuration to retrieve
+            default (Optional[LLM]): Specific default LLM to use if agent not found.
+                Defaults to None.
+            use_default (bool): Whether to use the instance's default_llm when agent
+                is not found and no specific default is provided. Defaults to True.
 
         Returns:
-            Optional[LLM]: The requested LLM agent, default LLM, or None
+            Optional[LLM]: The requested LLM configuration, or None if not found and
+                no defaults are available or allowed.
         """
         llm = self.registered_llms.get(agent)
         if llm is not None:

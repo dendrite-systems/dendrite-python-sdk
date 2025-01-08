@@ -21,7 +21,7 @@ from .hanifi_search import hanifi_search
 async def get_element(dto: GetElementsDTO, config: Config) -> GetElementResponse:
     if isinstance(dto.prompt, str):
         return await process_prompt(dto.prompt, dto, config)
-    raise ...
+    raise NotImplementedError("Prompt is not a string")
 
 
 async def process_prompt(

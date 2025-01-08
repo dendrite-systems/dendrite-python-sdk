@@ -61,23 +61,16 @@ class AsyncDendrite(
     AsyncDendrite is a class that manages a browser instance using Playwright, allowing
     interactions with web pages using natural language.
 
-    This class handles initialization with API keys for Dendrite, OpenAI, and Anthropic, manages browser
-    contexts, and provides methods for navigation, authentication, and other browser-related tasks.
+    This class handles initialization with configuration options, manages browser contexts,
+    and provides methods for navigation, authentication, and other browser-related tasks.
 
     Attributes:
-        id (UUID): The unique identifier for the AsyncDendrite instance.
-        auth_data (Optional[AuthSession]): The authentication session data for the browser.
-        dendrite_api_key (str): The API key for Dendrite, used for interactions with the Dendrite API.
-        playwright_options (dict): Options for configuring the Playwright browser instance.
-        playwright (Optional[Playwright]): The Playwright instance managing the browser.
+        id (str): The unique identifier for the AsyncDendrite instance.
         browser_context (Optional[BrowserContext]): The current browser context, which may include cookies and other session data.
         active_page_manager (Optional[PageManager]): The manager responsible for handling active pages within the browser context.
         user_id (Optional[str]): The user ID associated with the browser session.
-        browser_api_client (BrowserAPIClient): The API client used for communicating with the Dendrite API.
-        api_config (APIConfig): The configuration for the language models, including API keys for OpenAI and Anthropic.
-
-    Raises:
-        Exception: If any of the required API keys (Dendrite, OpenAI, Anthropic) are not provided or found in the environment variables.
+        logic_engine (AsyncLogicEngine): The engine used for processing natural language interactions.
+        closed (bool): Whether the browser instance has been closed.
     """
 
     def __init__(
@@ -94,10 +87,14 @@ class AsyncDendrite(
         Initialize AsyncDendrite with optional domain authentication.
 
         Args:
-            playwright_options: Options for configuring Playwright
-            remote_config: Remote browser provider configuration
-            config: Configuration object
-            auth: List of domains or single domain to load authentication state for
+            playwright_options (dict): Options for configuring Playwright browser instance.
+                Defaults to non-headless mode with stealth arguments.
+            remote_config (Optional[Providers]): Remote browser provider configuration.
+                Defaults to None for local browser.
+            config (Optional[Config]): Configuration object for the instance.
+                Defaults to a new Config instance.
+            auth (Optional[Union[List[str], str]]): List of domains or single domain
+                to load authentication state for. Defaults to None.
         """
         self._impl = self._get_impl(remote_config)
         self._playwright_options = playwright_options
@@ -195,19 +192,23 @@ class AsyncDendrite(
         expected_page: str = "",
     ) -> AsyncPage:
         """
-        Navigates to the specified URL, optionally in a new tab
+        Navigates to the specified URL, optionally in a new tab.
 
         Args:
-            url (str): The URL to navigate to.
-            new_tab (bool, optional): Whether to open the URL in a new tab. Defaults to False.
-            timeout (Optional[float], optional): The maximum time (in milliseconds) to wait for the page to load. Defaults to 15000.
-            expected_page (str, optional): A description of the expected page type for verification. Defaults to an empty string.
+            url (str): The URL to navigate to. If no protocol is specified, https:// will be added.
+            new_tab (bool): Whether to open the URL in a new tab. Defaults to False.
+            timeout (Optional[float]): The maximum time in milliseconds to wait for navigation.
+                Defaults to 15000ms. Navigation will continue even if timeout occurs.
+            expected_page (str): A description of the expected page type for verification.
+                If provided, will verify the loaded page matches the description.
+                Defaults to empty string (no verification).
 
         Returns:
             AsyncPage: The page object after navigation.
 
         Raises:
-            Exception: If there is an error during navigation or if the expected page type is not found.
+            IncorrectOutcomeError: If expected_page is provided and the loaded page
+                doesn't match the expected description.
         """
         # Check if the URL has a protocol
         if not re.match(r"^\w+://", url):
@@ -245,8 +246,13 @@ class AsyncDendrite(
         """
         Scrolls to the bottom of the current page.
 
-        Returns:
-            None
+        Args:
+            timeout (float): Maximum time in milliseconds to attempt scrolling.
+                Defaults to 30000ms.
+            scroll_increment (int): Number of pixels to scroll in each step.
+                Defaults to 1000 pixels.
+            no_progress_limit (int): Number of consecutive attempts with no progress
+                before stopping. Defaults to 3 attempts.
         """
         active_page = await self.get_active_page()
         await active_page.scroll_to_bottom(
@@ -305,10 +311,12 @@ class AsyncDendrite(
         Adds cookies to the current browser context.
 
         Args:
-            cookies (List[Dict[str, Any]]): A list of cookies to be added to the browser context.
+            cookies (List[Dict[str, Any]]): A list of cookie objects to be added.
+                Each cookie should be a dictionary with standard cookie attributes
+                (name, value, domain, etc.).
 
         Raises:
-            Exception: If the browser context is not initialized.
+            DendriteException: If the browser context is not initialized.
         """
         if not self.browser_context:
             raise DendriteException("Browser context not initialized")
@@ -446,8 +454,16 @@ class AsyncDendrite(
         """
         Save authentication state for a specific domain.
 
+        This method captures and stores the current browser context's storage state
+        (cookies and origin data) for the specified domain. The state can be later
+        used to restore authentication.
+
         Args:
-            domain (str): Domain to save authentication for (e.g., "github.com")
+            url (str): URL or domain to save authentication for (e.g., "github.com"
+                or "https://github.com"). The domain will be extracted from the URL.
+
+        Raises:
+            DendriteException: If the browser context is not initialized.
         """
         if not self.browser_context:
             raise DendriteException("Browser context not initialized")
@@ -482,11 +498,15 @@ class AsyncDendrite(
         message: str = "Please log in to the website. Once done, press Enter to continue...",
     ) -> None:
         """
-        Set up authentication for a specific URL.
+        Set up authentication for a specific URL by guiding the user through login.
+
+        This method opens a browser window, navigates to the specified URL, waits for
+        the user to complete the login process, and then saves the authentication state.
 
         Args:
             url (str): URL to navigate to for login
-            message (str): Message to show while waiting for user input
+            message (str): Message to show while waiting for user to complete login.
+                Defaults to standard login instruction message.
         """
         # Extract domain from URL
         # domain = urlparse(url).netloc
